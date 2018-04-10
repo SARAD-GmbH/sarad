@@ -68,12 +68,15 @@ def list_connected_instruments(native_rs232_ports):
         # native RS232 ports
         if port.device in native_rs232_ports:
             print_port_parameters(port)
+            get_version(port.device)
     for port in serial.tools.list_ports.grep("0403"):
         # FTDI USB-serial converters
         print_port_parameters(port)
+        get_version(port.device)
     for port in serial.tools.list_ports.grep("067B"):
         # Prolific USB-serial converters
         print_port_parameters(port)
+        get_version(port.device)
 
 def check_answer(answer):
     # Returns a dictionary of:
@@ -81,34 +84,35 @@ def check_answer(answer):
     #     is_control_message: True if control message
     #     payload: Payload of answer
     #     number_of_bytes_in_payload
-    control_byte = answer[1]
-    neg_control_byte = answer[2]
-    print('Control byte = ' + hex(control_byte))
-    print('negated control byte = ' + hex(neg_control_byte))
-    if (control_byte ^ 0xff) == neg_control_byte:
-        control_byte_ok = True
-    number_of_bytes_in_payload = (control_byte & 0x7f) + 1
-    print('Nr of data bytes = ' + str(number_of_bytes_in_payload))
-    if control_byte & 0x80:
-        is_control = True
+    if answer.startswith(b'B') & answer.endswith(b'E'):
+        control_byte = answer[1]
+        neg_control_byte = answer[2]
+        if (control_byte ^ 0xff) == neg_control_byte:
+            control_byte_ok = True
+        number_of_bytes_in_payload = (control_byte & 0x7f) + 1
+        if control_byte & 0x80:
+            is_control = True
+        else:
+            is_control = False
+        status_byte = answer[3]
+        payload = answer[3:3+number_of_bytes_in_payload]
+        calculated_checksum = 0
+        for byte in payload:
+            calculated_checksum = calculated_checksum + byte
+        received_checksum_bytes = answer[3 + number_of_bytes_in_payload:5 +
+                                         number_of_bytes_in_payload]
+        received_checksum = int.from_bytes(received_checksum_bytes,
+                                           byteorder='little', signed=False)
+        if received_checksum == calculated_checksum:
+            checksum_ok = True
+        is_valid = control_byte_ok & checksum_ok
     else:
+        is_valid = False
+    if not is_valid:
         is_control = False
-    status_byte = answer[3]
-    print('Status byte = ' + hex(status_byte))
-    payload = answer[3:3+number_of_bytes_in_payload]
-    print(payload)
-    calculated_checksum = 0
-    for byte in payload:
-        calculated_checksum = calculated_checksum + byte
-    print(hex(calculated_checksum))
-    received_checksum_bytes = answer[3 + number_of_bytes_in_payload:5 +
-                                     number_of_bytes_in_payload]
-    received_checksum = int.from_bytes(received_checksum_bytes,
-                                       byteorder='little', signed=False)
-    print(hex(received_checksum))
-    if received_checksum == calculated_checksum:
-        checksum_ok = True
-    return dict(is_valid = control_byte_ok & checksum_ok,
+        payload = b''
+        number_of_bytes_in_payload = 0
+    return dict(is_valid = is_valid,
                 is_control = is_control,
                 payload = payload,
                 number_of_bytes_in_payload = number_of_bytes_in_payload)
@@ -121,8 +125,6 @@ def get_message_payload(serial_port, message, expected_length_of_reply):
     #     number_of_bytes_in_payload
     #
     ser = serial.Serial(serial_port, 9600, timeout=3, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
-    print(ser.name)
-    print(ser.get_settings())
     ser.write(message)
     answer = ser.read(expected_length_of_reply)
     ser.close()
@@ -136,16 +138,19 @@ def get_version(serial_port):
     get_version_msg = b'\x42\x80\x7f\x0c\x0c\x00\x45'
     reply_length_version_msg = 19
     checked_payload = get_message_payload(serial_port, get_version_msg, reply_length_version_msg)
-    payload = checked_payload['payload']
-
-    device_type = payload[1]
-    software_version = payload[2]
-    device_number = int.from_bytes(payload[3:5], byteorder='little', signed=False)
-    for radonscout_type in radonscout_types:
-        if radonscout_type['id'] == device_type:
-            print(radonscout_type['name'])
-    print('Software version = ' + str(software_version))
-    print('Device number = ' + str(device_number))
+    if checked_payload['is_valid']:
+        try:
+            payload = checked_payload['payload']
+            device_type = payload[1]
+            software_version = payload[2]
+            device_number = int.from_bytes(payload[3:5], byteorder='little', signed=False)
+            for radonscout_type in radonscout_types:
+                if radonscout_type['id'] == device_type:
+                    print(radonscout_type['name'])
+            print('Software version: ' + str(software_version))
+            print('Device number: ' + str(device_number))
+        except ParsingError:
+            print("Error parsing the payload.")
 
 
 serial_port = 'COM16'

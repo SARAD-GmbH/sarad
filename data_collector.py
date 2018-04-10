@@ -40,6 +40,8 @@ radonscout_types = [t_radonscout1, t_radonscout2, t_radonscoutplus, t_rtm1688, t
 t_zigbee = dict(name = 'ZigBee adapter', id = 200)
 network_types = [t_zigbee]
 
+products = [device_families, doseman_types, radonscout_types, network_types]
+
 native_rs232_ports = ['COM1', 'COM2', 'COM3']
 
 def bytes_to_float(value_bytes):
@@ -55,9 +57,14 @@ def print_port_parameters(port):
         port.name = "n.a."
     print("Name: " + port.name)
     print("HWID: " + port.hwid)
-    print("Description: " + port.description + "\n")
+    print("Description: " + port.description)
 
-def list_connected_instruments(native_rs232_ports):
+def print_instrument_version(instrument_version):
+    print("Instrument: " + instrument_version['instrument_type'])
+    print("Software version: " + str(instrument_version['software_version']))
+    print("Instrument number: " + str(instrument_version['device_number']))
+
+def list_connected_instruments(native_rs232_ports, products):
     # SARAD instruments can be connected:
     # 1. by RS232 on a native RS232 interface at the computer
     # 2. via their built in FT232R USB-serial converter
@@ -67,16 +74,22 @@ def list_connected_instruments(native_rs232_ports):
     for port in serial.tools.list_ports.comports():
         # native RS232 ports
         if port.device in native_rs232_ports:
-            print_port_parameters(port)
-            get_version(port.device)
+            instrument_version = get_version(port.device, products)
+            if instrument_version:
+                print_port_parameters(port)
+                print_instrument_version(instrument_version)
     for port in serial.tools.list_ports.grep("0403"):
         # FTDI USB-serial converters
-        print_port_parameters(port)
-        get_version(port.device)
+        instrument_version = get_version(port.device, products)
+        if instrument_version:
+          print_port_parameters(port)
+          print_instrument_version(instrument_version)
     for port in serial.tools.list_ports.grep("067B"):
         # Prolific USB-serial converters
-        print_port_parameters(port)
-        get_version(port.device)
+        instrument_version = get_version(port.device, products)
+        if instrument_version:
+          print_port_parameters(port)
+          print_instrument_version(instrument_version)
 
 def check_answer(answer):
     # Returns a dictionary of:
@@ -124,7 +137,7 @@ def get_message_payload(serial_port, message, expected_length_of_reply):
     #     payload: Payload of answer
     #     number_of_bytes_in_payload
     #
-    ser = serial.Serial(serial_port, 9600, timeout=3, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
+    ser = serial.Serial(serial_port, 9600, timeout=1, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
     ser.write(message)
     answer = ser.read(expected_length_of_reply)
     ser.close()
@@ -134,7 +147,7 @@ def get_message_payload(serial_port, message, expected_length_of_reply):
                 payload = checked_answer['payload'],
                 number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
 
-def get_version(serial_port):
+def get_version(serial_port, products):
     get_version_msg = b'\x42\x80\x7f\x0c\x0c\x00\x45'
     reply_length_version_msg = 19
     checked_payload = get_message_payload(serial_port, get_version_msg, reply_length_version_msg)
@@ -144,14 +157,16 @@ def get_version(serial_port):
             device_type = payload[1]
             software_version = payload[2]
             device_number = int.from_bytes(payload[3:5], byteorder='little', signed=False)
-            for radonscout_type in radonscout_types:
+            for radonscout_type in products[2]:
                 if radonscout_type['id'] == device_type:
-                    print(radonscout_type['name'])
-            print('Software version: ' + str(software_version))
-            print('Device number: ' + str(device_number))
+                    instrument_type = radonscout_type['name']
+            return dict(instrument_type = instrument_type,
+                        software_version = software_version,
+                        device_number = device_number)
         except ParsingError:
             print("Error parsing the payload.")
-
+    else:
+        return False
 
 serial_port = 'COM16'
 get_recent_msg = b'\x42\x80\x7f\x14\x14\x00\x45'
@@ -187,5 +202,5 @@ print(humidity)
 print(pressure)
 print(tilt)
 
-list_connected_instruments(native_rs232_ports)
+list_connected_instruments(native_rs232_ports, products)
 

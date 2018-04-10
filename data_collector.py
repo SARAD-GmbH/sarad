@@ -78,18 +78,21 @@ def list_connected_instruments(native_rs232_ports, products):
             if instrument_version:
                 print_port_parameters(port)
                 print_instrument_version(instrument_version)
+                print()
     for port in serial.tools.list_ports.grep("0403"):
         # FTDI USB-serial converters
         instrument_version = get_version(port.device, products)
         if instrument_version:
           print_port_parameters(port)
           print_instrument_version(instrument_version)
+          print()
     for port in serial.tools.list_ports.grep("067B"):
         # Prolific USB-serial converters
         instrument_version = get_version(port.device, products)
         if instrument_version:
           print_port_parameters(port)
           print_instrument_version(instrument_version)
+          print()
 
 def check_answer(answer):
     # Returns a dictionary of:
@@ -168,39 +171,43 @@ def get_version(serial_port, products):
     else:
         return False
 
-serial_port = 'COM16'
-get_recent_msg = b'\x42\x80\x7f\x14\x14\x00\x45'
-reply_length_recent_msg = 39
-checked_payload = get_message_payload(serial_port, get_recent_msg, reply_length_recent_msg)
-payload = checked_payload['payload']
-
-sample_interval = payload[1]
-device_time_min = payload[2]
-device_time_h = payload[3]
-device_time_d = payload[4]
-device_time_m = payload[5]
-device_time_y = payload[6]
-
-radon = bytes_to_float(payload[7:11])
-radon_error = payload[11]
-thoron = bytes_to_float(payload[12:16])
-thoron_error = payload[16]
-temperature = bytes_to_float(payload[17:21])
-humidity = bytes_to_float(payload[21:25])
-pressure = bytes_to_float(payload[25:29])
-tilt = bytes_to_float(payload[29:])
-print(sample_interval)
-device_time = datetime(device_time_y + 2000, device_time_m, device_time_d,
-                       device_time_h, device_time_min)
-print(device_time)
-print(radon)
-print(radon_error)
-print(thoron)
-print(thoron_error)
-print(temperature)
-print(humidity)
-print(pressure)
-print(tilt)
+def get_recent(serial_port):
+    get_recent_msg = b'\x42\x80\x7f\x14\x14\x00\x45'
+    reply_length_recent_msg = 39
+    checked_payload = get_message_payload(serial_port, get_recent_msg, reply_length_recent_msg)
+    if checked_payload['is_valid']:
+        try:
+            payload = checked_payload['payload']
+            sample_interval = payload[1]
+            device_time_min = payload[2]
+            device_time_h = payload[3]
+            device_time_d = payload[4]
+            device_time_m = payload[5]
+            device_time_y = payload[6]
+            radon = bytes_to_float(payload[7:11])
+            radon_error = payload[11]
+            thoron = bytes_to_float(payload[12:16])
+            thoron_error = payload[16]
+            temperature = bytes_to_float(payload[17:21])
+            humidity = bytes_to_float(payload[21:25])
+            pressure = bytes_to_float(payload[25:29])
+            tilt = bytes_to_float(payload[29:])
+            device_time = datetime(device_time_y + 2000, device_time_m,
+                                   device_time_d, device_time_h, device_time_min)
+            print(sample_interval)
+            print(device_time)
+            print(radon)
+            print(radon_error)
+            print(thoron)
+            print(thoron_error)
+            print(temperature)
+            print(humidity)
+            print(pressure)
+            print(tilt)
+        except ParsingError:
+            print("Error parsing the payload.")
+    else:
+        print("The instrument doesn't reply.")
 
 list_connected_instruments(native_rs232_ports, products)
 

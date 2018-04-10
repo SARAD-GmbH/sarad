@@ -113,64 +113,46 @@ def check_answer(answer):
                 payload = payload,
                 number_of_bytes_in_payload = number_of_bytes_in_payload)
 
+def get_message_payload(serial_port, message, expected_length_of_reply):
+    # Returns a dictionary of:
+    #     is_valid: True if answer is valid, False otherwise
+    #     is_control_message: True if control message
+    #     payload: Payload of answer
+    #     number_of_bytes_in_payload
+    #
+    ser = serial.Serial(serial_port, 9600, timeout=3, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
+    print(ser.name)
+    print(ser.get_settings())
+    ser.write(message)
+    answer = ser.read(expected_length_of_reply)
+    ser.close()
+    checked_answer = check_answer(answer)
+    return dict(is_valid = checked_answer['is_valid'],
+                is_control = checked_answer['is_control'],
+                payload = checked_answer['payload'],
+                number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
+
+def get_version(serial_port):
+    get_version_msg = b'\x42\x80\x7f\x0c\x0c\x00\x45'
+    reply_length_version_msg = 19
+    checked_payload = get_message_payload(serial_port, get_version_msg, reply_length_version_msg)
+    payload = checked_payload['payload']
+
+    device_type = payload[1]
+    software_version = payload[2]
+    device_number = int.from_bytes(payload[3:5], byteorder='little', signed=False)
+    for radonscout_type in radonscout_types:
+        if radonscout_type['id'] == device_type:
+            print(radonscout_type['name'])
+    print('Software version = ' + str(software_version))
+    print('Device number = ' + str(device_number))
 
 
-ser = serial.Serial('COM16', 9600, timeout=3, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
-print(ser.name)
-print(ser.get_settings())
+serial_port = 'COM16'
 get_recent_msg = b'\x42\x80\x7f\x14\x14\x00\x45'
-get_battery_msg = b'\x42\x80\x7f\x0d\x0d\x00\x45'
-get_version_msg = b'\x42\x80\x7f\x0c\x0c\x00\x45'
-reply_length_version_msg = 19
-# for element in get_recent_msg:
-#     byte = (element).to_bytes(1,'big')
-#     ser.write(byte)
-#     print(byte)
-#     ser.reset_output_buffer()
-#     time.sleep(0.01)
-# time.sleep(0.05)
-ser.write(get_version_msg)
-answer = ser.read(reply_length_version_msg)
-ser.close()
-print(answer)
-checked_answer = check_answer(answer)
-if checked_answer['is_valid']:
-    print('Answer checked: OK')
-    payload = checked_answer['payload']
-    number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload']
-else:
-    print('Answer checked: Invalid')
-
-device_type = payload[1]
-software_version = payload[2]
-device_number = int.from_bytes(payload[3:5], byteorder='little', signed=False)
-# unicon1 = int.from_bytes(payload[5:7], byteorder='little', signed=False)
-# unicon2 = int.from_bytes(payload[7:9], byteorder='little', signed=False)
-# unicon3 = int.from_bytes(payload[9:11], byteorder='little', signed=False)
-# unicon4 = int.from_bytes(payload[11:], byteorder='little', signed=False)
-for radonscout_type in radonscout_types:
-    if radonscout_type['id'] == device_type:
-        print(radonscout_type['name'])
-print('Software version = ' + str(software_version))
-print('Device number = ' + str(device_number))
-# print(unicon1)
-# print(unicon2)
-# print(unicon3)
-# print(unicon4)
-
-ser = serial.Serial('COM16', 9600, timeout=3, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
-ser.write(get_recent_msg)
-answer = ser.read(39)
-ser.close()
-print(answer)
-
-checked_answer = check_answer(answer)
-if checked_answer['is_valid']:
-    print('Answer checked: OK')
-    payload = checked_answer['payload']
-    number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload']
-else:
-    print('Answer checked: Invalid')
+reply_length_recent_msg = 39
+checked_payload = get_message_payload(serial_port, get_recent_msg, reply_length_recent_msg)
+payload = checked_payload['payload']
 
 sample_interval = payload[1]
 device_time_min = payload[2]

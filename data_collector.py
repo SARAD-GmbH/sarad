@@ -1,5 +1,19 @@
 #!/usr/bin/python
 
+"""
+* Naming convention
+- Instrument :: a SARAD product with serial interface and at least one Sensor and
+                maybe one or more Actors
+- Component :: Sensor or Actor built into an Instrument
+- Sensor :: Component delivering a Measurand (Messgröße)
+- Actor :: Component receiving a parameter and doing something with the Instrument
+- Measurand :: Value, Operator and Unit delivered by a Sensor
+- Operator :: mathematical operator used on
+- Cluster :: one or more Instruments connected with one Controller via one or more
+             serial interfaces
+             (RS232, RS485, USB, Zigbee connected to USB or RS232)
+"""
+
 import serial
 import serial.tools.list_ports
 import time
@@ -23,7 +37,8 @@ def print_instrument_version(instrument_version):
     print("Instrument number: " + str(instrument_version['device_number']))
 
 class SaradInstrument(object):
-    """Basic class for the serial communication protocoll of SARAD instruments
+    """Basic class for the serial communication protocol of SARAD instruments
+
     Public attributes:
         port: String containing the serial communication port
         instrument_version: Dictionary with instrument type, software version,
@@ -208,6 +223,7 @@ number."""
         self.__baudrate = baudrate
 
     port = property(get_port, set_port)
+    baudrate = property(get_baudrate, set_baudrate)
     instrument_version = property(get_instrument_version)
 # End of definition of class SaradInstrument
 
@@ -234,6 +250,7 @@ def list_connected_instruments(native_rs232_ports):
     for baudrate in baudrates:
         # Ports with already detected devices shall not be tested with other
         # baud rates
+        unknown_instrument.baudrate = baudrate
         for port in ports_with_instruments:
             ports_to_test.remove(port)
         for port in ports_to_test:

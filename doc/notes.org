@@ -1,0 +1,14 @@
+* SARAD Instruments
+** Radon Scout 1
+- no display
+- no recent values
+- no device family
+- no get_battery_voltage command
+** Radon Scout 2
+- no display
+- no recent values
+- no device family
+- get_battery_voltage command with 1-byte-reply
+** Thoron Scout
+- display
+- recent values

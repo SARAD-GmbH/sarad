@@ -7,6 +7,7 @@ from datetime import datetime
 import struct
 
 native_rs232_ports = ['COM1', 'COM2', 'COM3']
+baudrates = [9600, 115200]
 
 def print_port_parameters(port):
     print("Device: " + port.device)
@@ -27,7 +28,13 @@ class SaradInstrument(object):
         port: String containing the serial communication port
         instrument_version: Dictionary with instrument type, software version,
                             and device number
-    Public methods: get_instrument_version(), set_instrument_version(), get_port(), set_port()"""
+    Public methods:
+        get_instrument_version(),
+        set_instrument_version(),
+        get_baudrate(),
+        set_baudrate(),
+        get_port(),
+        set_port()"""
 
     # Device families
     f_nil = dict(name = 'no family', id = 0)
@@ -70,8 +77,9 @@ class SaradInstrument(object):
 
     __products = [device_families, doseman_types, radonscout_types, network_types]
 
-    def __init__(self, port):
+    def __init__(self, port, baudrate):
         self.__port = port
+        self.__baudrate = baudrate
 
     def __bytes_to_float(self, value_bytes):
         # Convert 4 bytes (little endian) from serial interface into floating point
@@ -149,7 +157,9 @@ class SaradInstrument(object):
         #     payload: Payload of answer
         #     number_of_bytes_in_payload
         #
-        ser = serial.Serial(serial_port, 9600, timeout=1, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE)
+        ser = serial.Serial(serial_port, self.__baudrate, \
+                            timeout=1, parity=serial.PARITY_NONE, \
+                            stopbits=serial.STOPBITS_ONE)
         ser.write(message)
         answer = ser.read(expected_length_of_reply)
         ser.close()
@@ -191,6 +201,12 @@ number."""
     def set_port(self, port):
         self.__port = port
 
+    def get_baudrate(self):
+        return self.__baudrate
+
+    def set_baudrate(self, baudrate):
+        self.__baudrate = baudrate
+
     port = property(get_port, set_port)
     instrument_version = property(get_instrument_version)
 # End of definition of class SaradInstrument
@@ -202,29 +218,34 @@ def list_connected_instruments(native_rs232_ports):
     # 3. via an external USB-serial converter (Prolific, Prolific fake or FTDI)
     # 4. via the SARAD ZigBee coordinator with FT232R
     # 5. via a modem with AT command set
-    unknown_instrument = SaradInstrument('')
+    unknown_instrument = SaradInstrument('', 9600)
+    # Get the list of accessible native ports
+    ports_to_test = []
+    # Native ports
     for port in serial.tools.list_ports.comports():
-        # native RS232 ports
         if port.device in native_rs232_ports:
+            ports_to_test.append(port)
+    # FTDI USB-to-serial converters
+    ports_to_test.extend(serial.tools.list_ports.grep("0403"))
+    # Prolific and no-name USB-to-serial converters
+    ports_to_test.extend(serial.tools.list_ports.grep("067B"))
+
+    ports_with_instruments = []
+    for baudrate in baudrates:
+        # Ports with already detected devices shall not be tested with other
+        # baud rates
+        for port in ports_to_test:
+            if port.device in ports_with_instruments:
+                ports_to_test.remove(port)
+                print('Remove ' + port.device)
+        for port in ports_to_test:
             unknown_instrument.port = port.device
             if unknown_instrument.instrument_version:
+                ports_with_instruments.append(port.device)
                 print_port_parameters(port)
                 print_instrument_version(unknown_instrument.instrument_version)
                 print()
-    for port in serial.tools.list_ports.grep("0403"):
-        # FTDI USB-serial converters
-        unknown_instrument.port = port.device
-        if unknown_instrument.instrument_version:
-          print_port_parameters(port)
-          print_instrument_version(unknown_instrument.instrument_version)
-          print()
-    for port in serial.tools.list_ports.grep("067B"):
-        # Prolific USB-serial converters
-        unknown_instrument.port = port.device
-        if unknown_instrument.instrument_version:
-          print_port_parameters(port)
-          print_instrument_version(unknown_instrument.instrument_version)
-          print()
+    print(ports_with_instruments)
 
 
 list_connected_instruments(native_rs232_ports)

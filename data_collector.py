@@ -234,18 +234,17 @@ def list_connected_instruments(native_rs232_ports):
     for baudrate in baudrates:
         # Ports with already detected devices shall not be tested with other
         # baud rates
-        for port in ports_to_test:
-            if port.device in ports_with_instruments:
-                ports_to_test.remove(port)
-                print('Remove ' + port.device)
+        for port in ports_with_instruments:
+            ports_to_test.remove(port)
         for port in ports_to_test:
             unknown_instrument.port = port.device
             if unknown_instrument.instrument_version:
-                ports_with_instruments.append(port.device)
+                ports_with_instruments.append(port)
                 print_port_parameters(port)
                 print_instrument_version(unknown_instrument.instrument_version)
                 print()
-    print(ports_with_instruments)
+    for port in ports_with_instruments:
+        print(port.device)
 
 
 list_connected_instruments(native_rs232_ports)

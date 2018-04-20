@@ -23,8 +23,9 @@ import struct
 class SaradInstrument(object):
     """Basic class for the serial communication protocol of SARAD instruments
 
-    Public attributes:
+    Properties:
         port: String containing the serial communication port
+        baudrate: Integer setting the baud rate of the serial communication
         instrument_version: Dictionary with instrument type, software version,
                             and device number
     Public methods:
@@ -211,38 +212,40 @@ number."""
     instrument_version = property(get_instrument_version)
 # End of definition of class SaradInstrument
 
-# Test environment
-if __name__=='__main__':
-    native_rs232_ports = ['COM1', 'COM2', 'COM3']
-    baudrates = [9600, 115200]
+class SaradCluster(object):
+    """Class to define a cluster of SARAD instruments connected to one controller
 
-    def print_port_parameters(port):
-        print("Device: " + port.device)
-        if not port.name:
-            port.name = "n.a."
-        print("Name: " + port.name)
-        print("HWID: " + port.hwid)
-        print("Description: " + port.description)
+    Properties:
+        native_ports
+        baudrates
+    Public methods:
+        set_native_ports()
+        get_native_ports()
+        set_baudrates()
+        get_baudrates()
+        get_connected_instruments()
+    """
 
-    def print_instrument_version(instrument_version):
-        print("Instrument: " + instrument_version['instrument_type'])
-        print("Software version: " + str(instrument_version['software_version']))
-        print("Instrument number: " + str(instrument_version['device_number']))
+    def __init__(self, native_ports=None, baudrates=None):
+        if native_ports is None:
+            native_ports = []
+        self.__native_ports = native_ports
+        if baudrates is None:
+            baudrates = [9600, 115200]
+        self.__baudrates = baudrates
 
-
-    def list_connected_instruments(native_rs232_ports):
-        # SARAD instruments can be connected:
-        # 1. by RS232 on a native RS232 interface at the computer
-        # 2. via their built in FT232R USB-serial converter
-        # 3. via an external USB-serial converter (Prolific, Prolific fake or FTDI)
-        # 4. via the SARAD ZigBee coordinator with FT232R
-        # 5. via a modem with AT command set
+    def get_connected_instruments(self):
+        """SARAD instruments can be connected:
+        1. by RS232 on a native RS232 interface at the computer
+        2. via their built in FT232R USB-serial converter
+        3. via an external USB-serial converter (Prolific, Prolific fake or FTDI)
+        4. via the SARAD ZigBee coordinator with FT232R"""
         unknown_instrument = SaradInstrument('', 9600)
         # Get the list of accessible native ports
         ports_to_test = []
         # Native ports
         for port in serial.tools.list_ports.comports():
-            if port.device in native_rs232_ports:
+            if port.device in self.__native_ports:
                 ports_to_test.append(port)
         # FTDI USB-to-serial converters
         ports_to_test.extend(serial.tools.list_ports.grep("0403"))
@@ -250,6 +253,9 @@ if __name__=='__main__':
         ports_to_test.extend(serial.tools.list_ports.grep("067B"))
 
         ports_with_instruments = []
+        connected_instruments = []  # a list of dictionaries containing
+                                    # information about connected instruments
+                                    # and the ports they are connected to
         for baudrate in baudrates:
             # Ports with already detected devices shall not be tested with other
             # baud rates
@@ -260,63 +266,33 @@ if __name__=='__main__':
                 unknown_instrument.port = port.device
                 if unknown_instrument.instrument_version:
                     ports_with_instruments.append(port)
-                    print_port_parameters(port)
-                    print_instrument_version(unknown_instrument.instrument_version)
-                    print()
-        for port in ports_with_instruments:
-            print(port.device)
+                    connected_instrument = \
+                                           dict(\
+                                                port_device = port.device,\
+                                                port_hwid = port.hwid,\
+                                                port_description = port.description,\
+                                                instrument_type = unknown_instrument.instrument_version['instrument_type'],\
+                                                software_version = unknown_instrument.instrument_version['software_version'],\
+                                                device_number = unknown_instrument.instrument_version['device_number'],\
+                                           )
+                    connected_instruments.append(connected_instrument)
+        return connected_instruments
 
-    list_connected_instruments(native_rs232_ports)
+# End of definition of class SaradCluster
 
+# Test environment
+if __name__=='__main__':
+    def print_instrument_info(instrument_info):
+        print("SerialDevice: " + instrument_info['port_device'])
+        print("HWIDofPort: " + instrument_info['port_hwid'])
+        print("PortDescription: " + instrument_info['port_description'])
+        print("Instrument: " + instrument_info['instrument_type'])
+        print("SoftwareVersion: " + str(instrument_info['software_version']))
+        print("InstrumentNumber: " + str(instrument_info['device_number']))
 
-def get_recent_readings(serial_port):
-    get_recent_msg = b'\x42\x80\x7f\x14\x14\x00\x45'
-    reply_length_recent_msg = 39
-    checked_payload = get_message_payload(serial_port, get_recent_msg, reply_length_recent_msg)
-    if checked_payload['is_valid']:
-        try:
-            payload = checked_payload['payload']
-            sample_interval = payload[1]
-            device_time_min = payload[2]
-            device_time_h = payload[3]
-            device_time_d = payload[4]
-            device_time_m = payload[5]
-            device_time_y = payload[6]
-            radon = bytes_to_float(payload[7:11])
-            radon_error = payload[11]
-            thoron = bytes_to_float(payload[12:16])
-            thoron_error = payload[16]
-            temperature = bytes_to_float(payload[17:21])
-            humidity = bytes_to_float(payload[21:25])
-            pressure = bytes_to_float(payload[25:29])
-            tilt = int.from_bytes(payload[29:], byteorder='little', signed=False)
-            device_time = datetime(device_time_y + 2000, device_time_m,
-                                   device_time_d, device_time_h, device_time_min)
-            print(sample_interval)
-            print(device_time)
-            print(radon)
-            print(radon_error)
-            print(thoron)
-            print(thoron_error)
-            print(temperature)
-            print(humidity)
-            print(pressure)
-            print(tilt)
-        except ParsingError:
-            print("Error parsing the payload.")
-    else:
-        print("The instrument doesn't reply.")
-
-def get_battery_voltage(serial_port):
-    get_battery_msg = b'\x42\x80\x7f\x0d\x0d\x00\x45'
-    reply_length_battery_msg = 39
-    checked_payload = get_message_payload(serial_port, get_battery_msg, reply_length_battery_msg)
-    if checked_payload['is_valid']:
-        try:
-            payload = checked_payload['payload']
-            voltage = 0.00323 * int.from_bytes(payload[1:], byteorder='little', signed=False)
-            print(voltage)
-        except ParsingError:
-            print("Error parsing the payload.")
-    else:
-        print("The instrument doesn't reply.")
+    native_ports = ['COM1', 'COM2', 'COM3']
+    baudrates = [9600, 115200]
+    myCluster = SaradCluster(native_ports, baudrates)
+    for connected_instrument in myCluster.get_connected_instruments():
+        print_instrument_info(connected_instrument)
+        print()

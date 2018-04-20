@@ -268,16 +268,16 @@ class SaradCluster(object):
                 if unknown_instrument.instrument_version:
                     ports_with_instruments.append(port)
                     connected_instrument = \
-                                           dict(\
-                                                port_device = port.device,\
-                                                port_hwid = port.hwid,\
-                                                port_description = port.description,\
-                                                baudrate = unknown_instrument.baudrate,\
-                                                instrument_type = unknown_instrument.instrument_version['instrument_type'],\
-                                                instrument_id = unknown_instrument.instrument_version['instrument_id'],\
-                                                software_version = unknown_instrument.instrument_version['software_version'],\
-                                                device_number = unknown_instrument.instrument_version['device_number'],\
-                                           )
+                       dict(\
+                            port_device = port.device,\
+                            port_hwid = port.hwid,\
+                            port_description = port.description,\
+                            baudrate = unknown_instrument.baudrate,\
+                            instrument_type = unknown_instrument.instrument_version['instrument_type'],\
+                            instrument_id = unknown_instrument.instrument_version['instrument_id'],\
+                            software_version = unknown_instrument.instrument_version['software_version'],\
+                            device_number = unknown_instrument.instrument_version['device_number'],\
+                       )
                     connected_instruments.append(connected_instrument)
         return connected_instruments
 

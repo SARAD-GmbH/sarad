@@ -34,7 +34,8 @@ class SaradInstrument(object):
         get_baudrate(),
         set_baudrate(),
         get_port(),
-        set_port()"""
+        set_port(),
+        get_reply()"""
 
     # Device families
     f_nil = dict(name = 'no family', id = 0)
@@ -196,6 +197,18 @@ number."""
         else:
             return False
 
+    def get_reply(self, cmd):
+        """Returns a bytestring of the payload of the instruments reply to the provided 1-byte command."""
+        msg = self.__make_command_msg(cmd, b'')
+        reply_length = 50
+        checked_payload = self.__get_message_payload(self.__port,\
+                                                     msg,\
+                                                     reply_length)
+        if checked_payload['is_valid']:
+            return checked_payload['payload']
+        else:
+            return False
+
     def get_port(self):
         return self.__port
 
@@ -234,6 +247,18 @@ class SaradCluster(object):
         if baudrates is None:
             baudrates = [9600, 115200]
         self.__baudrates = baudrates
+
+    def set_native_ports(self, native_ports):
+        self.__native_ports = native_ports
+
+    def set_baudrates(self, baudrates):
+        self.__baudrates = baudrates
+
+    def get_native_ports(self):
+        return self.__native_ports
+
+    def get_baudrates(self):
+        return self.__baudrates
 
     def get_connected_instruments(self):
         """SARAD instruments can be connected:
@@ -281,6 +306,10 @@ class SaradCluster(object):
                     connected_instruments.append(connected_instrument)
         return connected_instruments
 
+    native_ports = property(get_native_ports, set_native_ports)
+    baudrates = property(get_baudrates, set_baudrates)
+    connected_instruments = property(get_connected_instruments)
+
 # End of definition of class SaradCluster
 
 # Test environment
@@ -297,7 +326,10 @@ if __name__=='__main__':
 
     native_ports = ['COM1', 'COM2', 'COM3']
     baudrates = [9600, 115200]
-    myCluster = SaradCluster(native_ports, baudrates)
-    for connected_instrument in myCluster.get_connected_instruments():
+    mycluster = SaradCluster(native_ports, baudrates)
+    for connected_instrument in mycluster.get_connected_instruments():
         print_instrument_info(connected_instrument)
         print()
+
+    # thoronscout = SaradInstrument('COM16', 9600)
+    # print(thoronscout.get_reply(b'\x0c'))

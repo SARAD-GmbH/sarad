@@ -188,6 +188,7 @@ number."""
                     if radonscout_type['id'] == device_type:
                         instrument_type = radonscout_type['name']
                 return dict(instrument_type = instrument_type,
+                            instrument_id = device_type,
                             software_version = software_version,
                             device_number = device_number)
             except ParsingError:
@@ -271,7 +272,9 @@ class SaradCluster(object):
                                                 port_device = port.device,\
                                                 port_hwid = port.hwid,\
                                                 port_description = port.description,\
+                                                baudrate = unknown_instrument.baudrate,\
                                                 instrument_type = unknown_instrument.instrument_version['instrument_type'],\
+                                                instrument_id = unknown_instrument.instrument_version['instrument_id'],\
                                                 software_version = unknown_instrument.instrument_version['software_version'],\
                                                 device_number = unknown_instrument.instrument_version['device_number'],\
                                            )
@@ -286,7 +289,9 @@ if __name__=='__main__':
         print("SerialDevice: " + instrument_info['port_device'])
         print("HWIDofPort: " + instrument_info['port_hwid'])
         print("PortDescription: " + instrument_info['port_description'])
+        print("Baudrate: " + str(instrument_info['baudrate']))
         print("Instrument: " + instrument_info['instrument_type'])
+        print("Id: " + str(instrument_info['instrument_id']))
         print("SoftwareVersion: " + str(instrument_info['software_version']))
         print("InstrumentNumber: " + str(instrument_info['device_number']))
 

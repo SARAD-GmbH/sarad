@@ -149,18 +149,26 @@ class SaradInstrument(object):
                     number_of_bytes_in_payload = number_of_bytes_in_payload)
 
     def __get_message_payload(self, serial_port, message, expected_length_of_reply):
-        # Returns a dictionary of:
-        #     is_valid: True if answer is valid, False otherwise
-        #     is_control_message: True if control message
-        #     payload: Payload of answer
-        #     number_of_bytes_in_payload
-        #
+        """ Returns a dictionary of:
+        is_valid: True if answer is valid, False otherwise
+        is_control_message: True if control message
+        payload: Payload of answer
+        number_of_bytes_in_payload"""
+
         ser = serial.Serial(serial_port, self.__baudrate, \
-                            timeout=1, parity=serial.PARITY_NONE, \
-                            stopbits=serial.STOPBITS_ONE)
-        ser.write(message)
+                            timeout=1, parity=serial.PARITY_EVEN, \
+                            stopbits=serial.STOPBITS_ONE, \
+                            bytesize=serial.EIGHTBITS)
+        for element in message:
+            byte = (element).to_bytes(1,'big')
+            ser.write(byte)
+            time.sleep(0.001)
+
+        # ser.write(message)
+        time.sleep(0.1)
         answer = ser.read(expected_length_of_reply)
         ser.close()
+        print(answer)
         checked_answer = self.__check_answer(answer)
         return dict(is_valid = checked_answer['is_valid'],
                     is_control = checked_answer['is_control'],

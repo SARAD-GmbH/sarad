@@ -196,7 +196,8 @@ class SaradInstrument(object):
             return False
 
     def get_reply(self, cmd):
-        """Returns a bytestring of the payload of the instruments reply to the provided 1-byte command."""
+        """Returns a bytestring of the payload of the instruments reply \
+to the provided 1-byte command."""
         msg = self.__make_command_msg(cmd, b'')
         reply_length = 50
         checked_payload = self.__get_message_payload(self.__port,\
@@ -288,7 +289,8 @@ class SaradCluster(object):
                 ports_to_test.remove(port)
             for port in ports_to_test:
                 unknown_instrument.port = port.device
-                if unknown_instrument.instrument_version:
+                instrument_info = unknown_instrument.instrument_version
+                if instrument_info:
                     ports_with_instruments.append(port)
                     connected_instrument = \
                        dict(\
@@ -296,10 +298,10 @@ class SaradCluster(object):
                             port_hwid = port.hwid,\
                             port_description = port.description,\
                             baudrate = unknown_instrument.baudrate,\
-                            instrument_type = unknown_instrument.instrument_version['instrument_type'],\
-                            instrument_id = unknown_instrument.instrument_version['instrument_id'],\
-                            software_version = unknown_instrument.instrument_version['software_version'],\
-                            device_number = unknown_instrument.instrument_version['device_number'],\
+                            instrument_type = instrument_info['instrument_type'],\
+                            instrument_id = instrument_info['instrument_id'],\
+                            software_version = instrument_info['software_version'],\
+                            device_number = instrument_info['device_number'],\
                        )
                     connected_instruments.append(connected_instrument)
         return connected_instruments

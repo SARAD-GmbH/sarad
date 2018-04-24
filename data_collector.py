@@ -100,10 +100,7 @@ class SaradInstrument(object):
         checksum = 0
         for byte in payload:
             checksum = checksum + byte
-        checksum_bytes = bytes([checksum])
-        if len(checksum_bytes) == 1:
-            checksum_bytes = b'\x00' + checksum_bytes
-        checksum_bytes = checksum_bytes[::-1]  # little endian order of bytes
+        checksum_bytes = (checksum).to_bytes(2, byteorder='little')
         output = b'B' + \
                  bytes([control_byte]) + \
                  bytes([neg_control_byte]) + \

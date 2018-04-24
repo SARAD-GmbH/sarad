@@ -168,11 +168,12 @@ class SaradInstrument(object):
                     number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
 
     def get_instrument_version(self):
-        """Returns a dictionary with instrument type, software version, and device
-number."""
-        get_version_msg = self.__make_command_msg(b'\x0c', b'')
+        """Returns a dictionary with instrument type, software version,\
+ and device number."""
+        get_version_msg = self.__make_command_msg(b'\x0c', b'\xff\x00\x00')
         # get_version_msg = b'\x42\x80\x7f\x0c\x0c\x00\x45'
-        reply_length_version_msg = 19
+        # reply_length_version_msg = 13
+        reply_length_version_msg = 50
         checked_payload = self.__get_message_payload(self.__port,\
                                                      get_version_msg,\
                                                      reply_length_version_msg)

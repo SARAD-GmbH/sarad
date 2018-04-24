@@ -1,4 +1,7 @@
 * SARAD Instruments
+** Basic assumptions
+The baud rate is fixed per instrument type and either 9600 or 115200 baud.
+
 ** Radon Scout 1
 - no display
 - no recent values
@@ -12,3 +15,10 @@
 ** Thoron Scout
 - display
 - recent values
+- get_battery_voltage command with 2-byte-reply
+** DOSEman family
+- 115200 baud
+- GetId command is 0x40 instead of 0x0c
+** DACM devices
+- Usually the reply to 0x0c should be longer than those for Radon Scout devices.
+

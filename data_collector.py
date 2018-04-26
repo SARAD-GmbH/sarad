@@ -206,9 +206,55 @@ to the provided list of 1-byte command and data bytes."""
     instrument_version = property(get_instrument_version)
 # End of definition of class SaradInstrument
 
+class DacmInstrument(SaradInstrument):
+    """Instrument with DACM communication protocol
+
+    Inherited properties: """
+    def __init__(self, port, family = None):
+        if family is None:
+            family = SaradCluster.f_dacm
+        SaradInstrument.__init__(self, port, family)
+
+    def get_recent_values(self):
+        """Get a list of dictionaries with recent measuring values."""
+        list_of_outputs = []
+        for component_index in range(34):
+            for item_index in range(4):
+                reply = self.get_reply([b'\x1a', bytes([component_index]) + \
+                                        b'\x00' + \
+                                        bytes([item_index])], 1000)
+                output = dict()
+                output['component_name'] = reply[1:17].split(b'\x00')[0]
+                output['item_index'] = item_index
+                output['value_name'] = reply[18:34].split(b'\x00')[0]
+                output['result'] = reply[35:51].split(b'\x00')[0].strip()
+                if output['result'] != b'No valid data!':
+                    output['result_value'] = output['result'].split()[0]
+                    try:
+                        output['result_unit'] = output['result'].split()[1]
+                    except:
+                        output['result_unit'] = ''
+                else:
+                    output['result_value'] = ''
+                    output['result_unit'] = ''
+                date = reply[52:68].split(b'\x00')[0].split(b'/')
+                time = reply[69:85].split(b'\x00')[0].split(b':')
+                if date == [b'']:
+                    output['datetime'] = ''
+                else:
+                    output['datetime'] = datetime(int(date[2]), int(date[0]),\
+                                                  int(date[1]),\
+                                                  int(time[0]), int(time[1]),\
+                                                  int(time[2]))
+                output['gps'] = reply[86:].split(b'\x00')[0]
+                list_of_outputs.append(output)
+        return list_of_outputs
+
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
-
+    Public attributes:
+        t_<product>
+        f_<product family>
     Properties:
         native_ports
         products
@@ -221,7 +267,7 @@ class SaradCluster(object):
     """
 
     # DOSEman device types
-    __t_doseman = dict(name = 'DOSEman', id = 1)
+    t_doseman = dict(name = 'DOSEman', id = 1)
     t_dosemanpro = dict(name = 'DOSEman Pro', id = 2)
     t_myriam = dict(name = 'MyRIAM', id = 3)
     t_dm_rtm1688 = dict(name = 'RTM 1688', id = 4)
@@ -245,27 +291,28 @@ class SaradCluster(object):
 
     # Network interface types
     t_zigbee = dict(name = 'ZigBee adapter', id = 200)
-    network_types = [t_zigbee]
+    __network_types = [t_zigbee]
 
     # Device families
-    __f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
+    f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
                        parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
                        wait_for_reply = 0.1, \
                        get_id_cmd = [b'\x40', b''], \
                        length_of_reply = 11, \
-                       types = [__t_doseman, \
+                       types = [t_doseman, \
                                 t_dosemanpro, t_myriam, t_dm_rtm1688,\
                                 t_radonsensor, t_progenysensor])
-    __f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
+    f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
                           parity = serial.PARITY_NONE, write_sleeptime = 0, \
                           wait_for_reply = 0, \
                           get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
                           length_of_reply = 19, \
-                          types = [t_radonscout1, t_radonscout2, t_radonscoutplus,\
-                                   t_rtm1688, t_radonscoutpmt, t_thoronscout,\
+                          types = [t_radonscout1, t_radonscout2,\
+                                   t_radonscoutplus, t_rtm1688,\
+                                   t_radonscoutpmt, t_thoronscout,\
                                    t_radonscouthome, t_radonscouthomep,\
                                    t_radonscouthomeco2, t_rtm1688geo])
-    __f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
+    f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
                     parity = serial.PARITY_NONE, write_sleeptime = 0, \
                     wait_for_reply = 0, \
                     get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
@@ -277,7 +324,7 @@ class SaradCluster(object):
             native_ports = []
         self.__native_ports = native_ports
         if products is None:
-            products = [self.__f_doseman, self.__f_radonscout, self.__f_dacm]
+            products = [self.f_doseman, self.f_radonscout, self.f_dacm]
         self.__products = products
 
     def set_native_ports(self, native_ports):
@@ -399,4 +446,4 @@ if __name__=='__main__':
         print()
 
     # thoronscout = SaradInstrument('COM16', f_radonscout)
-    # print(thoronscout.get_reply(b'\x0c'))
+    # print(thoronscout.get_reply([b'\x0c', b''], 1000))

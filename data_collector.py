@@ -37,18 +37,41 @@ class SaradInstrument(object):
         set_port(),
         get_reply()"""
 
-
     def __init__(self, port, family):
         self.__port = port
         self.__family = family
 
-    def __bytes_to_float(self, value_bytes):
-        # Convert 4 bytes (little endian) from serial interface into floating point
-        # nummber according to IEEE 754
+    # Helper functions to be used here and in derived classes
+    def _bytes_to_float(self, value_bytes):
+        """Convert 4 bytes (little endian) from serial interface into floating point nummber according to IEEE 754"""
         byte_array = bytearray(value_bytes)
         byte_array.reverse()
         return struct.unpack('<f', bytes(byte_array))[0]
 
+    def _parse_value_string(self, value_string):
+        """Take a string containing a physical value with operator, value and unit and decompose it into its parts for further mathematical processing."""
+        output = dict()
+        r = value_string        # just an abbreviation for the following
+        if r == 'No valid data!':
+            output['result_operator'] = ''
+            output['result_value'] = ''
+            output['result_unit'] = ''
+        else:
+            if ('<' in r)  or ('>' in r):
+                output['result_operator'] = r[0]
+                r1 = r[1:]
+            else:
+                output['result_operator'] = ''
+                r1 = r
+            output['result_value'] = float(r1.split()[0])
+            try:
+                output['result_unit'] = r1.split()[1]
+            except:
+                output['result_unit'] = ''
+        return output
+
+
+    # Private methods
     def __make_command_msg(self, cmd_data):
         # Encode the message to be sent to the SARAD instrument.
         # Arguments are the one byte long command and the data bytes to be sent.
@@ -132,6 +155,8 @@ class SaradInstrument(object):
                     payload = checked_answer['payload'],
                     number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
 
+
+    # Public methods
     def get_instrument_version(self):
         """Returns a dictionary with instrument type, software version,\
  and device number."""
@@ -227,35 +252,10 @@ class DacmInstrument(SaradInstrument):
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
         list_of_outputs = []
+        result_index = 0        # fixed value, reserved for future use
         for component_index in range(34):
             for item_index in range(4):
-                reply = self.get_reply([b'\x1a', bytes([component_index]) + \
-                                        b'\x00' + \
-                                        bytes([item_index])], 1000)
-                output = dict()
-                output['component_name'] = reply[1:17].split(b'\x00')[0]
-                output['item_index'] = item_index
-                output['value_name'] = reply[18:34].split(b'\x00')[0]
-                output['result'] = reply[35:51].split(b'\x00')[0].strip()
-                if output['result'] != b'No valid data!':
-                    output['result_value'] = output['result'].split()[0]
-                    try:
-                        output['result_unit'] = output['result'].split()[1]
-                    except:
-                        output['result_unit'] = ''
-                else:
-                    output['result_value'] = ''
-                    output['result_unit'] = ''
-                date = reply[52:68].split(b'\x00')[0].split(b'/')
-                time = reply[69:85].split(b'\x00')[0].split(b':')
-                if date == [b'']:
-                    output['datetime'] = ''
-                else:
-                    output['datetime'] = datetime(int(date[2]), int(date[0]),\
-                                                  int(date[1]),\
-                                                  int(time[0]), int(time[1]),\
-                                                  int(time[2]))
-                output['gps'] = reply[86:].split(b'\x00')[0]
+                output = self.get_recent_value(component_index, item_index, result_index)
                 list_of_outputs.append(output)
         return list_of_outputs
 
@@ -269,15 +269,10 @@ class DacmInstrument(SaradInstrument):
         output['item_index'] = item_index
         output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
         output['result'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
-        if output['result'] != 'No valid data!':
-            output['result_value'] = float(output['result'].split()[0])
-            try:
-                output['result_unit'] = output['result'].split()[1]
-            except:
-                output['result_unit'] = ''
-        else:
-            output['result_value'] = ''
-            output['result_unit'] = ''
+        r = self._parse_value_string(output['result'])
+        output['result_operator'] = r['result_operator']
+        output['result_value'] = r['result_value']
+        output['result_unit'] = r['result_unit']
         date = reply[52:68].split(b'\x00')[0].split(b'/')
         time = reply[69:85].split(b'\x00')[0].split(b':')
         if date != [b'']:
@@ -490,9 +485,9 @@ if __name__=='__main__':
                   types = [t_rtm2200])
 
     mycluster = SaradCluster()
-    # for connected_instrument in mycluster.get_connected_instruments():
-    #     print_instrument_info(connected_instrument)
-    #     print()
+    for connected_instrument in mycluster.get_connected_instruments():
+        print_instrument_info(connected_instrument)
+        print()
 
     # thoronscout = SaradInstrument('COM16', f_radonscout)
     # print(thoronscout.get_reply([b'\x0c', b''], 1000))

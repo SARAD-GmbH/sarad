@@ -455,34 +455,6 @@ if __name__=='__main__':
             print("DateTime: " + dacm_value['datetime'].strftime("%c"))
         print("GPS: " + dacm_value['gps'])
 
-    # Radon Scout device types
-    t_radonscout1 = dict(name = 'Radon Scout 1', id = 1)
-    t_radonscout2 = dict(name = 'Radon Scout 2', id = 2)
-    t_radonscoutplus = dict(name = 'Radon Scout Plus', id = 3)
-    t_rtm1688 = dict(name = 'RTM 1688', id = 4)
-    t_radonscoutpmt = dict(name = 'Radon Scout PMT', id = 5)
-    t_thoronscout = dict(name='Thoron Scout', id = 6)
-    t_radonscouthome = dict(name = 'Radon Scout Home', id = 7)
-    t_radonscouthomep = dict(name = 'Radon Scout Home - P', id = 8)
-    t_radonscouthomeco2 = dict(name = 'Radon Scout Home - CO2', id = 9)
-    t_rtm1688geo = dict(name = 'RTM 1688 Geo', id = 10)
-    t_rtm2200 = dict(name = 'RTM 2200', id = 2)
-
-    f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
-                        parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                        wait_for_reply = 0, \
-                        get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                        length_of_reply = 19, \
-                        types = [t_radonscout1, t_radonscout2, t_radonscoutplus,\
-                                 t_rtm1688, t_radonscoutpmt, t_thoronscout,\
-                                 t_radonscouthome, t_radonscouthomep,\
-                                 t_radonscouthomeco2, t_rtm1688geo])
-    f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
-                  parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                  wait_for_reply = 0, \
-                  get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                  length_of_reply = 50, \
-                  types = [t_rtm2200])
 
     mycluster = SaradCluster()
     for connected_instrument in mycluster.get_connected_instruments():
@@ -493,4 +465,3 @@ if __name__=='__main__':
     # print(thoronscout.get_reply([b'\x0c', b''], 1000))
 
     rtm2200 = DacmInstrument('COM18')
-    

@@ -209,13 +209,22 @@ to the provided list of 1-byte command and data bytes."""
 class DacmInstrument(SaradInstrument):
     """Instrument with DACM communication protocol
 
-    Inherited properties: """
+    Inherited properties:
+    Public attributes:
+        item_names
+    Public methods:
+        get_recent_values()
+        get_recent_value(index)"""
+    item_names = ['recent sampling', \
+                  'average of last completed interval', \
+                  'minimum of last completed interval', \
+                  'maximum of last completed interval']
     def __init__(self, port, family = None):
         if family is None:
             family = SaradCluster.f_dacm
         SaradInstrument.__init__(self, port, family)
 
-    def get_recent_values(self):
+    def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
         list_of_outputs = []
         for component_index in range(34):
@@ -249,6 +258,37 @@ class DacmInstrument(SaradInstrument):
                 output['gps'] = reply[86:].split(b'\x00')[0]
                 list_of_outputs.append(output)
         return list_of_outputs
+
+    def get_recent_value(self, component_index, item_index, result_index = 0):
+        """Get a dictionaries with recent measuring values from one sensor."""
+        reply = self.get_reply([b'\x1a', bytes([component_index]) + \
+                                bytes([result_index]) + \
+                                bytes([item_index])], 1000)
+        output = dict()
+        output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
+        output['item_index'] = item_index
+        output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
+        output['result'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
+        if output['result'] != 'No valid data!':
+            output['result_value'] = float(output['result'].split()[0])
+            try:
+                output['result_unit'] = output['result'].split()[1]
+            except:
+                output['result_unit'] = ''
+        else:
+            output['result_value'] = ''
+            output['result_unit'] = ''
+        date = reply[52:68].split(b'\x00')[0].split(b'/')
+        time = reply[69:85].split(b'\x00')[0].split(b':')
+        if date != [b'']:
+            output['datetime'] = datetime(int(date[2]), int(date[0]),\
+                                          int(date[1]),\
+                                          int(time[0]), int(time[1]),\
+                                          int(time[2]))
+        else:
+            output['datetime'] = None
+        output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
+        return output
 
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
@@ -411,6 +451,15 @@ if __name__=='__main__':
         print("SoftwareVersion: " + str(instrument_info['software_version']))
         print("InstrumentNumber: " + str(instrument_info['device_number']))
 
+    def print_dacm_value(dacm_value):
+        print("ComponentName: " + dacm_value['component_name'])
+        print("ValueName: " + dacm_value['value_name'])
+        print(DacmInstrument.item_names[dacm_value['item_index']] + \
+              ": " + dacm_value['result'])
+        if dacm_value['datetime'] is not None:
+            print("DateTime: " + dacm_value['datetime'].strftime("%c"))
+        print("GPS: " + dacm_value['gps'])
+
     # Radon Scout device types
     t_radonscout1 = dict(name = 'Radon Scout 1', id = 1)
     t_radonscout2 = dict(name = 'Radon Scout 2', id = 2)
@@ -441,9 +490,12 @@ if __name__=='__main__':
                   types = [t_rtm2200])
 
     mycluster = SaradCluster()
-    for connected_instrument in mycluster.get_connected_instruments():
-        print_instrument_info(connected_instrument)
-        print()
+    # for connected_instrument in mycluster.get_connected_instruments():
+    #     print_instrument_info(connected_instrument)
+    #     print()
 
     # thoronscout = SaradInstrument('COM16', f_radonscout)
     # print(thoronscout.get_reply([b'\x0c', b''], 1000))
+
+    rtm2200 = DacmInstrument('COM18')
+    

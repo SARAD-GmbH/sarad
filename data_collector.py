@@ -38,7 +38,14 @@ class SaradInstrument(object):
         set_family(),
         get_port(),
         set_port(),
-        get_reply()"""
+        get_reply()
+        set_component_names()
+        get_component_names()
+        set_item_names()
+        get_item_names()"""
+
+    __component_names = []
+    __item_names = []
 
     def __init__(self, port, family):
         self.__port = port
@@ -229,24 +236,44 @@ to the provided list of 1-byte command and data bytes."""
     def set_family(self, family):
         self.__family = family
 
+    def get_component_names(self):
+        return self.__component_names
+
+    def set_component_names(self, component_names):
+        self.__component_names = component_names
+
+    def get_item_names(self):
+        return self.__item_names
+
+    def set_item_names(self, item_names):
+        self.__item_names = item_names
+
     port = property(get_port, set_port)
     family = property(get_family, set_family)
     instrument_version = property(get_instrument_version)
-# End of definition of class SaradInstrument
+    component_names = property(get_component_names, set_component_names)
+    item_names = property(get_item_names, set_item_names)
 
 class DacmInstrument(SaradInstrument):
     """Instrument with DACM communication protocol
 
     Inherited properties:
-    Public attributes:
+        port
+        family
+        instrument_version
         item_names
+        component_names
     Public methods:
         get_recent_values()
-        get_recent_value(index)"""
-    item_names = ['recent sampling', \
-                  'average of last completed interval', \
-                  'minimum of last completed interval', \
-                  'maximum of last completed interval']
+        get_recent_value(index)
+        get_item_names()
+        get_component_names()
+        set_item_names()
+        set_component_names()"""
+    __item_names = ['recent sampling', \
+                    'average of last completed interval', \
+                    'minimum of last completed interval', \
+                    'maximum of last completed interval']
     def __init__(self, port, family = None):
         if family is None:
             family = SaradCluster.f_dacm
@@ -292,8 +319,107 @@ class DacmInstrument(SaradInstrument):
         output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
         return output
 
+class RadonScoutInstrument(SaradInstrument):
+    """Instrument with Radon Scout communication protocol
+
+    Inherited properties:
+        component_names
+        item_names
+    Public methods:
+        get_all_recent_values()
+        get_recent_value(index)"""
+
+    __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
+                         'pressure', 'tilt']
+    __item_names = ['measuring value']
+
+    def __init__(self, port, family = None):
+        if family is None:
+            family = SaradCluster.f_radonscout
+        SaradInstrument.__init__(self, port, family)
+
+    def get_all_recent_values(self):
+        reply = self.get_reply([b'\x14', b''], 39)
+        if reply:
+            try:
+                sample_interval = reply[1]
+                device_time_min = reply[2]
+                device_time_h = reply[3]
+                device_time_d = reply[4]
+                device_time_m = reply[5]
+                device_time_y = reply[6]
+                radon = self._bytes_to_float(reply[7:11])
+                radon_error = reply[11]
+                thoron = self._bytes_to_float(reply[12:16])
+                thoron_error = reply[16]
+                temperature = self._bytes_to_float(reply[17:21])
+                humidity = self._bytes_to_float(reply[21:25])
+                pressure = self._bytes_to_float(reply[25:29])
+                tilt = int.from_bytes(reply[29:], byteorder='little', signed=False)
+                device_time = datetime(device_time_y + 2000, device_time_m,
+                                       device_time_d, device_time_h, device_time_min)
+            except:
+                print("Error parsing the payload.")
+                return False
+            return [dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         item_index = 0,
+                         component_name = self.__component_names[0],
+                         result_value = radon,
+                         result_unit = 'Bq/m³'
+                         error = radon_error,
+                         error_unit = '%'),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         item_index = 0,
+                         component_name = self.__component_names[1],
+                         result_value = thoron,
+                         error = thoron_error),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         item_index = 0,
+                         component_name = self.__component_names[2],
+                         result_value = temperature),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         item_index = 0,
+                         component_name = self.__component_names[3],
+                         result_value = humidity),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         item_index = 0,
+                         component_name = self.__component_names[4],
+                         result_value = pressure),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         item_index = 0,
+                         component_name = self.__component_names[5],
+                         result_value = tilt)]
+        else:
+            print("The instrument doesn't reply.")
+            return False
+
+    def get_recent_value(self, component_index, item_index = 0, result_index = 0):
+        """Get a dictionaries with recent measuring values from one sensor."""
+        return self.get_all_recent_values()[component_index]
+
+    def get_battery_voltage(self, serial_port):
+        get_battery_msg = b'\x42\x80\x7f\x0d\x0d\x00\x45'
+        reply_length_battery_msg = 39
+        checked_payload = get_message_payload(serial_port, get_battery_msg, reply_length_battery_msg)
+        if checked_payload['is_valid']:
+            try:
+                payload = checked_payload['payload']
+                voltage = 0.00323 * int.from_bytes(payload[1:], byteorder='little', signed=False)
+                print(voltage)
+            except ParsingError:
+                print("Error parsing the payload.")
+        else:
+            print("The instrument doesn't reply.")
+
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
+
     Public attributes:
         t_<product>
         f_<product family>
@@ -461,13 +587,17 @@ if __name__=='__main__':
             print("DateTime: " + dacm_value['datetime'].strftime("%c"))
         print("GPS: " + dacm_value['gps'])
 
+    def print_radon_scout_value(radon_scout_value):
+        print(repr(("Radon: " + str(radon_scout_value['radon']) + " Bq/m³")))
+        if radon_scout_value['datetime'] is not None:
+            print("DateTime: " + radon_scout_value['datetime'].strftime("%c"))
 
     mycluster = SaradCluster()
     for connected_instrument in mycluster.get_connected_instruments():
         print_instrument_info(connected_instrument)
         print()
 
-    # thoronscout = SaradInstrument('COM16', f_radonscout)
+    thoronscout = RadonScoutInstrument('COM16')
     # print(thoronscout.get_reply([b'\x0c', b''], 1000))
 
-    rtm2200 = DacmInstrument('COM18')
+    # rtm2200 = DacmInstrument('COM18')

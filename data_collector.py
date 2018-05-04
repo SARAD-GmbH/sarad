@@ -28,6 +28,9 @@ class SaradInstrument(object):
         family: Device family of the instrument expected to be at this port
         instrument_version: Dictionary with instrument type, software version,
                             and device number
+        component_names: Names of the components (sensors or actors)
+                         characterizing the instrument
+        item_names: Names of the items that may belong to each of the components.
     Public methods:
         get_instrument_version(),
         set_instrument_version(),
@@ -260,7 +263,11 @@ class DacmInstrument(SaradInstrument):
         return list_of_outputs
 
     def get_recent_value(self, component_index, item_index, result_index = 0):
-        """Get a dictionaries with recent measuring values from one sensor."""
+        """Get a dictionaries with recent measuring values from one sensor.
+        component_index: one of the 34 sensors/actors of the DACM system
+        item_index: 0 = recent sampling, 1 = average of last completed interval,
+        2 = minimum of last completed interval, 3 = maximum
+        result_index: only for sensors delivering multiple results"""
         reply = self.get_reply([b'\x1a', bytes([component_index]) + \
                                 bytes([result_index]) + \
                                 bytes([item_index])], 1000)
@@ -430,7 +437,6 @@ class SaradCluster(object):
     products = property(get_products, set_products)
     connected_instruments = property(get_connected_instruments)
 
-# End of definition of class SaradCluster
 
 # Test environment
 if __name__=='__main__':

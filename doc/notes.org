@@ -1,22 +1,70 @@
-* SARAD Instruments
+* Naming convention
+- Instrument :: a SARAD product with serial interface and at least one Sensor
+                and maybe one or more Actors
+- Component :: Sensor or Actor built into an Instrument
+- Sensor :: Component delivering a Measurand (Messgröße)
+- Actor :: Component receiving a parameter and doing something with the
+           Instrument
+- Measurand :: Value, Operator and Unit delivered by a Sensor
+- Operator :: mathematical operator used on a measurand
+- Cluster :: one or more Instruments connected with one Controller via one or
+             more serial interfaces (RS232, RS485, USB, Zigbee connected to USB
+             or RS232)
+* Instrument characterization
+** Family
+- id
+- name (e.g. 'DACM family')
+- baudrate
+- parity (e.g. serial.PARITY_NONE)
+- write_sleeptime (time to wait between writing consecutive bytes)
+- wait_for_reply (time to wait after writing a command)
+- get_id_cmd (list of command and data bytes for the get_id command e.g. [b'\x0c', b'\xff\x00\x00'])
+- length_of_reply (expected length of the reply to the get_id command)
+- types (list of instrument types belonging into this family)
+
+** Instrument in the cluster
+- port
+- family_id
+- instrument_id
+
+** Individual instrument
+- id
+- instrument_type
+- software_version
+- serial_number
+- components (e.g. NO_x sensor, pump)
+  - id
+  - name
+  - measurands ("Result Index" in DACM naming)
+    - id
+    - name
+    - items (e.g. recent sampling, average of the last completed interval,
+      minimum, error)
+      - id
+      - name
+      - operator
+      - value
+      - unit
+
+* How to differentiate between SARAD Instruments
 ** Basic assumptions
 The baud rate is fixed per instrument type and either 9600 or 115200 baud.
 ** Radon Scout family
-   - baud rate :: 9600
+- baud rate :: 9600
 - parity :: none 
-   - byte order :: little endian
-   - GetId command :: \x0c
-   - C_OK :: \x0a 
+- byte order :: little endian
+- GetId command :: \x0c
+- C_OK :: \x0a
 *** Without display
-    - no recent values
+- no recent values
 **** Radon Scout 1
-  - no get_battery_voltage command
+- no get_battery_voltage command
 **** Radon Scout 2
-  - get_battery_voltage command with 1-byte-reply
+- get_battery_voltage command with 1-byte-reply
 *** With display
-  - recent values
+- recent values
 **** Thoron Scout
-  - get_battery_voltage command with 2-byte-reply
+- get_battery_voltage command with 2-byte-reply
 ** DOSEman family
 - baud rate :: 115200 baud
 - parity :: even 
@@ -24,8 +72,84 @@ The baud rate is fixed per instrument type and either 9600 or 115200 baud.
 - GetId command :: \x40
 - C_OK :: \x00 
 ** DACM family
-   - baud rate :: 9600
+- baud rate :: 9600
 - parity :: none 
-   - byte order :: big endian
-   - GetId command :: \x0c, reply > 19 byte
-   - C_OK :: \x0a 
+- byte order :: big endian
+- GetId command :: \x0c, reply > 19 byte
+- C_OK :: \x0a
+* Buffer settings                                           :ARCHIVE:noexport:
+** Publishing
+#+BEGIN_SRC emacs-lisp
+(require 'ox-publish)
+(setq public-html "~/mstrey/public_html/")
+(defun rename-sarad (project-plist)
+  "Rename sarad.html into index.html"
+  (let ((htmlfile (concat public-html "todo/sarad.html")))
+    (if (file-exists-p htmlfile)
+        (rename-file htmlfile
+                     (concat public-html "todo/index.html") t))))
+(setq org-publish-project-alist
+      `(("org-notes"
+         :base-directory "~/mstrey/Work/GTD_Sarad/"
+         :base-extension "org"
+         :publishing-directory ,(concat public-html "todo/")
+         :recursive t
+         :publishing-function org-html-publish-to-html
+         :section-numbers nil
+         :with-archived-trees t
+         :with-latex t
+         :with-smart-quotes t
+         :with-sub-superscript nil
+         :with-timestamps t
+         :html-doctype "html5"
+         :html-html5-fancy t
+         :html-head-include-default-style nil
+         :html-preamble t
+         :html-validation-link nil
+         :completion-function rename-sarad)
+        ("org-static"
+         :base-directory "~/mstrey/Work/GTD_Sarad/"
+         :base-extension "css\\|js\\|png\\|jpg\\|gif\\|pdf\\|mp3\\|ogg\\|swf\\|org\\|odt"
+         :exclude "sarad.org"
+         :publishing-directory ,(concat public-html "todo/")
+         :recursive t
+         :publishing-function org-publish-attachment)
+        ("org" :components ("org-notes" "org-static"))))
+#+END_SRC
+
+#+RESULTS:
+| org-notes  | :base-directory | ~/mstrey/Work/GTD_Sarad/ | :base-extension | org  | :publishing-directory | ~/mstrey/public_html/todo/ | :recursive | t    | :publishing-function | org-html-publish-to-html | :section-numbers | nil  | :with-archived-trees | t   | :with-latex | t         | :with-smart-quotes    | t                          | :with-sub-superscript | nil | :with-timestamps     | t                      | :html-doctype | html5 | :html-html5-fancy | t | :html-head-include-default-style | nil | :html-preamble | t | :html-validation-link | nil | :completion-function | rename-sarad |
+| org-static | :base-directory | ~/mstrey/Work/GTD_Sarad/ | :base-extension | css\ | js\                   | png\                       | jpg\       | gif\ | pdf\                 | mp3\                     | ogg\             | swf\ | org\                 | odt | :exclude    | sarad.org | :publishing-directory | ~/mstrey/public_html/todo/ | :recursive            | t   | :publishing-function | org-publish-attachment |               |       |                   |   |                                  |     |                |   |                       |     |                      |              |
+| org        | :components     | (org-notes org-static)   |                 |      |                       |                            |            |      |                      |                          |                  |      |                      |     |             |           |                       |                            |                       |     |                      |                        |               |       |                   |   |                                  |     |                |   |                       |     |                      |              |
+
+** Setup
+:PROPERTIES:
+:END:
+#+STARTUP: overview
+#+STARTUP: hidestars
+#+STARTUP: logdone
+#+STARTUP: indent
+#+DRAWERS: PROPERTIES LOGBOOK
+#+PROPERTY: Effort_ALL 0 0:10 0:20 0:30 1:00 2:00 3:00 4:00 8:00
+#+TAGS: W(w) PROJECT(p) PC(a) I(i) V(v) E(e) C(c)
+#+TAGS: noexport(n) export(x)
+#+SEQ_TODO: TODO(t!) NEXT(n!) WAITING(w@/!) | DONE(d!) CANCELLED(c@)
+#+TITLE: Datensammler
+#+AUTHOR:    Michael Strey
+#+EMAIL:     strey@sarad.de
+#+LANGUAGE: en
+#+LATEX_CLASS: article
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \def\todo#1{{\color{red}#1}}
+#+LATEX_HEADER: \def\next#1{{\color{red}#1}}
+#+LATEX_HEADER: \def\done#1{{\color{green}#1}}
+#+LATEX_HEADER: \def\cancelled#1{{\color{green}#1}}
+#+LATEX_HEADER: \def\deferred#1{{\color{yellow}#1}}
+#+LATEX_HEADER: \def\waiting#1{{\color{blue}#1}}
+#+LATEX_HEADER: \def\pending#1{{\color{orange}#1}}
+#+LATEX_HEADER: \def\won#1{{\color{green}#1}}
+#+LATEX_HEADER: \def\lost#1{{\color{blue}#1}}
+#+EXPORT_SELECT_TAGS: export
+#+EXPORT_EXCLUDE_TAGS: noexport
+#+OPTIONS: toc:2 H:5 email:t tags:t |:t todo:t d:nil
+#+SETUPFILE: /home/SARAD/mstrey/mstrey/Work/Vorlagen/org-html-themes/setup/theme-bigblow-local.setup

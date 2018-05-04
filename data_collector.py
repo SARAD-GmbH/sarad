@@ -8,7 +8,7 @@
 - Sensor :: Component delivering a Measurand (Messgröße)
 - Actor :: Component receiving a parameter and doing something with the Instrument
 - Measurand :: Value, Operator and Unit delivered by a Sensor
-- Operator :: mathematical operator used on
+- Operator :: mathematical operator used on a measurand (e.g. '<', '+-')
 - Cluster :: one or more Instruments connected with one Controller via one or more
              serial interfaces
              (RS232, RS485, USB, Zigbee connected to USB or RS232)

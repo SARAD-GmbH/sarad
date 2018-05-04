@@ -26,26 +26,18 @@ class SaradInstrument(object):
     Properties:
         port: String containing the serial communication port
         family: Device family of the instrument expected to be at this port
-        instrument_version: Dictionary with instrument type, software version,
-                            and device number
-        component_names: Names of the components (sensors or actors)
-                         characterizing the instrument
-        item_names: Names of the items that may belong to each of the components.
+        instrument_description: Dictionary with instrument type, software version,
+                            and device number, components, measurands and items.
     Public methods:
-        get_instrument_version(),
-        set_instrument_version(),
+        get_instrument_description(),
+        set_instrument_description(),
         get_family(),
         set_family(),
         get_port(),
         set_port(),
-        get_reply()
-        set_component_names()
-        get_component_names()
-        set_item_names()
-        get_item_names()"""
+        get_reply()"""
 
-    __component_names = []
-    __item_names = []
+    __instrument_description = dict()
 
     def __init__(self, port, family):
         self.__port = port
@@ -167,7 +159,7 @@ class SaradInstrument(object):
 
 
     # Public methods
-    def get_instrument_version(self):
+    def get_instrument_description(self):
         """Returns a dictionary with instrument type, software version,\
  and device number."""
         baudrate = self.__family['baudrate']
@@ -186,7 +178,7 @@ class SaradInstrument(object):
         if checked_payload['is_valid']:
             try:
                 payload = checked_payload['payload']
-                device_type = payload[1]
+                type_id = payload[1]
                 software_version = payload[2]
                 if self.__family['id'] == 5:  # DACM has big endian order of bytes
                     device_number = int.from_bytes(payload[3:5], \
@@ -197,10 +189,10 @@ class SaradInstrument(object):
                                                    byteorder='little', \
                                                    signed=False)
                 for type_in_family in self.__family['types']:
-                    if type_in_family['id'] == device_type:
-                        instrument_type = type_in_family['name']
-                return dict(instrument_type = instrument_type,
-                            instrument_id = device_type,
+                    if type_in_family['id'] == type_id:
+                        type_name = type_in_family['name']
+                return dict(type_name = type_name,
+                            type_id = type_id,
                             software_version = software_version,
                             device_number = device_number)
             except:
@@ -236,23 +228,9 @@ to the provided list of 1-byte command and data bytes."""
     def set_family(self, family):
         self.__family = family
 
-    def get_component_names(self):
-        return self.__component_names
-
-    def set_component_names(self, component_names):
-        self.__component_names = component_names
-
-    def get_item_names(self):
-        return self.__item_names
-
-    def set_item_names(self, item_names):
-        self.__item_names = item_names
-
     port = property(get_port, set_port)
     family = property(get_family, set_family)
-    instrument_version = property(get_instrument_version)
-    component_names = property(get_component_names, set_component_names)
-    item_names = property(get_item_names, set_item_names)
+    instrument_description = property(get_instrument_description)
 
 class DacmInstrument(SaradInstrument):
     """Instrument with DACM communication protocol
@@ -260,16 +238,10 @@ class DacmInstrument(SaradInstrument):
     Inherited properties:
         port
         family
-        instrument_version
-        item_names
-        component_names
+        instrument_description
     Public methods:
         get_recent_values()
-        get_recent_value(index)
-        get_item_names()
-        get_component_names()
-        set_item_names()
-        set_component_names()"""
+        get_recent_value(index)"""
     __item_names = ['recent sampling', \
                     'average of last completed interval', \
                     'minimum of last completed interval', \
@@ -282,25 +254,25 @@ class DacmInstrument(SaradInstrument):
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
         list_of_outputs = []
-        result_index = 0        # fixed value, reserved for future use
-        for component_index in range(34):
-            for item_index in range(4):
-                output = self.get_recent_value(component_index, item_index, result_index)
+        measurand_id = 0        # fixed value, reserved for future use
+        for component_id in range(34):
+            for item_id in range(4):
+                output = self.get_recent_value(component_id, measurand_id, item_id)
                 list_of_outputs.append(output)
         return list_of_outputs
 
-    def get_recent_value(self, component_index, item_index, result_index = 0):
+    def get_recent_value(self, component_id, measurand_id = 0, item_id = 0):
         """Get a dictionaries with recent measuring values from one sensor.
-        component_index: one of the 34 sensors/actors of the DACM system
-        item_index: 0 = recent sampling, 1 = average of last completed interval,
+        component_id: one of the 34 sensors/actors of the DACM system
+        item_id: 0 = recent sampling, 1 = average of last completed interval,
         2 = minimum of last completed interval, 3 = maximum
-        result_index: only for sensors delivering multiple results"""
-        reply = self.get_reply([b'\x1a', bytes([component_index]) + \
-                                bytes([result_index]) + \
-                                bytes([item_index])], 1000)
+        measurand_id: only for sensors delivering multiple results"""
+        reply = self.get_reply([b'\x1a', bytes([component_id]) + \
+                                bytes([measurand_id]) + \
+                                bytes([item_id])], 1000)
         output = dict()
         output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
-        output['item_index'] = item_index
+        output['item_id'] = item_id
         output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
         output['result'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
         r = self._parse_value_string(output['result'])
@@ -323,15 +295,14 @@ class RadonScoutInstrument(SaradInstrument):
     """Instrument with Radon Scout communication protocol
 
     Inherited properties:
-        component_names
-        item_names
+        instrument_description
     Public methods:
         get_all_recent_values()
         get_recent_value(index)"""
 
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
-    __item_names = ['measuring value']
+    __item_names = ['measuring value', 'error']
 
     def __init__(self, port, family = None):
         if family is None:
@@ -363,7 +334,7 @@ class RadonScoutInstrument(SaradInstrument):
                 return False
             return [dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_index = 0,
+                         item_id = 0,
                          component_name = self.__component_names[0],
                          result_value = radon,
                          result_unit = 'Bq/m³'
@@ -371,37 +342,37 @@ class RadonScoutInstrument(SaradInstrument):
                          error_unit = '%'),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_index = 0,
+                         item_id = 0,
                          component_name = self.__component_names[1],
                          result_value = thoron,
                          error = thoron_error),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_index = 0,
+                         item_id = 0,
                          component_name = self.__component_names[2],
                          result_value = temperature),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_index = 0,
+                         item_id = 0,
                          component_name = self.__component_names[3],
                          result_value = humidity),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_index = 0,
+                         item_id = 0,
                          component_name = self.__component_names[4],
                          result_value = pressure),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_index = 0,
+                         item_id = 0,
                          component_name = self.__component_names[5],
                          result_value = tilt)]
         else:
             print("The instrument doesn't reply.")
             return False
 
-    def get_recent_value(self, component_index, item_index = 0, result_index = 0):
+    def get_recent_value(self, component_id, item_id = 0, measurand_id = 0):
         """Get a dictionaries with recent measuring values from one sensor."""
-        return self.get_all_recent_values()[component_index]
+        return self.get_all_recent_values()[component_id]
 
     def get_battery_voltage(self, serial_port):
         get_battery_msg = b'\x42\x80\x7f\x0d\x0d\x00\x45'
@@ -463,29 +434,29 @@ class SaradCluster(object):
 
     # Device families
     f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
-                       parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
-                       wait_for_reply = 0.1, \
-                       get_id_cmd = [b'\x40', b''], \
-                       length_of_reply = 11, \
-                       types = [t_doseman, \
-                                t_dosemanpro, t_myriam, t_dm_rtm1688,\
-                                t_radonsensor, t_progenysensor])
+                     parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
+                     wait_for_reply = 0.1, \
+                     get_id_cmd = [b'\x40', b''], \
+                     length_of_reply = 11, \
+                     types = [t_doseman, \
+                              t_dosemanpro, t_myriam, t_dm_rtm1688,\
+                              t_radonsensor, t_progenysensor])
     f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
-                          parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                          wait_for_reply = 0, \
-                          get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                          length_of_reply = 19, \
-                          types = [t_radonscout1, t_radonscout2,\
-                                   t_radonscoutplus, t_rtm1688,\
-                                   t_radonscoutpmt, t_thoronscout,\
-                                   t_radonscouthome, t_radonscouthomep,\
-                                   t_radonscouthomeco2, t_rtm1688geo])
+                        parity = serial.PARITY_NONE, write_sleeptime = 0, \
+                        wait_for_reply = 0, \
+                        get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
+                        length_of_reply = 19, \
+                        types = [t_radonscout1, t_radonscout2,\
+                                 t_radonscoutplus, t_rtm1688,\
+                                 t_radonscoutpmt, t_thoronscout,\
+                                 t_radonscouthome, t_radonscouthomep,\
+                                 t_radonscouthomeco2, t_rtm1688geo])
     f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
-                    parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                    wait_for_reply = 0, \
-                    get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                    length_of_reply = 50, \
-                    types = [t_rtm2200])
+                  parity = serial.PARITY_NONE, write_sleeptime = 0, \
+                  wait_for_reply = 0, \
+                  get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
+                  length_of_reply = 50, \
+                  types = [t_rtm2200])
 
     def __init__(self, native_ports=None, products=None):
         if native_ports is None:
@@ -540,8 +511,8 @@ class SaradCluster(object):
                     pass
             for port in ports_to_test:
                 unknown_instrument.port = port.device
-                instrument_info = unknown_instrument.instrument_version
-                if instrument_info:
+                instrument_description = unknown_instrument.instrument_description
+                if instrument_description:
                     ports_with_instruments.append(port)
                     connected_instrument = \
                        dict(\
@@ -551,10 +522,10 @@ class SaradCluster(object):
                             baudrate = unknown_instrument.family['baudrate'],\
                             family_name = unknown_instrument.family['name'],\
                             family_id = unknown_instrument.family['id'],\
-                            instrument_type = instrument_info['instrument_type'],\
-                            instrument_id = instrument_info['instrument_id'],\
-                            software_version = instrument_info['software_version'],\
-                            device_number = instrument_info['device_number'],\
+                            type_name = instrument_description['type_name'],\
+                            type_id = instrument_description['type_id'],\
+                            software_version = instrument_description['software_version'],\
+                            device_number = instrument_description['device_number'],\
                        )
                     connected_instruments.append(connected_instrument)
         return connected_instruments
@@ -566,22 +537,22 @@ class SaradCluster(object):
 
 # Test environment
 if __name__=='__main__':
-    def print_instrument_info(instrument_info):
-        print("SerialDevice: " + instrument_info['port_device'])
-        print("HWIDofPort: " + instrument_info['port_hwid'])
-        print("PortDescription: " + instrument_info['port_description'])
-        print("Baudrate: " + str(instrument_info['baudrate']))
-        print("FamilyName: " + str(instrument_info['family_name']))
-        print("FamilyId: " + str(instrument_info['family_id']))
-        print("Instrument: " + instrument_info['instrument_type'])
-        print("Id: " + str(instrument_info['instrument_id']))
-        print("SoftwareVersion: " + str(instrument_info['software_version']))
-        print("InstrumentNumber: " + str(instrument_info['device_number']))
+    def print_instrument_description(instrument_description):
+        print("SerialDevice: " + instrument_description['port_device'])
+        print("HWIDofPort: " + instrument_description['port_hwid'])
+        print("PortDescription: " + instrument_description['port_description'])
+        print("Baudrate: " + str(instrument_description['baudrate']))
+        print("FamilyName: " + str(instrument_description['family_name']))
+        print("FamilyId: " + str(instrument_description['family_id']))
+        print("Instrument: " + instrument_description['type_name'])
+        print("TypeId: " + str(instrument_description['type_id']))
+        print("SoftwareVersion: " + str(instrument_description['software_version']))
+        print("InstrumentNumber: " + str(instrument_description['device_number']))
 
     def print_dacm_value(dacm_value):
         print("ComponentName: " + dacm_value['component_name'])
         print("ValueName: " + dacm_value['value_name'])
-        print(DacmInstrument.item_names[dacm_value['item_index']] + \
+        print(DacmInstrument.item_names[dacm_value['item_id']] + \
               ": " + dacm_value['result'])
         if dacm_value['datetime'] is not None:
             print("DateTime: " + dacm_value['datetime'].strftime("%c"))
@@ -594,7 +565,7 @@ if __name__=='__main__':
 
     mycluster = SaradCluster()
     for connected_instrument in mycluster.get_connected_instruments():
-        print_instrument_info(connected_instrument)
+        print_instrument_description(connected_instrument)
         print()
 
     thoronscout = RadonScoutInstrument('COM16')

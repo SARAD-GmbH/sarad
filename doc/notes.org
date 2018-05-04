@@ -11,6 +11,12 @@
              more serial interfaces (RS232, RS485, USB, Zigbee connected to USB
              or RS232)
 * Instrument characterization
+** Instrument in the cluster
+Every instrument in the cluster is completely defined by the following objects:
+- port :: The serial port, the device is connected to.
+- family :: The dictionary describing the features of the instrument family.
+- instrument :: 
+
 ** Family
 - id
 - name (e.g. 'DACM family')
@@ -22,29 +28,25 @@
 - length_of_reply (expected length of the reply to the get_id command)
 - types (list of instrument types belonging into this family)
 
-** Instrument in the cluster
-- port
-- family_id
-- instrument_id
-
 ** Individual instrument
-- id
-- instrument_type
-- software_version
-- serial_number
-- components (e.g. NO_x sensor, pump)
-  - id
-  - name
-  - measurands ("Result Index" in DACM naming)
-    - id
-    - name
-    - items (e.g. recent sampling, average of the last completed interval,
+- id :: An Id that is given to identify the instrument within the cluster.
+- type_id :: The Id of an instrument type within an instrument family.
+- type_name :: Name of the instrument type.
+- software_version :: Version of the firmware running on the instrument.
+- serial_number :: Serial number of the instrument.
+- components :: A list of instrument components (e.g. NO_x sensor, pump)
+  - id :: Component Id
+  - name :: Component name
+  - measurands :: A list of measurands delivered by the component ("Result Index" in DACM naming)
+    - id :: Measurand Id
+    - name :: Measurand name
+    - items :: A list of items belonging to a measurand (e.g. recent sampling, average of the last completed interval,
       minimum, error)
-      - id
-      - name
-      - operator
-      - value
-      - unit
+      - id :: Item Id
+      - name :: Item name
+      - operator :: Mathematical operator that may belong to the item (e.g. '<', '>')
+      - value :: Numerical value of the item
+      - unit :: Measurement unit of the item
 
 * How to differentiate between SARAD Instruments
 ** Basic assumptions

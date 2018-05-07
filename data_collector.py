@@ -161,7 +161,7 @@ class SaradInst(object):
     # Public methods
     def get_instrument_description(self):
         """Returns a dictionary with instrument type, software version,\
- and device number."""
+ and serial number."""
         baudrate = self.__family['baudrate']
         parity = self.__family['parity']
         write_sleeptime = self.__family['write_sleeptime']
@@ -181,20 +181,20 @@ class SaradInst(object):
                 type_id = payload[1]
                 software_version = payload[2]
                 if self.__family['id'] == 5:  # DACM has big endian order of bytes
-                    device_number = int.from_bytes(payload[3:5], \
+                    serial_number = int.from_bytes(payload[3:5], \
                                                    byteorder='big', \
                                                    signed=False)
                 else:
-                    device_number = int.from_bytes(payload[3:5], \
+                    serial_number = int.from_bytes(payload[3:5], \
                                                    byteorder='little', \
                                                    signed=False)
                 for type_in_family in self.__family['types']:
-                    if type_in_family['id'] == type_id:
-                        type_name = type_in_family['name']
+                    if type_in_family['type_id'] == type_id:
+                        type_name = type_in_family['type_name']
                 return dict(type_name = type_name,
                             type_id = type_id,
                             software_version = software_version,
-                            device_number = device_number)
+                            serial_number = serial_number)
             except:
                 print("Error parsing the payload.")
         else:
@@ -392,7 +392,7 @@ class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
 
     Public attributes:
-        t_<product>
+        __t_<product>
         f_<product family>
     Properties:
         native_ports
@@ -406,64 +406,64 @@ class SaradCluster(object):
     """
 
     # DOSEman device types
-    t_doseman = dict(name = 'DOSEman', id = 1)
-    t_dosemanpro = dict(name = 'DOSEman Pro', id = 2)
-    t_myriam = dict(name = 'MyRIAM', id = 3)
-    t_dm_rtm1688 = dict(name = 'RTM 1688', id = 4)
-    t_radonsensor = dict(name = 'Analog Radon Sensor', id = 5)
-    t_progenysensor = dict(name='Analog Progeny Sensor', id = 6)
+    __t_doseman = dict(type_name = 'DOSEman', type_id = 1)
+    __t_dosemanpro = dict(type_name = 'DOSEman Pro', type_id = 2)
+    __t_myriam = dict(type_name = 'MyRIAM', type_id = 3)
+    __t_dm_rtm1688 = dict(type_name = 'RTM 1688', type_id = 4)
+    __t_radonsensor = dict(type_name = 'Analog Radon Sensor', type_id = 5)
+    __t_progenysensor = dict(type_name='Analog Progeny Sensor', type_id = 6)
 
     # Radon Scout device types
-    t_radonscout1 = dict(name = 'Radon Scout 1', id = 1)
-    t_radonscout2 = dict(name = 'Radon Scout 2', id = 2)
-    t_radonscoutplus = dict(name = 'Radon Scout Plus', id = 3)
-    t_rtm1688 = dict(name = 'RTM 1688', id = 4)
-    t_radonscoutpmt = dict(name = 'Radon Scout PMT', id = 5)
-    t_thoronscout = dict(name='Thoron Scout', id = 6)
-    t_radonscouthome = dict(name = 'Radon Scout Home', id = 7)
-    t_radonscouthomep = dict(name = 'Radon Scout Home - P', id = 8)
-    t_radonscouthomeco2 = dict(name = 'Radon Scout Home - CO2', id = 9)
-    t_rtm1688geo = dict(name = 'RTM 1688 Geo', id = 10)
+    __t_radonscout1 = dict(type_name = 'Radon Scout 1', type_id = 1)
+    __t_radonscout2 = dict(type_name = 'Radon Scout 2', type_id = 2)
+    __t_radonscoutplus = dict(type_name = 'Radon Scout Plus', type_id = 3)
+    __t_rtm1688 = dict(type_name = 'RTM 1688', type_id = 4)
+    __t_radonscoutpmt = dict(type_name = 'Radon Scout PMT', type_id = 5)
+    __t_thoronscout = dict(type_name='Thoron Scout', type_id = 6)
+    __t_radonscouthome = dict(type_name = 'Radon Scout Home', type_id = 7)
+    __t_radonscouthomep = dict(type_name = 'Radon Scout Home - P', type_id = 8)
+    __t_radonscouthomeco2 = dict(type_name = 'Radon Scout Home - CO2', type_id = 9)
+    __t_rtm1688geo = dict(type_name = 'RTM 1688 Geo', type_id = 10)
 
     # DACM device types
-    t_rtm2200 = dict(name = 'RTM 2200', id = 2)
+    __t_rtm2200 = dict(type_name = 'RTM 2200', type_id = 2)
 
     # Network interface types
-    t_zigbee = dict(name = 'ZigBee adapter', id = 200)
+    __t_zigbee = dict(type_name = 'ZigBee adapter', type_id = 200)
     __network_types = [t_zigbee]
 
     # Device families
-    f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
-                     parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
-                     wait_for_reply = 0.1, \
-                     get_id_cmd = [b'\x40', b''], \
-                     length_of_reply = 11, \
-                     types = [t_doseman, \
-                              t_dosemanpro, t_myriam, t_dm_rtm1688,\
-                              t_radonsensor, t_progenysensor])
-    f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
-                        parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                        wait_for_reply = 0, \
-                        get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                        length_of_reply = 19, \
-                        types = [t_radonscout1, t_radonscout2,\
-                                 t_radonscoutplus, t_rtm1688,\
-                                 t_radonscoutpmt, t_thoronscout,\
-                                 t_radonscouthome, t_radonscouthomep,\
-                                 t_radonscouthomeco2, t_rtm1688geo])
-    f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
-                  parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                  wait_for_reply = 0, \
-                  get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                  length_of_reply = 50, \
-                  types = [t_rtm2200])
+    __f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
+                       parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
+                       wait_for_reply = 0.1, \
+                       get_id_cmd = [b'\x40', b''], \
+                       length_of_reply = 11, \
+                       types = [__t_doseman, \
+                                __t_dosemanpro, __t_myriam, __t_dm_rtm1688,\
+                                __t_radonsensor, __t_progenysensor])
+    __f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
+                          parity = serial.PARITY_NONE, write_sleeptime = 0, \
+                          wait_for_reply = 0, \
+                          get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
+                          length_of_reply = 19, \
+                          types = [__t_radonscout1, __t_radonscout2,\
+                                   __t_radonscoutplus, __t_rtm1688,\
+                                   __t_radonscoutpmt, __t_thoronscout,\
+                                   __t_radonscouthome, __t_radonscouthomep,\
+                                   __t_radonscouthomeco2, __t_rtm1688geo])
+    __f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
+                    parity = serial.PARITY_NONE, write_sleeptime = 0, \
+                    wait_for_reply = 0, \
+                    get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
+                    length_of_reply = 50, \
+                    types = [__t_rtm2200])
 
     def __init__(self, native_ports=None, products=None):
         if native_ports is None:
             native_ports = []
         self.__native_ports = native_ports
         if products is None:
-            products = [self.f_doseman, self.f_radonscout, self.f_dacm]
+            products = [self.__f_doseman, self.__f_radonscout, self.__f_dacm]
         self.__products = products
 
     def set_native_ports(self, native_ports):
@@ -525,7 +525,7 @@ class SaradCluster(object):
                             type_name = instrument_description['type_name'],\
                             type_id = instrument_description['type_id'],\
                             software_version = instrument_description['software_version'],\
-                            device_number = instrument_description['device_number'],\
+                            serial_number = instrument_description['serial_number'],\
                        )
                     connected_instruments.append(connected_instrument)
         return connected_instruments
@@ -547,7 +547,7 @@ if __name__=='__main__':
         print("Instrument: " + instrument_description['type_name'])
         print("TypeId: " + str(instrument_description['type_id']))
         print("SoftwareVersion: " + str(instrument_description['software_version']))
-        print("InstrumentNumber: " + str(instrument_description['device_number']))
+        print("SerialNumber: " + str(instrument_description['serial_number']))
 
     def print_dacm_value(dacm_value):
         print("ComponentName: " + dacm_value['component_name'])

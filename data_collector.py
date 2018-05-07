@@ -43,7 +43,6 @@ class SaradInst(object):
         self.__port = port
         self.__family = family
 
-
     # Helper functions to be used here and in derived classes
     def _bytes_to_float(self, value_bytes):
         """Convert 4 bytes (little endian) from serial interface into floating point nummber according to IEEE 754"""
@@ -232,17 +231,14 @@ to the provided list of 1-byte command and data bytes."""
         self.__family = family
 
     def __str__(self):
-        # description = "SerialDevice: " + instrument_description['port_device'] + "\n"
-        # description += "HWIDofPort: " + instrument_description['port_hwid'] + "\n"
-        # description += "PortDescription: " + instrument_description['port_description'] + "\n"
-        # description += "Baudrate: " + str(instrument_description['baudrate']) + "\n"
-        # description += "FamilyName: " + str(instrument_description['family_name']) + "\n"
-        # description += "FamilyId: " + str(instrument_description['family_id']) + "\n"
-        # description += "Instrument: " + instrument_description['type_name'] + "\n"
-        # description += "TypeId: " + str(instrument_description['type_id']) + "\n"
-        # description += "SoftwareVersion: " + str(instrument_description['software_version']) + "\n"
-        # description += "SerialNumber: " + str(instrument_description['serial_number']) + "\n"
-        description = self._type_name
+        description = "SerialDevice: " + self.port + "\n"
+        description += "Baudrate: " + str(self.family['baudrate']) + "\n"
+        description += "FamilyName: " + str(self.family['name']) + "\n"
+        description += "FamilyId: " + str(self.family['id']) + "\n"
+        description += "Instrument: " + self._type_name + "\n"
+        description += "TypeId: " + str(self._type_id) + "\n"
+        description += "SoftwareVersion: " + str(self._software_version) + "\n"
+        description += "SerialNumber: " + str(self._serial_number) + "\n"
         return description
 
     port = property(get_port, set_port)
@@ -272,7 +268,7 @@ class DacmInst(SaradInst):
         self._type_id = self.__instrument_description['type_id']
         self._type_name = self.__instrument_description['type_name']
         self._software_version = self.__instrument_description['software_version']
-        self._serial_number = self.__instrument_description['software_version']
+        self._serial_number = self.__instrument_description['serial_number']
         self._components = None # list
 
     def get_all_recent_values(self):
@@ -337,7 +333,7 @@ class RscInst(SaradInst):
         self._type_id = self.__instrument_description['type_id']
         self._type_name = self.__instrument_description['type_name']
         self._software_version = self.__instrument_description['software_version']
-        self._serial_number = self.__instrument_description['software_version']
+        self._serial_number = self.__instrument_description['serial_number']
         self._components = None # list
 
     def get_all_recent_values(self):

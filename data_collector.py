@@ -26,6 +26,7 @@ class SaradInst(object):
     Properties:
         port: String containing the serial communication port
         family: Device family of the instrument expected to be at this port
+        id: Identifier for an individual instrument in a cluster
         instrument_description: Dictionary with instrument type, software version,
                             and device number, components, measurands and items.
     Public methods:
@@ -33,6 +34,8 @@ class SaradInst(object):
         set_instrument_description(),
         get_family(),
         set_family(),
+        get_id(),
+        set_id(),
         get_port(),
         set_port(),
         get_reply()"""
@@ -224,6 +227,12 @@ to the provided list of 1-byte command and data bytes."""
     def set_port(self, port):
         self.__port = port
 
+    def get_id(self):
+        return self.__id
+
+    def set_id(self, id):
+        self.__id = id
+
     def get_family(self):
         return self.__family
 
@@ -231,7 +240,8 @@ to the provided list of 1-byte command and data bytes."""
         self.__family = family
 
     def __str__(self):
-        description = "SerialDevice: " + self.port + "\n"
+        description = "Id: " + str(self.id) + "\n"
+        description += "SerialDevice: " + self.port + "\n"
         description += "Baudrate: " + str(self.family['baudrate']) + "\n"
         description += "FamilyName: " + str(self.family['name']) + "\n"
         description += "FamilyId: " + str(self.family['id']) + "\n"
@@ -242,6 +252,7 @@ to the provided list of 1-byte command and data bytes."""
         return description
 
     port = property(get_port, set_port)
+    id = property(get_id, set_id)
     family = property(get_family, set_family)
     instrument_description = property(get_instrument_description)
 
@@ -524,6 +535,7 @@ class SaradCluster(object):
 
         ports_with_instruments = []
         self.__connected_instruments = []  # a list of instrument objects
+        id = 0
         for family in self.__products:
             # Ports with already detected devices shall not be tested with other
             # device families
@@ -544,6 +556,10 @@ class SaradCluster(object):
                         connected_instrument = RscInst(port.device)
                     elif unknown_instrument.family['id'] == 5:
                         connected_instrument = DacmInst(port.device)
+                    else:
+                        return False
+                    connected_instrument.set_id(id)
+                    id += 1
                     self.__connected_instruments.append(connected_instrument)
         return self.__connected_instruments
 

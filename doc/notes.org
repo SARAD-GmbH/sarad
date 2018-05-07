@@ -11,12 +11,6 @@
              more serial interfaces (RS232, RS485, USB, Zigbee connected to USB
              or RS232)
 * Instrument characterization
-** Instrument in the cluster
-Every instrument in the cluster is completely defined by the following objects:
-- port :: The serial port, the device is connected to.
-- family :: The dictionary describing the features of the instrument family.
-- instrument :: 
-
 ** Family
 - id
 - name (e.g. 'DACM family')
@@ -28,7 +22,11 @@ Every instrument in the cluster is completely defined by the following objects:
 - length_of_reply (expected length of the reply to the get_id command)
 - types (list of instrument types belonging into this family)
 
-** Individual instrument
+** Instrument in the cluster
+Every instrument in the cluster is completely defined by the following objects:
+- is_connected :: Boolean indicating whether the object is connected to the cluster
+- port :: The serial port, the device is connected to.
+- family :: The dictionary describing the features of the instrument family.
 - id :: An Id that is given to identify the instrument within the cluster.
 - type_id :: The Id of an instrument type within an instrument family.
 - type_name :: Name of the instrument type.

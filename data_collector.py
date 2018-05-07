@@ -306,7 +306,7 @@ class RscInst(SaradInst):
 
     def __init__(self, port, family = None):
         if family is None:
-            family = SaradCluster.f_radonscout
+            family = SaradCluster._f_radonscout
         SaradInst.__init__(self, port, family)
 
     def get_all_recent_values(self):
@@ -337,7 +337,7 @@ class RscInst(SaradInst):
                          item_id = 0,
                          component_name = self.__component_names[0],
                          result_value = radon,
-                         result_unit = 'Bq/m³'
+                         result_unit = 'Bq/m³',
                          error = radon_error,
                          error_unit = '%'),
                     dict(sample_interval = sample_interval,
@@ -391,12 +391,10 @@ class RscInst(SaradInst):
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
 
-    Public attributes:
-        __t_<product>
-        f_<product family>
     Properties:
         native_ports
         products
+        connected_instruments
     Public methods:
         set_native_ports()
         get_native_ports()
@@ -430,41 +428,42 @@ class SaradCluster(object):
 
     # Network interface types
     __t_zigbee = dict(type_name = 'ZigBee adapter', type_id = 200)
-    __network_types = [t_zigbee]
+    __network_types = [__t_zigbee]
 
     # Device families
-    __f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
-                       parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
-                       wait_for_reply = 0.1, \
-                       get_id_cmd = [b'\x40', b''], \
-                       length_of_reply = 11, \
-                       types = [__t_doseman, \
-                                __t_dosemanpro, __t_myriam, __t_dm_rtm1688,\
-                                __t_radonsensor, __t_progenysensor])
-    __f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
-                          parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                          wait_for_reply = 0, \
-                          get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                          length_of_reply = 19, \
-                          types = [__t_radonscout1, __t_radonscout2,\
-                                   __t_radonscoutplus, __t_rtm1688,\
-                                   __t_radonscoutpmt, __t_thoronscout,\
-                                   __t_radonscouthome, __t_radonscouthomep,\
-                                   __t_radonscouthomeco2, __t_rtm1688geo])
-    __f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
-                    parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                    wait_for_reply = 0, \
-                    get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                    length_of_reply = 50, \
-                    types = [__t_rtm2200])
+    _f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
+                      parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
+                      wait_for_reply = 0.1, \
+                      get_id_cmd = [b'\x40', b''], \
+                      length_of_reply = 11, \
+                      types = [__t_doseman, \
+                               __t_dosemanpro, __t_myriam, __t_dm_rtm1688,\
+                               __t_radonsensor, __t_progenysensor])
+    _f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
+                         parity = serial.PARITY_NONE, write_sleeptime = 0, \
+                         wait_for_reply = 0, \
+                         get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
+                         length_of_reply = 19, \
+                         types = [__t_radonscout1, __t_radonscout2,\
+                                  __t_radonscoutplus, __t_rtm1688,\
+                                  __t_radonscoutpmt, __t_thoronscout,\
+                                  __t_radonscouthome, __t_radonscouthomep,\
+                                  __t_radonscouthomeco2, __t_rtm1688geo])
+    _f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
+                   parity = serial.PARITY_NONE, write_sleeptime = 0, \
+                   wait_for_reply = 0, \
+                   get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
+                   length_of_reply = 50, \
+                   types = [__t_rtm2200])
 
     def __init__(self, native_ports=None, products=None):
         if native_ports is None:
             native_ports = []
         self.__native_ports = native_ports
         if products is None:
-            products = [self.__f_doseman, self.__f_radonscout, self.__f_dacm]
+            products = [self._f_doseman, self._f_radonscout, self._f_dacm]
         self.__products = products
+        self.__connected_instruments = self.get_connected_instruments()
 
     def set_native_ports(self, native_ports):
         self.__native_ports = native_ports
@@ -564,7 +563,7 @@ if __name__=='__main__':
             print("DateTime: " + radon_scout_value['datetime'].strftime("%c"))
 
     mycluster = SaradCluster()
-    for connected_instrument in mycluster.get_connected_instruments():
+    for connected_instrument in mycluster.connected_instruments:
         print_instrument_description(connected_instrument)
         print()
 

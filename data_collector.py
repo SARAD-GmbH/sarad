@@ -20,7 +20,7 @@ import time
 from datetime import datetime
 import struct
 
-class SaradInstrument(object):
+class SaradInst(object):
     """Basic class for the serial communication protocol of SARAD instruments
 
     Properties:
@@ -232,7 +232,7 @@ to the provided list of 1-byte command and data bytes."""
     family = property(get_family, set_family)
     instrument_description = property(get_instrument_description)
 
-class DacmInstrument(SaradInstrument):
+class DacmInst(SaradInst):
     """Instrument with DACM communication protocol
 
     Inherited properties:
@@ -249,7 +249,7 @@ class DacmInstrument(SaradInstrument):
     def __init__(self, port, family = None):
         if family is None:
             family = SaradCluster.f_dacm
-        SaradInstrument.__init__(self, port, family)
+        SaradInst.__init__(self, port, family)
 
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
@@ -291,7 +291,7 @@ class DacmInstrument(SaradInstrument):
         output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
         return output
 
-class RadonScoutInstrument(SaradInstrument):
+class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
 
     Inherited properties:
@@ -307,7 +307,7 @@ class RadonScoutInstrument(SaradInstrument):
     def __init__(self, port, family = None):
         if family is None:
             family = SaradCluster.f_radonscout
-        SaradInstrument.__init__(self, port, family)
+        SaradInst.__init__(self, port, family)
 
     def get_all_recent_values(self):
         reply = self.get_reply([b'\x14', b''], 39)
@@ -484,7 +484,7 @@ class SaradCluster(object):
         2. via their built in FT232R USB-serial converter
         3. via an external USB-serial converter (Prolific, Prolific fake or FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
-        unknown_instrument = SaradInstrument('', 9600)
+        unknown_instrument = SaradInst('', 9600)
         # Get the list of accessible native ports
         ports_to_test = []
         # Native ports
@@ -552,7 +552,7 @@ if __name__=='__main__':
     def print_dacm_value(dacm_value):
         print("ComponentName: " + dacm_value['component_name'])
         print("ValueName: " + dacm_value['value_name'])
-        print(DacmInstrument.item_names[dacm_value['item_id']] + \
+        print(DacmInst.item_names[dacm_value['item_id']] + \
               ": " + dacm_value['result'])
         if dacm_value['datetime'] is not None:
             print("DateTime: " + dacm_value['datetime'].strftime("%c"))
@@ -568,7 +568,7 @@ if __name__=='__main__':
         print_instrument_description(connected_instrument)
         print()
 
-    thoronscout = RadonScoutInstrument('COM16')
+    thoronscout = RscInst('COM16')
     # print(thoronscout.get_reply([b'\x0c', b''], 1000))
 
-    # rtm2200 = DacmInstrument('COM18')
+    # rtm2200 = DacmInst('COM18')

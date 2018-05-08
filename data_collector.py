@@ -1,7 +1,9 @@
-"""
-"""
+"""Command line application that gives back the most recent value of a SARAD
+instrument whenever it is called.
+Made to be a data source for Zabbix agent."""
 
 import SarI
+import click
 # Test environment
 if __name__=='__main__':
 
@@ -23,3 +25,5 @@ if __name__=='__main__':
     for connected_instrument in mycluster.connected_instruments:
         print(connected_instrument)
         print()
+
+    print(mycluster.connected_instruments[0].get_recent_value(0,0,0)['result_value'])

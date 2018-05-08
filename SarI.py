@@ -447,6 +447,7 @@ class SaradCluster(object):
         set_products()
         get_products()
         get_connected_instruments()
+        update_connected_instruments()
     """
 
     # DOSEman device types
@@ -509,7 +510,7 @@ class SaradCluster(object):
         if products is None:
             products = [self._f_doseman, self._f_radonscout, self._f_dacm]
         self.__products = products
-        self.__connected_instruments = self.get_connected_instruments()
+        self.__connected_instruments = self.update_connected_instruments()
 
     def set_native_ports(self, native_ports):
         self.__native_ports = native_ports
@@ -523,7 +524,7 @@ class SaradCluster(object):
     def get_products(self):
         return self.__products
 
-    def get_connected_instruments(self):
+    def update_connected_instruments(self):
         """SARAD instruments can be connected:
         1. by RS232 on a native RS232 interface at the computer
         2. via their built in FT232R USB-serial converter
@@ -542,7 +543,7 @@ class SaradCluster(object):
         ports_to_test.extend(serial.tools.list_ports.grep("067B"))
 
         ports_with_instruments = []
-        self.__connected_instruments = []  # a list of instrument objects
+        connected_instruments = []  # a list of instrument objects
         id = 0
         for family in self.__products:
             # Ports with already detected devices shall not be tested with other
@@ -568,7 +569,10 @@ class SaradCluster(object):
                         return False
                     connected_instrument.set_id(id)
                     id += 1
-                    self.__connected_instruments.append(connected_instrument)
+                    connected_instruments.append(connected_instrument)
+        return connected_instruments
+
+    def get_connected_instruments(self):
         return self.__connected_instruments
 
     native_ports = property(get_native_ports, set_native_ports)

@@ -591,7 +591,7 @@ if __name__=='__main__':
         print(connected_instrument)
         print()
 
-    thoronscout = RscInst('COM16')
+    # thoronscout = RscInst('COM16')
     # print(thoronscout.get_reply([b'\x0c', b''], 1000))
 
     # rtm2200 = DacmInst('COM18')

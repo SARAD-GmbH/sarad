@@ -316,7 +316,7 @@ class DacmInst(SaradInst):
         output['result'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
         r = self._parse_value_string(output['result'])
         output['result_operator'] = r['result_operator']
-        output['result_value'] = r['result_value']
+        output['value'] = r['result_value']
         output['result_unit'] = r['result_unit']
         date = reply[52:68].split(b'\x00')[0].split(b'/')
         time = reply[69:85].split(b'\x00')[0].split(b':')
@@ -382,7 +382,7 @@ class RscInst(SaradInst):
                          datetime = device_time,
                          item_id = 0,
                          component_name = self.__component_names[0],
-                         result_value = radon,
+                         value = radon,
                          result_unit = 'Bq/m³',
                          error = radon_error,
                          error_unit = '%'),
@@ -390,33 +390,33 @@ class RscInst(SaradInst):
                          datetime = device_time,
                          item_id = 0,
                          component_name = self.__component_names[1],
-                         result_value = thoron,
+                         value = thoron,
                          error = thoron_error),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          item_id = 0,
                          component_name = self.__component_names[2],
-                         result_value = temperature),
+                         value = temperature),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          item_id = 0,
                          component_name = self.__component_names[3],
-                         result_value = humidity),
+                         value = humidity),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          item_id = 0,
                          component_name = self.__component_names[4],
-                         result_value = pressure),
+                         value = pressure),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          item_id = 0,
                          component_name = self.__component_names[5],
-                         result_value = tilt)]
+                         value = tilt)]
         else:
             print("The instrument doesn't reply.")
             return False
 
-    def get_recent_value(self, component_id, item_id = 0, measurand_id = 0):
+    def get_recent_value(self, component_id, measurand_id = 0, item_id = 0):
         """Get a dictionaries with recent measuring values from one sensor."""
         return self.get_all_recent_values()[component_id]
 

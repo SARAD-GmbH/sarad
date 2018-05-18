@@ -9,6 +9,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        data_collector=data_collector:get_value
+        data_collector=data_collector:cli
     ''',
 )

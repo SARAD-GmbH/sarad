@@ -5,10 +5,10 @@ setup(
     version='0.1',
     py_modules=['data_collector', 'SarI'],
     install_requires=[
-        'Click', 'pyserial'
+        'Click', 'pyserial', 'filelock'
     ],
     entry_points='''
         [console_scripts]
-        data_collector=data_collector:cli
+        data_collector=data_collector:get_value
     ''',
 )

@@ -83,7 +83,7 @@ def send_trap(component_mapping, host, instrument, measurand, item, zbx, path, l
 @click.option('--path', default='mycluster.pickle', help='The path to cache the cluster.')
 @click.option('--lock_path', default='mycluster.lock', help='The path to the lock file.')
 @click.option('--period', default=60, help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
-@click.option('--once/--periodic', default=False, help='Retrieve only one set of data.')
+@click.option('--once', is_flag=True, help='Retrieve only one set of data.')
 def trapper(instrument, host, server, path, lock_path, once, period):
     """Start a Zabbix trapper service to provide all values from an instrument."""
     component_mapping = [

@@ -6,6 +6,7 @@ import SarI
 import click
 import pickle
 from filelock import Timeout, FileLock
+from pyzabbix import ZabbixMetric, ZabbixSender
 
 @click.group()
 def cli():
@@ -49,3 +50,46 @@ def cluster():
     for connected_instrument in mycluster.connected_instruments:
         print(connected_instrument)
         print()
+
+@cli.command()
+@click.option('--instrument', default=0, help='Instrument Id')
+@click.option('--host', default='localhost', help='Host name as defined in Zabbix')
+@click.option('--server', default='127.0.0.1', help='Server IP address or name')
+@click.option('--path', default='mycluster.pickle', help='The path to cache the cluster.')
+@click.option('--lock_path', default='mycluster.lock', help='The path to the lock file.')
+def trapper(instrument, host, server, path, lock_path):
+    """Start a Zabbix trapper service to provide all values from an instrument."""
+    component_mapping = [
+        dict(id = 0, name = 'radon'),
+        dict(id = 1, name = 'thoron'),
+        dict(id = 2, name = 'temperature'),
+        dict(id = 3, name = 'humidity'),
+        dict(id = 4, name = 'pressure'),
+    ]
+    measurand = 0
+    item = 0
+    metrics = []
+    zbx = ZabbixSender(server)
+    lock = FileLock(lock_path)
+    try:
+        with lock.acquire(timeout=10):
+            try:
+                with open(path, 'rb') as f:
+                    mycluster = pickle.load(f)
+            except:
+                mycluster = SarI.SaradCluster()
+            for component_map in component_mapping:
+                value = mycluster.connected_instruments[instrument].\
+                      get_recent_value(\
+                                       component_map['id'],\
+                                       measurand,\
+                                       item\
+                      )['value']
+                key = component_map['name']
+                metrics.append(ZabbixMetric(host, key, value))
+            zbx.send(metrics)
+            with open(path, 'wb') as f:
+                pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
+    except Timeout:
+        print("Another instance of this application currently holds the lock.")
+

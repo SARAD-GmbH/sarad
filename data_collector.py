@@ -15,12 +15,12 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--instrument', default=0, help='Instrument Id')
-@click.option('--component', default=0, help='The id or the sensor component.')
-@click.option('--measurand', default=0, help='The id or the measurand of the component.')
-@click.option('--item', default=0, help='The id or the item of the measurand.')
-@click.option('--path', default='mycluster.pickle', help='The path to cache the cluster.')
-@click.option('--lock_path', default='mycluster.lock', help='The path to the lock file.')
+@click.option('--instrument', default=0, type=click.IntRange(0, 255), help='Instrument Id')
+@click.option('--component', default=0, type=click.IntRange(0, 63), help='The id of the sensor component.')
+@click.option('--measurand', default=0, type=click.IntRange(0, 255), help='The id of the measurand of the component.')
+@click.option('--item', default=0, type=click.IntRange(0, 3), help='The id of the item of the measurand.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path to cache the cluster.')
+@click.option('--lock_path', type=click.Path(writable=True), default='mycluster.lock', help='The path to the lock file.')
 def value(instrument, component, measurand, item, path, lock_path):
     """Command line application that gives back the most recent value of a SARAD
     instrument whenever it is called.
@@ -77,12 +77,12 @@ def send_trap(component_mapping, host, instrument, measurand, item, zbx, path, l
         print("Another instance of this application currently holds the lock.")
 
 @cli.command()
-@click.option('--instrument', default=0, help='Instrument Id')
-@click.option('--host', default='localhost', help='Host name as defined in Zabbix')
-@click.option('--server', default='127.0.0.1', help='Server IP address or name')
-@click.option('--path', default='mycluster.pickle', help='The path to cache the cluster.')
-@click.option('--lock_path', default='mycluster.lock', help='The path to the lock file.')
-@click.option('--period', default=60, help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
+@click.option('--instrument', default=0, type=click.IntRange(0, 255), help='Instrument Id')
+@click.option('--host', default='localhost', type=click.STRING, help='Host name as defined in Zabbix')
+@click.option('--server', default='127.0.0.1', type=click.STRING, help='Server IP address or name')
+@click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path to cache the cluster.')
+@click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path to the lock file.')
+@click.option('--period', default=60, type=click.IntRange(30, 7200), help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
 def trapper(instrument, host, server, path, lock_path, once, period):
     """Start a Zabbix trapper service to provide all values from an instrument."""

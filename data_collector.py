@@ -7,6 +7,7 @@ import click
 import pickle
 from filelock import Timeout, FileLock
 from pyzabbix import ZabbixMetric, ZabbixSender
+import time
 
 @click.group()
 def cli():
@@ -51,27 +52,9 @@ def cluster():
         print(connected_instrument)
         print()
 
-@cli.command()
-@click.option('--instrument', default=0, help='Instrument Id')
-@click.option('--host', default='localhost', help='Host name as defined in Zabbix')
-@click.option('--server', default='127.0.0.1', help='Server IP address or name')
-@click.option('--path', default='mycluster.pickle', help='The path to cache the cluster.')
-@click.option('--lock_path', default='mycluster.lock', help='The path to the lock file.')
-def trapper(instrument, host, server, path, lock_path):
-    """Start a Zabbix trapper service to provide all values from an instrument."""
-    component_mapping = [
-        dict(id = 0, name = 'radon'),
-        dict(id = 1, name = 'thoron'),
-        dict(id = 2, name = 'temperature'),
-        dict(id = 3, name = 'humidity'),
-        dict(id = 4, name = 'pressure'),
-    ]
-    measurand = 0
-    item = 0
-    metrics = []
-    zbx = ZabbixSender(server)
-    lock = FileLock(lock_path)
+def send_trap(component_mapping, host, instrument, measurand, item, zbx, path, lock):
     try:
+        metrics = []
         with lock.acquire(timeout=10):
             try:
                 with open(path, 'rb') as f:
@@ -93,3 +76,29 @@ def trapper(instrument, host, server, path, lock_path):
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
+@cli.command()
+@click.option('--instrument', default=0, help='Instrument Id')
+@click.option('--host', default='localhost', help='Host name as defined in Zabbix')
+@click.option('--server', default='127.0.0.1', help='Server IP address or name')
+@click.option('--path', default='mycluster.pickle', help='The path to cache the cluster.')
+@click.option('--lock_path', default='mycluster.lock', help='The path to the lock file.')
+@click.option('--period', default=60, help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
+@click.option('--once/--periodic', default=False, help='Retrieve only one set of data.')
+def trapper(instrument, host, server, path, lock_path, once, period):
+    """Start a Zabbix trapper service to provide all values from an instrument."""
+    component_mapping = [
+        dict(id = 0, name = 'radon'),
+        dict(id = 1, name = 'thoron'),
+        dict(id = 2, name = 'temperature'),
+        dict(id = 3, name = 'humidity'),
+        dict(id = 4, name = 'pressure'),
+    ]
+    measurand = 0
+    item = 0
+    zbx = ZabbixSender(server)
+    lock = FileLock(lock_path)
+    starttime = time.time()
+    while not once:
+        send_trap(component_mapping, host, instrument, measurand, item, zbx, path, lock)
+        time.sleep(period - time.time() % period)
+    send_trap(component_mapping, host, instrument, measurand, item, zbx, path, lock)

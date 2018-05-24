@@ -15,7 +15,7 @@ class SaradInst(object):
         family: Device family of the instrument expected to be at this port
         id: Identifier for an individual instrument in a cluster
         instrument_description: Dictionary with instrument type, software version,
-                            and device number, components, measurands and items.
+                            and device number, components, sensors and measurands.
         components: List of sensor or actor components
     Public methods:
         get_instrument_description(),
@@ -47,21 +47,21 @@ class SaradInst(object):
         output = dict()
         r = value_string        # just an abbreviation for the following
         if r == 'No valid data!':
-            output['result_operator'] = ''
-            output['result_value'] = ''
-            output['result_unit'] = ''
+            output['measurand_operator'] = ''
+            output['measurand_value'] = ''
+            output['measurand_unit'] = ''
         else:
             if ('<' in r)  or ('>' in r):
-                output['result_operator'] = r[0]
+                output['measurand_operator'] = r[0]
                 r1 = r[1:]
             else:
-                output['result_operator'] = ''
+                output['measurand_operator'] = ''
                 r1 = r
-            output['result_value'] = float(r1.split()[0])
+            output['measurand_value'] = float(r1.split()[0])
             try:
-                output['result_unit'] = r1.split()[1]
+                output['measurand_unit'] = r1.split()[1]
             except:
-                output['result_unit'] = ''
+                output['measurand_unit'] = ''
         return output
 
     # Private methods
@@ -261,7 +261,7 @@ class DacmInst(SaradInst):
     Public methods:
         get_recent_values()
         get_recent_value(index)"""
-    __item_names = ['recent sampling', \
+    __measurand_names = ['recent sampling', \
                     'average of last completed interval', \
                     'minimum of last completed interval', \
                     'maximum of last completed interval']
@@ -280,31 +280,31 @@ class DacmInst(SaradInst):
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
         list_of_outputs = []
-        measurand_id = 0        # fixed value, reserved for future use
+        sensor_id = 0        # fixed value, reserved for future use
         for component_id in range(34):
-            for item_id in range(4):
-                output = self.get_recent_value(component_id, measurand_id, item_id)
+            for measurand_id in range(4):
+                output = self.get_recent_value(component_id, sensor_id, measurand_id)
                 list_of_outputs.append(output)
         return list_of_outputs
 
-    def get_recent_value(self, component_id, measurand_id = 0, item_id = 0):
+    def get_recent_value(self, component_id, sensor_id = 0, measurand_id = 0):
         """Get a dictionaries with recent measuring values from one sensor.
-        component_id: one of the 34 sensors/actors of the DACM system
-        item_id: 0 = recent sampling, 1 = average of last completed interval,
+        component_id: one of the 34 sensor/actor modules of the DACM system
+        measurand_id: 0 = recent sampling, 1 = average of last completed interval,
         2 = minimum of last completed interval, 3 = maximum
-        measurand_id: only for sensors delivering multiple results"""
+        sensor_id: only for sensors delivering multiple measurands"""
         reply = self.get_reply([b'\x1a', bytes([component_id]) + \
-                                bytes([measurand_id]) + \
-                                bytes([item_id])], 1000)
+                                bytes([sensor_id]) + \
+                                bytes([measurand_id])], 1000)
         output = dict()
         output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
-        output['item_id'] = item_id
+        output['measurand_id'] = measurand_id
         output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
-        output['result'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
-        r = self._parse_value_string(output['result'])
-        output['result_operator'] = r['result_operator']
-        output['value'] = r['result_value']
-        output['result_unit'] = r['result_unit']
+        output['measurand'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
+        r = self._parse_value_string(output['measurand'])
+        output['measurand_operator'] = r['measurand_operator']
+        output['value'] = r['measurand_value']
+        output['measurand_unit'] = r['measurand_unit']
         date = reply[52:68].split(b'\x00')[0].split(b'/')
         time = reply[69:85].split(b'\x00')[0].split(b':')
         if date != [b'']:
@@ -328,7 +328,7 @@ class RscInst(SaradInst):
 
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
-    __item_names = ['measuring value', 'error']
+    __measurand_names = ['measuring value', 'error']
 
     def __init__(self, port, family = None):
         if family is None:
@@ -367,43 +367,43 @@ class RscInst(SaradInst):
                 return False
             return [dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_id = 0,
+                         measurand_id = 0,
                          component_name = self.__component_names[0],
                          value = radon,
-                         result_unit = 'Bq/m³',
+                         measurand_unit = 'Bq/m³',
                          error = radon_error,
                          error_unit = '%'),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_id = 0,
+                         measurand_id = 0,
                          component_name = self.__component_names[1],
                          value = thoron,
                          error = thoron_error),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_id = 0,
+                         measurand_id = 0,
                          component_name = self.__component_names[2],
                          value = temperature),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_id = 0,
+                         measurand_id = 0,
                          component_name = self.__component_names[3],
                          value = humidity),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_id = 0,
+                         measurand_id = 0,
                          component_name = self.__component_names[4],
                          value = pressure),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
-                         item_id = 0,
+                         measurand_id = 0,
                          component_name = self.__component_names[5],
                          value = tilt)]
         else:
             print("The instrument doesn't reply.")
             return False
 
-    def get_recent_value(self, component_id, measurand_id = 0, item_id = 0):
+    def get_recent_value(self, component_id, sensor_id = 0, measurand_id = 0):
         """Get a dictionaries with recent measuring values from one sensor."""
         return self.get_all_recent_values()[component_id]
 
@@ -571,15 +571,15 @@ class Component(object):
     def __init__(self) :
         self.id = None #
         self.name = None #
-        self.measurands = None # list
+        self.sensors = None # list
         pass
-class Measurand(object):
+class Sensor(object):
     def __init__(self) :
         self.id = None #
         self.name = None #
-        self.items = None # list
+        self.measurands = None # list
         pass
-class Item(object):
+class Measurand(object):
     def __init__(self) :
         self.id = None #
         self.name = None #
@@ -594,8 +594,8 @@ if __name__=='__main__':
     def print_dacm_value(dacm_value):
         print("ComponentName: " + dacm_value['component_name'])
         print("ValueName: " + dacm_value['value_name'])
-        print(DacmInst.item_names[dacm_value['item_id']] + \
-              ": " + dacm_value['result'])
+        print(DacmInst.measurand_names[dacm_value['measurand_id']] + \
+              ": " + dacm_value['measurand'])
         if dacm_value['datetime'] is not None:
             print("DateTime: " + dacm_value['datetime'].strftime("%c"))
         print("GPS: " + dacm_value['gps'])

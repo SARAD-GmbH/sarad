@@ -16,12 +16,12 @@ def cli():
 
 @cli.command()
 @click.option('--instrument', default=0, type=click.IntRange(0, 255), help='Instrument Id')
-@click.option('--component', default=0, type=click.IntRange(0, 63), help='The id of the sensor component.')
-@click.option('--measurand', default=0, type=click.IntRange(0, 255), help='The id of the measurand of the component.')
-@click.option('--item', default=0, type=click.IntRange(0, 3), help='The id of the item of the measurand.')
-@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path to cache the cluster.')
-@click.option('--lock_path', type=click.Path(writable=True), default='mycluster.lock', help='The path to the lock file.')
-def value(instrument, component, measurand, item, path, lock_path):
+@click.option('--component', default=0, type=click.IntRange(0, 63), help='The Id of the sensor component.')
+@click.option('--sensor', default=0, type=click.IntRange(0, 255), help='The Id of the sensor of the component.')
+@click.option('--measurand', default=0, type=click.IntRange(0, 3), help='The Id of the measurand of the sensor.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--lock_path', type=click.Path(writable=True), default='mycluster.lock', help='The path and file name of the lock file.')
+def value(instrument, component, sensor, measurand, path, lock_path):
     """Command line application that gives back the most recent value of a SARAD
     instrument whenever it is called.
     Made to be a data source for Zabbix agent."""
@@ -36,8 +36,8 @@ def value(instrument, component, measurand, item, path, lock_path):
             print(mycluster.connected_instruments[instrument].\
                   get_recent_value(\
                                    component,\
-                                   measurand,\
-                                   item\
+                                   sensor,\
+                                   measurand\
                   )['value'])
             with open(path, 'wb') as f:
                 pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
@@ -52,7 +52,7 @@ def cluster():
         print(connected_instrument)
         print()
 
-def send_trap(component_mapping, host, instrument, measurand, item, zbx, path, lock):
+def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, path, lock):
     try:
         metrics = []
         with lock.acquire(timeout=10):
@@ -65,8 +65,8 @@ def send_trap(component_mapping, host, instrument, measurand, item, zbx, path, l
                 value = mycluster.connected_instruments[instrument].\
                       get_recent_value(\
                                        component_map['id'],\
-                                       measurand,\
-                                       item\
+                                       sensor,\
+                                       measurand\
                       )['value']
                 key = component_map['name']
                 metrics.append(ZabbixMetric(host, key, value))
@@ -80,8 +80,8 @@ def send_trap(component_mapping, host, instrument, measurand, item, zbx, path, l
 @click.option('--instrument', default=0, type=click.IntRange(0, 255), help='Instrument Id')
 @click.option('--host', default='localhost', type=click.STRING, help='Host name as defined in Zabbix')
 @click.option('--server', default='127.0.0.1', type=click.STRING, help='Server IP address or name')
-@click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path to cache the cluster.')
-@click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path to the lock file.')
+@click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
 @click.option('--period', default=60, type=click.IntRange(30, 7200), help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
 def trapper(instrument, host, server, path, lock_path, once, period):
@@ -93,12 +93,12 @@ def trapper(instrument, host, server, path, lock_path, once, period):
         dict(id = 3, name = 'humidity'),
         dict(id = 4, name = 'pressure'),
     ]
+    sensor = 0
     measurand = 0
-    item = 0
     zbx = ZabbixSender(server)
     lock = FileLock(lock_path)
     starttime = time.time()
     while not once:
-        send_trap(component_mapping, host, instrument, measurand, item, zbx, path, lock)
+        send_trap(component_mapping, host, instrument, sensor, measurand, zbx, path, lock)
         time.sleep(period - time.time() % period)
-    send_trap(component_mapping, host, instrument, measurand, item, zbx, path, lock)
+    send_trap(component_mapping, host, instrument, sensor, measurand, zbx, path, lock)

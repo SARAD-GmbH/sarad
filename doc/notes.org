@@ -1,26 +1,29 @@
 * Naming convention
-- Instrument :: a SARAD product with serial interface and at least one Sensor
+- Cluster :: One or more Instruments connected with one Controller via one or
+             more serial interfaces (RS-232, RS-485, USB, Zigbee connected to
+             USB or RS-232).
+- Family :: Each Instrument belongs to one of the three Families: Doseman, DACM
+            and RadonScout.
+- Instrument :: A SARAD product with serial interface and at least one Sensor
                 and maybe one or more Actors. Every Instrument is characterized
                 by FamilyId, TypeId, SoftwareVersion and SerialNumber. As soon
                 as a Cluster is established, the Instrument will get a unique
                 Id.
-- Family :: Each Instrument belongs to one of the three Families: Doseman, DACM
-            and RadonScout.
 - Component :: Modular sensor or actor device built into an Instrument. A
-               component can deliver one or more measuring values.
-- Sensor :: Component delivering at least one Measurand (Messgröße)
+               Component can deliver one or more measuring values.
+- Sensor :: Part of a sensor Component delivering at least one Measurand
+            (Messgröße) belonging to exactly one physical variable. Multiple
+            Measurands belonging to the same physical variable are typically:
+            recent sampling, average, minimum, maximum, error in percent.
 - Measurand :: Value, Operator and Unit delivered by a Sensor
-- Operator :: Mathematical operator characterizing a Value of a Measurand
-              (typical operators are: recent sampling, average, minimum, maximum, error in
-              percent)
+- Operator :: Mathematical operator characterizing a Value of a Measurand.
+              Typical Operators in the context of SARAD Instruments are <, >,
+              and ±.
 - Value :: A number delivered by a Sensor as part of the Measurand
 - Unit :: The physical unit of a Measurand as gained from the Instrument
           description retrieved from a database or from the Instrument itself.
-- Cluster :: one or more Instruments connected with one Controller via one or
-             more serial interfaces (RS232, RS485, USB, Zigbee connected to USB
-             or RS232)
-- Actor :: Component receiving a Parameter and doing something with the
-           Instrument
+- Actor :: Part of an actor Component receiving a Parameter and doing something
+           with the Instrument.
 * Instrument characterization
 ** Family
 - id

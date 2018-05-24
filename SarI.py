@@ -64,7 +64,6 @@ class SaradInst(object):
                 output['result_unit'] = ''
         return output
 
-
     # Private methods
     def __make_command_msg(self, cmd_data):
         # Encode the message to be sent to the SARAD instrument.
@@ -148,7 +147,6 @@ class SaradInst(object):
                     is_control = checked_answer['is_control'],
                     payload = checked_answer['payload'],
                     number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
-
 
     # Public methods
     def get_instrument_description(self):
@@ -243,10 +241,10 @@ to the provided list of 1-byte command and data bytes."""
     def add_component(self, component):
         """Add an instrument component"""
         self.__components += [component]
-    
+
     def get_components(self):
         return self.__components
-    
+
     port = property(get_port, set_port)
     id = property(get_id, set_id)
     family = property(get_family, set_family)
@@ -272,7 +270,7 @@ class DacmInst(SaradInst):
             family = SaradCluster.f_dacm
         SaradInst.__init__(self, port, family)
         self.__instrument_description = self.get_instrument_description()
-        self._id = None # 
+        self._id = None #
         self._type_id = self.__instrument_description['type_id']
         self._type_name = self.__instrument_description['type_name']
         self._software_version = self.__instrument_description['software_version']
@@ -337,7 +335,7 @@ class RscInst(SaradInst):
             family = SaradCluster._f_radonscout
         SaradInst.__init__(self, port, family)
         self.__instrument_description = self.get_instrument_description()
-        self._id = None # 
+        self._id = None #
         self._type_id = self.__instrument_description['type_id']
         self._type_name = self.__instrument_description['type_name']
         self._software_version = self.__instrument_description['software_version']
@@ -571,23 +569,23 @@ class SaradCluster(object):
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""
     def __init__(self) :
-        self.id = None # 
-        self.name = None # 
+        self.id = None #
+        self.name = None #
         self.measurands = None # list
         pass
 class Measurand(object):
     def __init__(self) :
-        self.id = None # 
-        self.name = None # 
+        self.id = None #
+        self.name = None #
         self.items = None # list
         pass
 class Item(object):
     def __init__(self) :
-        self.id = None # 
-        self.name = None # 
-        self.operator = None # 
-        self.value = None # 
-        self.unit = None # 
+        self.id = None #
+        self.name = None #
+        self.operator = None #
+        self.value = None #
+        self.unit = None #
         pass
 
 # Test environment

@@ -251,23 +251,22 @@ to the provided list of 1-byte command and data bytes."""
     instrument_description = property(get_instrument_description)
     components = property(get_components)
 
-class DacmInst(SaradInst):
-    """Instrument with DACM communication protocol
+class DosemanInst(SaradInst):
+    """Instrument with Doseman communication protocol
 
     Inherited properties:
-        port
-        family
         instrument_description
     Public methods:
-        get_recent_values()
+        get_all_recent_values()
         get_recent_value(index)"""
-    __measurand_names = ['recent sampling', \
-                    'average of last completed interval', \
-                    'minimum of last completed interval', \
-                    'maximum of last completed interval']
+
+    __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
+                         'pressure', 'tilt']
+    __measurand_names = ['measuring value', 'error']
+
     def __init__(self, port, family = None):
         if family is None:
-            family = SaradCluster.f_dacm
+            family = SaradCluster._f_doseman
         SaradInst.__init__(self, port, family)
         self.__instrument_description = self.get_instrument_description()
         self._id = None #
@@ -278,44 +277,83 @@ class DacmInst(SaradInst):
         self._components = None # list
 
     def get_all_recent_values(self):
-        """Get a list of dictionaries with recent measuring values."""
-        list_of_outputs = []
-        sensor_id = 0        # fixed value, reserved for future use
-        for component_id in range(34):
-            for measurand_id in range(4):
-                output = self.get_recent_value(component_id, sensor_id, measurand_id)
-                list_of_outputs.append(output)
-        return list_of_outputs
+        reply = self.get_reply([b'\x14', b''], 39)
+        if reply:
+            try:
+                sample_interval = reply[1]
+                device_time_min = reply[2]
+                device_time_h = reply[3]
+                device_time_d = reply[4]
+                device_time_m = reply[5]
+                device_time_y = reply[6]
+                radon = self._bytes_to_float(reply[7:11])
+                radon_error = reply[11]
+                thoron = self._bytes_to_float(reply[12:16])
+                thoron_error = reply[16]
+                temperature = self._bytes_to_float(reply[17:21])
+                humidity = self._bytes_to_float(reply[21:25])
+                pressure = self._bytes_to_float(reply[25:29])
+                tilt = int.from_bytes(reply[29:], byteorder='little', signed=False)
+                device_time = datetime(device_time_y + 2000, device_time_m,
+                                       device_time_d, device_time_h, device_time_min)
+            except:
+                print("Error parsing the payload.")
+                return False
+            return [dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         measurand_id = 0,
+                         component_name = self.__component_names[0],
+                         value = radon,
+                         measurand_unit = 'Bq/m³',
+                         error = radon_error,
+                         error_unit = '%'),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         measurand_id = 0,
+                         component_name = self.__component_names[1],
+                         value = thoron,
+                         error = thoron_error),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         measurand_id = 0,
+                         component_name = self.__component_names[2],
+                         value = temperature),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         measurand_id = 0,
+                         component_name = self.__component_names[3],
+                         value = humidity),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         measurand_id = 0,
+                         component_name = self.__component_names[4],
+                         value = pressure),
+                    dict(sample_interval = sample_interval,
+                         datetime = device_time,
+                         measurand_id = 0,
+                         component_name = self.__component_names[5],
+                         value = tilt)]
+        else:
+            print("The instrument doesn't reply.")
+            return False
 
     def get_recent_value(self, component_id, sensor_id = 0, measurand_id = 0):
-        """Get a dictionaries with recent measuring values from one sensor.
-        component_id: one of the 34 sensor/actor modules of the DACM system
-        measurand_id: 0 = recent sampling, 1 = average of last completed interval,
-        2 = minimum of last completed interval, 3 = maximum
-        sensor_id: only for sensors delivering multiple measurands"""
-        reply = self.get_reply([b'\x1a', bytes([component_id]) + \
-                                bytes([sensor_id]) + \
-                                bytes([measurand_id])], 1000)
-        output = dict()
-        output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
-        output['measurand_id'] = measurand_id
-        output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
-        output['measurand'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
-        r = self._parse_value_string(output['measurand'])
-        output['measurand_operator'] = r['measurand_operator']
-        output['value'] = r['measurand_value']
-        output['measurand_unit'] = r['measurand_unit']
-        date = reply[52:68].split(b'\x00')[0].split(b'/')
-        time = reply[69:85].split(b'\x00')[0].split(b':')
-        if date != [b'']:
-            output['datetime'] = datetime(int(date[2]), int(date[0]),\
-                                          int(date[1]),\
-                                          int(time[0]), int(time[1]),\
-                                          int(time[2]))
+        """Get a dictionaries with recent measuring values from one sensor."""
+        return self.get_all_recent_values()[component_id]
+
+    def get_battery_voltage(self, serial_port):
+        get_battery_msg = b'\x42\x80\x7f\x0d\x0d\x00\x45'
+        reply_length_battery_msg = 39
+        checked_payload = get_message_payload(serial_port, get_battery_msg, reply_length_battery_msg)
+        if checked_payload['is_valid']:
+            try:
+                payload = checked_payload['payload']
+                voltage = 0.00323 * int.from_bytes(payload[1:], byteorder='little', signed=False)
+                print(voltage)
+            except ParsingError:
+                print("Error parsing the payload.")
         else:
-            output['datetime'] = None
-        output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
-        return output
+            print("The instrument doesn't reply.")
 
 class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
@@ -420,6 +458,72 @@ class RscInst(SaradInst):
                 print("Error parsing the payload.")
         else:
             print("The instrument doesn't reply.")
+
+class DacmInst(SaradInst):
+    """Instrument with DACM communication protocol
+
+    Inherited properties:
+        port
+        family
+        instrument_description
+    Public methods:
+        get_recent_values()
+        get_recent_value(index)"""
+    __measurand_names = ['recent sampling', \
+                    'average of last completed interval', \
+                    'minimum of last completed interval', \
+                    'maximum of last completed interval']
+    def __init__(self, port, family = None):
+        if family is None:
+            family = SaradCluster.f_dacm
+        SaradInst.__init__(self, port, family)
+        self.__instrument_description = self.get_instrument_description()
+        self._id = None #
+        self._type_id = self.__instrument_description['type_id']
+        self._type_name = self.__instrument_description['type_name']
+        self._software_version = self.__instrument_description['software_version']
+        self._serial_number = self.__instrument_description['serial_number']
+        self._components = None # list
+
+    def get_all_recent_values(self):
+        """Get a list of dictionaries with recent measuring values."""
+        list_of_outputs = []
+        sensor_id = 0        # fixed value, reserved for future use
+        for component_id in range(34):
+            for measurand_id in range(4):
+                output = self.get_recent_value(component_id, sensor_id, measurand_id)
+                list_of_outputs.append(output)
+        return list_of_outputs
+
+    def get_recent_value(self, component_id, sensor_id = 0, measurand_id = 0):
+        """Get a dictionaries with recent measuring values from one sensor.
+        component_id: one of the 34 sensor/actor modules of the DACM system
+        measurand_id: 0 = recent sampling, 1 = average of last completed interval,
+        2 = minimum of last completed interval, 3 = maximum
+        sensor_id: only for sensors delivering multiple measurands"""
+        reply = self.get_reply([b'\x1a', bytes([component_id]) + \
+                                bytes([sensor_id]) + \
+                                bytes([measurand_id])], 1000)
+        output = dict()
+        output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
+        output['measurand_id'] = measurand_id
+        output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
+        output['measurand'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
+        r = self._parse_value_string(output['measurand'])
+        output['measurand_operator'] = r['measurand_operator']
+        output['value'] = r['measurand_value']
+        output['measurand_unit'] = r['measurand_unit']
+        date = reply[52:68].split(b'\x00')[0].split(b'/')
+        time = reply[69:85].split(b'\x00')[0].split(b':')
+        if date != [b'']:
+            output['datetime'] = datetime(int(date[2]), int(date[0]),\
+                                          int(date[1]),\
+                                          int(time[0]), int(time[1]),\
+                                          int(time[2]))
+        else:
+            output['datetime'] = None
+        output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
+        return output
 
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller

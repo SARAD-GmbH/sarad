@@ -1,0 +1,114 @@
+%YAML 1.2
+# This file describes instruments manufactured by SARAD GmbH
+---
+- family_id: 1
+  family_name: Doseman family
+  baudrate: 115200
+  get_id_cmd:
+  - !!binary |
+    QA==
+  - !!binary ""
+  length_of_reply: 11
+  wait_for_reply: 0.1
+  write_sleeptime: 0.001
+  parity: E
+  types:
+  - {type_id: 1, type_name: DOSEman}
+  - {type_id: 2, type_name: DOSEman Pro}
+  - {type_id: 3, type_name: MyRIAM}
+  - {type_id: 4, type_name: RTM 1688}
+  - {type_id: 5, type_name: Analog Radon Sensor}
+  - {type_id: 6, type_name: Analog Progeny Sensor}
+- family_id: 2
+  family_name: Radon Scout family
+  baudrate: 9600
+  get_id_cmd:
+  - !!binary |
+    DA==
+  - !!binary |
+    /wAA
+  length_of_reply: 19
+  wait_for_reply: 0
+  write_sleeptime: 0
+  parity: N
+  types:
+  - {type_id: 1, type_name: Radon Scout 1}
+  - {type_id: 2, type_name: Radon Scout 2}
+  - {type_id: 3, type_name: Radon Scout Plus}
+  - {type_id: 4, type_name: RTM 1688}
+  - {type_id: 5, type_name: Radon Scout PMT}
+  - type_id: 6
+    type_name: Thoron Scout
+    components:
+    - component_id: 0
+      component_name: main
+      sensors:
+      - sensor_id: 0
+        sensor_name: temperature
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent value
+          measurand_unit: °C
+      - sensor_id: 1
+        sensor_name: humidity
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent value
+          measurand_unit: %
+      - sensor_id: 2
+        sensor_name: pressure
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent value
+          measurand_unit: mbar
+      - sensor_id: 3
+        sensor_name: tilt
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent value
+          measurand_unit: 
+      - sensor_id: 4
+        sensor_name: battery
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent value
+          measurand_unit: V
+    - component_id: 1
+      component_name: radon
+      sensors:
+      - sensor_id: 0
+        sensor_name: radon
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent value
+          measurand_unit: Bq/m³
+        - measurand_id: 1
+          measurand_name: error
+          measurand_unit: %
+      - sensor_id: 1
+        sensor_name: thoron
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent value
+          measurand_unit: Bq/m³
+        - measurand_id: 1
+          measurand_name: error
+          measurand_unit: %
+  - {type_id: 7, type_name: Radon Scout Home}
+  - {type_id: 8, type_name: Radon Scout Home - P}
+  - {type_id: 9, type_name: Radon Scout Home - CO2}
+  - {type_id: 10, type_name: RTM 1688 Geo}
+- family_id: 5
+  family_name: DACM family
+  baudrate: 9600
+  get_id_cmd:
+  - !!binary |
+    DA==
+  - !!binary |
+    /wAA
+  length_of_reply: 50
+  wait_for_reply: 0
+  write_sleeptime: 0
+  parity: N
+  types:
+  - {type_id: 2, type_name: RTM 2200}

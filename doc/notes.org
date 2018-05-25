@@ -91,6 +91,13 @@ The baud rate is fixed per instrument type and either 9600 or 115200 baud.
 - byte order :: big endian
 - GetId command :: \x0c, reply > 19 byte
 - C_OK :: \x0a
+
+* Instrument database
+The instrument database is a YAML file containing information about
+communication parameters and sensor and actor configuration of SARAD instruments
+of various types as well as of the configuration of individual instruments.
+Instruments, Components, Sensors and Measurands are described in a hierarchical
+tree.
 * Buffer settings                                           :ARCHIVE:noexport:
 ** Publishing
 #+BEGIN_SRC emacs-lisp

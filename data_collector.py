@@ -92,6 +92,7 @@ def trapper(instrument, host, server, path, lock_path, once, period):
         dict(id = 2, name = 'temperature'),
         dict(id = 3, name = 'humidity'),
         dict(id = 4, name = 'pressure'),
+        dict(id = 5, name = 'tilt'),
     ]
     sensor = 0
     measurand = 0

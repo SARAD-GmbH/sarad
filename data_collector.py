@@ -45,12 +45,19 @@ def value(instrument, component, sensor, measurand, path, lock_path):
         print("Another instance of this application currently holds the lock.")
 
 @cli.command()
-def cluster():
+@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--lock_path', type=click.Path(writable=True), default='mycluster.lock', help='The path and file name of the lock file.')
+def cluster(path, lock_path):
     """Show list of connected SARAD instruments."""
-    mycluster = SarI.SaradCluster()
-    for connected_instrument in mycluster.connected_instruments:
-        print(connected_instrument)
-        print()
+    lock = FileLock(lock_path)
+    try:
+        with lock.acquire(timeout=10):
+            mycluster = SarI.SaradCluster()
+            for connected_instrument in mycluster.connected_instruments:
+                print(connected_instrument)
+                print()
+    except Timeout:
+        print("Another instance of this application currently holds the lock.")
 
 def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, path, lock):
     try:

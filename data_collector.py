@@ -59,29 +59,18 @@ def cluster(path, lock_path):
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
-def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, path, lock):
-    try:
-        metrics = []
-        with lock.acquire(timeout=10):
-            try:
-                with open(path, 'rb') as f:
-                    mycluster = pickle.load(f)
-            except:
-                mycluster = SarI.SaradCluster()
-            for component_map in component_mapping:
-                value = mycluster.connected_instruments[instrument].\
-                      get_recent_value(\
-                                       component_map['id'],\
-                                       sensor,\
-                                       measurand\
-                      )['value']
-                key = component_map['name']
-                metrics.append(ZabbixMetric(host, key, value))
-            zbx.send(metrics)
-            with open(path, 'wb') as f:
-                pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
-    except Timeout:
-        print("Another instance of this application currently holds the lock.")
+def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster):
+    metrics = []
+    for component_map in component_mapping:
+        value = mycluster.connected_instruments[instrument].\
+              get_recent_value(\
+                               component_map['id'],\
+                               sensor,\
+                               measurand\
+              )['value']
+        key = component_map['name']
+        metrics.append(ZabbixMetric(host, key, value))
+    zbx.send(metrics)
 
 @cli.command()
 @click.option('--instrument', default=0, type=click.IntRange(0, 255), help='Instrument Id')
@@ -106,7 +95,18 @@ def trapper(instrument, host, server, path, lock_path, once, period):
     zbx = ZabbixSender(server)
     lock = FileLock(lock_path)
     starttime = time.time()
-    while not once:
-        send_trap(component_mapping, host, instrument, sensor, measurand, zbx, path, lock)
-        time.sleep(period - time.time() % period)
-    send_trap(component_mapping, host, instrument, sensor, measurand, zbx, path, lock)
+    try:
+        with lock.acquire(timeout=10):
+            try:
+                with open(path, 'rb') as f:
+                    mycluster = pickle.load(f)
+            except:
+                mycluster = SarI.SaradCluster()
+            while not once:
+                send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster)
+                time.sleep(period - time.time() % period)
+            send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster)
+            with open(path, 'wb') as f:
+                pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
+    except Timeout:
+        print("Another instance of this application currently holds the lock.")

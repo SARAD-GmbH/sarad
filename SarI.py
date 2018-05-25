@@ -397,7 +397,7 @@ class RscInst(SaradInst):
                 temperature = self._bytes_to_float(reply[17:21])
                 humidity = self._bytes_to_float(reply[21:25])
                 pressure = self._bytes_to_float(reply[25:29])
-                tilt = int.from_bytes(reply[29:], byteorder='little', signed=False)
+                tilt = int.from_bytes(reply[29:33], byteorder='little', signed=False)
                 device_time = datetime(device_time_y + 2000, device_time_m,
                                        device_time_d, device_time_h, device_time_min)
             except:

@@ -476,7 +476,7 @@ class DacmInst(SaradInst):
                     'maximum of last completed interval']
     def __init__(self, port, family = None):
         if family is None:
-            family = SaradCluster.f_dacm
+            family = SaradCluster._f_dacm
         SaradInst.__init__(self, port, family)
         self.__instrument_description = self.get_instrument_description()
         self._id = None #

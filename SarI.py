@@ -134,7 +134,7 @@ class SaradInst(object):
         payload: Payload of answer
         number_of_bytes_in_payload"""
         ser = serial.Serial(serial_port, baudrate, \
-                            timeout=2, parity=parity, \
+                            timeout=1, parity=parity, \
                             stopbits=serial.STOPBITS_ONE)
         for element in message:
             byte = (element).to_bytes(1,'big')

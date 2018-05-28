@@ -6,6 +6,7 @@ import serial.tools.list_ports
 import time
 from datetime import datetime
 import struct
+import hashids
 
 class SaradInst(object):
     """Basic class for the serial communication protocol of SARAD instruments
@@ -622,6 +623,7 @@ class SaradCluster(object):
         3. via an external USB-serial converter (Prolific, Prolific fake or FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
         unknown_instrument = SaradInst('', 9600)
+        hid = hashids.Hashids()
         # Get the list of accessible native ports
         ports_to_test = []
         # Native ports
@@ -635,7 +637,6 @@ class SaradCluster(object):
 
         ports_with_instruments = []
         connected_instruments = []  # a list of instrument objects
-        id = 0
         for family in self.__products:
             # Ports with already detected devices shall not be tested with other
             # device families
@@ -658,8 +659,12 @@ class SaradCluster(object):
                         connected_instrument = DacmInst(port.device)
                     else:
                         return False
+                    id = hid.encode(connected_instrument.family['id'],\
+                            connected_instrument.\
+                                    instrument_description['type_id'],\
+                            connected_instrument.\
+                                    instrument_description['serial_number'])
                     connected_instrument.set_id(id)
-                    id += 1
                     connected_instruments.append(connected_instrument)
         return connected_instruments
 

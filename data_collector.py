@@ -15,7 +15,7 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--instrument', default=0, type=click.IntRange(0, 255), help='Instrument Id')
+@click.option('--instrument', default='j2hRuRDy', help='Instrument Id.  Run ~data_collector cluster~ to get the list of available instruments.')
 @click.option('--component', default=0, type=click.IntRange(0, 63), help='The Id of the sensor component.')
 @click.option('--sensor', default=0, type=click.IntRange(0, 255), help='The Id of the sensor of the component.')
 @click.option('--measurand', default=0, type=click.IntRange(0, 3), help='The Id of the measurand of the sensor.')
@@ -33,12 +33,14 @@ def value(instrument, component, sensor, measurand, path, lock_path):
                     mycluster = pickle.load(f)
             except:
                 mycluster = SarI.SaradCluster()
-            print(mycluster.connected_instruments[instrument].\
-                  get_recent_value(\
-                                   component,\
-                                   sensor,\
-                                   measurand\
-                  )['value'])
+            for my_instrument in mycluster.connected_instruments:
+                if my_instrument.id == instrument:
+                    print(my_instrument.\
+                          get_recent_value(\
+                                           component,\
+                                           sensor,\
+                                           measurand\
+                          )['value'])
             with open(path, 'wb') as f:
                 pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
     except Timeout:
@@ -56,24 +58,28 @@ def cluster(path, lock_path):
             for connected_instrument in mycluster.connected_instruments:
                 print(connected_instrument)
                 print()
+            with open(path, 'wb') as f:
+                pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
 def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster):
     metrics = []
-    for component_map in component_mapping:
-        value = mycluster.connected_instruments[instrument].\
-              get_recent_value(\
-                               component_map['id'],\
-                               sensor,\
-                               measurand\
-              )['value']
-        key = component_map['name']
-        metrics.append(ZabbixMetric(host, key, value))
+    for my_instrument in mycluster.connected_instruments:
+        if my_instrument.id == instrument:
+            for component_map in component_mapping:
+                value = my_instrument.\
+                        get_recent_value(\
+                                         component_map['id'],\
+                                         sensor,\
+                                         measurand\
+                        )['value']
+                key = component_map['name']
+                metrics.append(ZabbixMetric(host, key, value))
     zbx.send(metrics)
 
 @cli.command()
-@click.option('--instrument', default=0, type=click.IntRange(0, 255), help='Instrument Id')
+@click.option('--instrument', default='j2hRuRDy', help='Instrument Id.  Run ~data_collector cluster~ to get the list of available instruments.')
 @click.option('--host', default='localhost', type=click.STRING, help='Host name as defined in Zabbix')
 @click.option('--server', default='127.0.0.1', type=click.STRING, help='Server IP address or name')
 @click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path and file name to cache the cluster in a Python Pickle file.')

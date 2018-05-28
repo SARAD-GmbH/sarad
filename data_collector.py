@@ -65,17 +65,14 @@ def cluster(path, lock_path):
 
 def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster):
     metrics = []
-    for my_instrument in mycluster.connected_instruments:
-        if my_instrument.id == instrument:
-            for component_map in component_mapping:
-                value = my_instrument.\
-                        get_recent_value(\
-                                         component_map['id'],\
-                                         sensor,\
-                                         measurand\
-                        )['value']
-                key = component_map['name']
-                metrics.append(ZabbixMetric(host, key, value))
+    for component_map in component_mapping:
+        value = instrument.get_recent_value(\
+                                            component_map['id'],\
+                                            sensor,\
+                                            measurand\
+        )['value']
+        key = component_map['name']
+        metrics.append(ZabbixMetric(host, key, value))
     zbx.send(metrics)
 
 @cli.command()
@@ -108,11 +105,15 @@ def trapper(instrument, host, server, path, lock_path, once, period):
                     mycluster = pickle.load(f)
             except:
                 mycluster = SarI.SaradCluster()
-            while not once:
-                send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster)
-                time.sleep(period - time.time() % period)
-            send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster)
-            with open(path, 'wb') as f:
-                pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
+            for my_instrument in mycluster.connected_instruments:
+                if my_instrument.id == instrument:
+                    while not once:
+                        send_trap(component_mapping, host, my_instrument, sensor,\
+                                  measurand, zbx, mycluster)
+                        time.sleep(period - time.time() % period)
+                    send_trap(component_mapping, host, my_instrument, sensor,\
+                              measurand, zbx, mycluster)
+                    with open(path, 'wb') as f:
+                        pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
     except Timeout:
         print("Another instance of this application currently holds the lock.")

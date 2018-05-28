@@ -30,7 +30,7 @@ class SaradInst(object):
         add_component()
         get_reply()"""
 
-    def __init__(self, port, family):
+    def __init__(self, port = None, family =None):
         self.__port = port
         self.__family = family
         self.__instrument_description = dict()
@@ -622,7 +622,7 @@ class SaradCluster(object):
         2. via their built in FT232R USB-serial converter
         3. via an external USB-serial converter (Prolific, Prolific fake or FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
-        unknown_instrument = SaradInst('', 9600)
+        unknown_instrument = SaradInst()
         hid = hashids.Hashids()
         # Get the list of accessible native ports
         ports_to_test = []

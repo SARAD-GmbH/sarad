@@ -133,7 +133,7 @@ class SaradInst(object):
         payload: Payload of answer
         number_of_bytes_in_payload"""
         ser = serial.Serial(serial_port, baudrate, \
-                            timeout=1, parity=parity, \
+                            timeout=2, parity=parity, \
                             stopbits=serial.STOPBITS_ONE)
         for element in message:
             byte = (element).to_bytes(1,'big')
@@ -397,7 +397,7 @@ class RscInst(SaradInst):
                 temperature = self._bytes_to_float(reply[17:21])
                 humidity = self._bytes_to_float(reply[21:25])
                 pressure = self._bytes_to_float(reply[25:29])
-                tilt = int.from_bytes(reply[29:33], byteorder='little', signed=False)
+                tilt = int.from_bytes(reply[29:33], byteorder='big', signed=False)
                 device_time = datetime(device_time_y + 2000, device_time_m,
                                        device_time_d, device_time_h, device_time_min)
             except:

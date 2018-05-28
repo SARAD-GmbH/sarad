@@ -66,7 +66,7 @@ The baud rate is fixed per instrument type and either 9600 or 115200 baud.
 ** Radon Scout family
 - baud rate :: 9600
 - parity :: none 
-- byte order :: little endian
+- byte order :: big endian
 - GetId command :: \x0c
 - C_OK :: \x0a
 *** Without display

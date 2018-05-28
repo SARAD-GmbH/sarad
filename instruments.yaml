@@ -85,6 +85,7 @@
         - measurand_id: 1
           measurand_name: error
           measurand_unit: %
+          measurand_operator: ±
       - sensor_id: 1
         sensor_name: thoron
         measurands:
@@ -94,6 +95,7 @@
         - measurand_id: 1
           measurand_name: error
           measurand_unit: %
+          measurand_operator: ±
   - {type_id: 7, type_name: Radon Scout Home}
   - {type_id: 8, type_name: Radon Scout Home - P}
   - {type_id: 9, type_name: Radon Scout Home - CO2}
@@ -111,4 +113,5 @@
   write_sleeptime: 0
   parity: N
   types:
-  - {type_id: 2, type_name: RTM 2200}
+  - type_id: 2
+  - type_name: RTM 2200

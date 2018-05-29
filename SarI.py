@@ -52,16 +52,21 @@ class SaradInst(object):
             output['measurand_value'] = ''
             output['measurand_unit'] = ''
         else:
-            if ('<' in r)  or ('>' in r):
-                output['measurand_operator'] = r[0]
-                r1 = r[1:]
-            else:
-                output['measurand_operator'] = ''
-                r1 = r
-            output['measurand_value'] = float(r1.split()[0])
             try:
-                output['measurand_unit'] = r1.split()[1]
+                if ('<' in r)  or ('>' in r):
+                    output['measurand_operator'] = r[0]
+                    r1 = r[1:]
+                else:
+                    output['measurand_operator'] = ''
+                    r1 = r
+                output['measurand_value'] = float(r1.split()[0])
+                try:
+                    output['measurand_unit'] = r1.split()[1]
+                except:
+                    output['measurand_unit'] = ''
             except:
+                output['measurand_operator'] = ''
+                output['measurand_value'] = ''
                 output['measurand_unit'] = ''
         return output
 
@@ -279,7 +284,7 @@ class DosemanInst(SaradInst):
 
     def get_all_recent_values(self):
         reply = self.get_reply([b'\x14', b''], 39)
-        if reply:
+        if reply and (reply[0] == 10):
             try:
                 sample_interval = reply[1]
                 device_time_min = reply[2]
@@ -360,7 +365,23 @@ class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
 
     Inherited properties:
-        instrument_description
+        port: String containing the serial communication port
+        family: Device family of the instrument expected to be at this port
+        id: Identifier for an individual instrument in a cluster
+        instrument_description: Dictionary with instrument type, software version,
+                            and device number, components, sensors and measurands.
+        components: List of sensor or actor components
+    Inherited methods from SaradInst:
+        get_instrument_description(),
+        set_instrument_description(),
+        get_family(),
+        set_family(),
+        get_id(),
+        set_id(),
+        get_port(),
+        set_port(),
+        add_component()
+        get_reply()
     Public methods:
         get_all_recent_values()
         get_recent_value(index)"""
@@ -383,7 +404,7 @@ class RscInst(SaradInst):
 
     def get_all_recent_values(self):
         reply = self.get_reply([b'\x14', b''], 39)
-        if reply:
+        if reply and (reply[0] == 10):
             try:
                 sample_interval = reply[1]
                 device_time_min = reply[2]
@@ -505,26 +526,33 @@ class DacmInst(SaradInst):
         reply = self.get_reply([b'\x1a', bytes([component_id]) + \
                                 bytes([sensor_id]) + \
                                 bytes([measurand_id])], 1000)
-        output = dict()
-        output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
-        output['measurand_id'] = measurand_id
-        output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
-        output['measurand'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
-        r = self._parse_value_string(output['measurand'])
-        output['measurand_operator'] = r['measurand_operator']
-        output['value'] = r['measurand_value']
-        output['measurand_unit'] = r['measurand_unit']
-        date = reply[52:68].split(b'\x00')[0].split(b'/')
-        time = reply[69:85].split(b'\x00')[0].split(b':')
-        if date != [b'']:
-            output['datetime'] = datetime(int(date[2]), int(date[0]),\
-                                          int(date[1]),\
-                                          int(time[0]), int(time[1]),\
-                                          int(time[2]))
+        if reply and (reply[0] > 0):
+            output = dict()
+            output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
+            output['measurand_id'] = measurand_id
+            output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
+            output['measurand'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
+            r = self._parse_value_string(output['measurand'])
+            output['measurand_operator'] = r['measurand_operator']
+            output['value'] = r['measurand_value']
+            output['measurand_unit'] = r['measurand_unit']
+            date = reply[52:68].split(b'\x00')[0].split(b'/')
+            time = reply[69:85].split(b'\x00')[0].split(b':')
+            if date != [b'']:
+                output['datetime'] = datetime(int(date[2]), int(date[0]),\
+                                              int(date[1]),\
+                                              int(time[0]), int(time[1]),\
+                                              int(time[2]))
+            else:
+                output['datetime'] = None
+            output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
+            return output
+        elif reply[0] == 0:
+            print("Measurand not available.")
+            return False
         else:
-            output['datetime'] = None
-        output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
-        return output
+            print("The instrument doesn't reply.")
+            return False
 
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller

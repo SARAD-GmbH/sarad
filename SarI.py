@@ -467,14 +467,11 @@ class RscInst(SaradInst):
         """Get a dictionaries with recent measuring values from one sensor."""
         return self.get_all_recent_values()[component_id]
 
-    def get_battery_voltage(self, serial_port):
-        get_battery_msg = b'\x42\x80\x7f\x0d\x0d\x00\x45'
-        reply_length_battery_msg = 39
-        checked_payload = get_message_payload(serial_port, get_battery_msg, reply_length_battery_msg)
-        if checked_payload['is_valid']:
+    def get_battery_voltage(self):
+        reply = self.get_reply([b'\x0d', b''], 9)
+        if reply and (reply[0] == 10):
             try:
-                payload = checked_payload['payload']
-                voltage = 0.00323 * int.from_bytes(payload[1:], byteorder='little', signed=False)
+                voltage = 0.00323 * int.from_bytes(reply[1:], byteorder='little', signed=False)
                 print(voltage)
             except ParsingError:
                 print("Error parsing the payload.")

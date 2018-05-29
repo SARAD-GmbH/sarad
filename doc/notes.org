@@ -38,10 +38,10 @@
 
 ** Instrument in the cluster
 Every instrument in the cluster is completely defined by the following objects:
+- id :: An Id that is given to identify the instrument within the cluster.
 - is_connected :: Boolean indicating whether the object is connected to the cluster
 - port :: The serial port, the device is connected to.
 - family :: The dictionary describing the features of the instrument family.
-- id :: An Id that is given to identify the instrument within the cluster.
 - type_id :: The Id of an instrument type within an instrument family.
 - type_name :: Name of the instrument type.
 - software_version :: Version of the firmware running on the instrument.
@@ -49,10 +49,10 @@ Every instrument in the cluster is completely defined by the following objects:
 - components :: A list of instrument components (e.g. NO_x sensor, pump)
   - id :: Component Id
   - name :: Component name
-  - measurands :: A list of measurands delivered by the component ("Result Index" in DACM naming)
-    - id :: Measurand Id
-    - name :: Measurand name
-    - items :: A list of items belonging to a measurand (e.g. recent sampling, average of the last completed interval,
+  - sensors :: A list of sensors the component consists of ("Result Index" in DACM naming)
+    - id :: Sensor Id
+    - name :: Sensor name
+    - measurands :: A list of measurands belonging to a sensor (e.g. recent sampling, average of the last completed interval,
       minimum, error)
       - id :: Item Id
       - name :: Item name

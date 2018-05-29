@@ -263,8 +263,7 @@ class DosemanInst(SaradInst):
     Inherited properties:
         instrument_description
     Public methods:
-        get_all_recent_values()
-        get_recent_value(index)"""
+        get_battery_voltage()"""
 
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
@@ -282,79 +281,12 @@ class DosemanInst(SaradInst):
         self._serial_number = self.__instrument_description['serial_number']
         self._components = None # list
 
-    def get_all_recent_values(self):
-        reply = self.get_reply([b'\x14', b''], 39)
-        if reply and (reply[0] == 10):
+    def get_battery_voltage(self):
+        """The coefficient and byte order is still unknown."""
+        reply = self.get_reply([b'\x44', b''], 9)
+        if reply and (reply[0] == 0):
             try:
-                sample_interval = reply[1]
-                device_time_min = reply[2]
-                device_time_h = reply[3]
-                device_time_d = reply[4]
-                device_time_m = reply[5]
-                device_time_y = reply[6]
-                radon = self._bytes_to_float(reply[7:11])
-                radon_error = reply[11]
-                thoron = self._bytes_to_float(reply[12:16])
-                thoron_error = reply[16]
-                temperature = self._bytes_to_float(reply[17:21])
-                humidity = self._bytes_to_float(reply[21:25])
-                pressure = self._bytes_to_float(reply[25:29])
-                tilt = int.from_bytes(reply[29:], byteorder='little', signed=False)
-                device_time = datetime(device_time_y + 2000, device_time_m,
-                                       device_time_d, device_time_h, device_time_min)
-            except:
-                print("Error parsing the payload.")
-                return False
-            return [dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[0],
-                         value = radon,
-                         measurand_unit = 'Bq/m³',
-                         error = radon_error,
-                         error_unit = '%'),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[1],
-                         value = thoron,
-                         error = thoron_error),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[2],
-                         value = temperature),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[3],
-                         value = humidity),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[4],
-                         value = pressure),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[5],
-                         value = tilt)]
-        else:
-            print("The instrument doesn't reply.")
-            return False
-
-    def get_recent_value(self, component_id, sensor_id = 0, measurand_id = 0):
-        """Get a dictionaries with recent measuring values from one sensor."""
-        return self.get_all_recent_values()[component_id]
-
-    def get_battery_voltage(self, serial_port):
-        get_battery_msg = b'\x42\x80\x7f\x0d\x0d\x00\x45'
-        reply_length_battery_msg = 39
-        checked_payload = get_message_payload(serial_port, get_battery_msg, reply_length_battery_msg)
-        if checked_payload['is_valid']:
-            try:
-                payload = checked_payload['payload']
-                voltage = 0.00323 * int.from_bytes(payload[1:], byteorder='little', signed=False)
+                voltage = int.from_bytes(reply[1:], byteorder='little', signed=False)
                 print(voltage)
             except ParsingError:
                 print("Error parsing the payload.")

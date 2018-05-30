@@ -75,10 +75,14 @@ The baud rate is fixed per instrument type and either 9600 or 115200 baud.
 - no get_battery_voltage command
 **** Radon Scout 2
 - get_battery_voltage command with 1-byte-reply
+- Coefficient to calculate voltage = 3.3/255/2 = 0.00647
 *** With display
 - recent values
-**** Thoron Scout
+**** Thoron Scout, RTM 1688, RTM 1688 Geo
 - get_battery_voltage command with 2-byte-reply
+**** Others
+- get_battery_voltage command with 1-byte-reply
+- Coefficient to calculate voltage = 3.3/255/2 = 0.00647
 ** DOSEman family
 - baud rate :: 115200 baud
 - parity :: even 

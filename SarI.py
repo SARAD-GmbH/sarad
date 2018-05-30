@@ -313,7 +313,6 @@ class RscInst(SaradInst):
 
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
-    __measurand_names = ['measuring value', 'error']
 
     def __init__(self, port, family = None):
         if family is None:
@@ -337,14 +336,14 @@ class RscInst(SaradInst):
                 device_time_d = reply[4]
                 device_time_m = reply[5]
                 device_time_y = reply[6]
-                radon = self._bytes_to_float(reply[7:11])
-                radon_error = reply[11]
-                thoron = self._bytes_to_float(reply[12:16])
-                thoron_error = reply[16]
-                temperature = self._bytes_to_float(reply[17:21])
-                humidity = self._bytes_to_float(reply[21:25])
-                pressure = self._bytes_to_float(reply[25:29])
-                tilt = int.from_bytes(reply[29:33], byteorder='big', signed=False)
+                radon = self._bytes_to_float(reply[7:11])  # measurand_source = 0
+                radon_error = reply[11]                    # 1
+                thoron = self._bytes_to_float(reply[12:16])  # 2
+                thoron_error = reply[16]                     # 3
+                temperature = self._bytes_to_float(reply[17:21])  # 4
+                humidity = self._bytes_to_float(reply[21:25])     # 5
+                pressure = self._bytes_to_float(reply[25:29])     # 6
+                tilt = int.from_bytes(reply[29:33], byteorder='big', signed=False)  # 7
                 device_time = datetime(device_time_y + 2000, device_time_m,
                                        device_time_d, device_time_h, device_time_min)
             except:

@@ -262,12 +262,17 @@ class DosemanInst(SaradInst):
 
     Inherited properties:
         instrument_description
-    Public methods:
-        get_battery_voltage()"""
-
-    __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
-                         'pressure', 'tilt']
-    __measurand_names = ['measuring value', 'error']
+    Inherited Public methods:
+        get_instrument_description(),
+        set_instrument_description(),
+        get_family(),
+        set_family(),
+        get_id(),
+        set_id(),
+        get_port(),
+        set_port(),
+        add_component()
+        get_reply()"""
 
     def __init__(self, port, family = None):
         if family is None:
@@ -280,18 +285,6 @@ class DosemanInst(SaradInst):
         self._software_version = self.__instrument_description['software_version']
         self._serial_number = self.__instrument_description['serial_number']
         self._components = None # list
-
-    def get_battery_voltage(self):
-        """The coefficient and byte order is still unknown."""
-        reply = self.get_reply([b'\x44', b''], 9)
-        if reply and (reply[0] == 0):
-            try:
-                voltage = int.from_bytes(reply[1:], byteorder='little', signed=False)
-                print(voltage)
-            except ParsingError:
-                print("Error parsing the payload.")
-        else:
-            print("The instrument doesn't reply.")
 
 class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol

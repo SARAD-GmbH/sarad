@@ -5,7 +5,7 @@ setup(
     version='0.1',
     py_modules=['data_collector', 'SarI'],
     install_requires=[
-        'Click', 'pyserial', 'filelock', 'struct', 'hashids'
+        'Click', 'pyserial', 'filelock', 'struct', 'hashids', 'pyyaml'
     ],
     entry_points='''
         [console_scripts]

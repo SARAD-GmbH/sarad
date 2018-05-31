@@ -7,6 +7,7 @@ import time
 from datetime import datetime
 import struct
 import hashids
+import yaml
 
 class SaradInst(object):
     """Basic class for the serial communication protocol of SARAD instruments
@@ -15,12 +16,12 @@ class SaradInst(object):
         port: String containing the serial communication port
         family: Device family of the instrument expected to be at this port
         id: Identifier for an individual instrument in a cluster
-        instrument_description: Dictionary with instrument type, software version,
-                            and device number, components, sensors and measurands.
+        description: Dictionary with instrument type, software version,
+                          and device number, components, sensors and measurands.
         components: List of sensor or actor components
     Public methods:
-        get_instrument_description(),
-        set_instrument_description(),
+        get_description(),
+        set_description(),
         get_family(),
         set_family(),
         get_id(),
@@ -33,7 +34,7 @@ class SaradInst(object):
     def __init__(self, port = None, family =None):
         self.__port = port
         self.__family = family
-        self.__instrument_description = dict()
+        self.__description = dict()
         self.__components = []
 
     # Helper functions to be used here and in derived classes
@@ -155,7 +156,7 @@ class SaradInst(object):
                     number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
 
     # Public methods
-    def get_instrument_description(self):
+    def get_description(self):
         """Returns a dictionary with instrument type, software version,\
  and serial number."""
         baudrate = self.family['baudrate']
@@ -176,7 +177,7 @@ class SaradInst(object):
                 payload = checked_payload['payload']
                 type_id = payload[1]
                 software_version = payload[2]
-                if self.family['id'] == 5:  # DACM has big endian order of bytes
+                if self.family['family_id'] == 5:  # DACM has big endian order of bytes
                     serial_number = int.from_bytes(payload[3:5], \
                                                    byteorder='big', \
                                                    signed=False)
@@ -184,15 +185,9 @@ class SaradInst(object):
                     serial_number = int.from_bytes(payload[3:5], \
                                                    byteorder='little', \
                                                    signed=False)
-                for type_in_family in self.family['types']:
-                    if type_in_family['type_id'] == type_id:
-                        type_name = type_in_family['type_name']
-                return dict(\
-                            type_name = type_name,
-                            type_id = type_id,
+                return dict(type_id = type_id,
                             software_version = software_version,
-                            serial_number = serial_number\
-                )
+                            serial_number = serial_number)
             except:
                 print("Error parsing the payload.")
         else:
@@ -236,9 +231,9 @@ to the provided list of 1-byte command and data bytes."""
         description = "Id: " + str(self.id) + "\n"
         description += "SerialDevice: " + self.port + "\n"
         description += "Baudrate: " + str(self.family['baudrate']) + "\n"
-        description += "FamilyName: " + str(self.family['name']) + "\n"
-        description += "FamilyId: " + str(self.family['id']) + "\n"
-        description += "Instrument: " + self._type_name + "\n"
+        description += "FamilyName: " + str(self.family['family_name']) + "\n"
+        description += "FamilyId: " + str(self.family['family_id']) + "\n"
+        description += "TypName: " + self._type_name + "\n"
         description += "TypeId: " + str(self._type_id) + "\n"
         description += "SoftwareVersion: " + str(self._software_version) + "\n"
         description += "SerialNumber: " + str(self._serial_number) + "\n"
@@ -254,17 +249,17 @@ to the provided list of 1-byte command and data bytes."""
     port = property(get_port, set_port)
     id = property(get_id, set_id)
     family = property(get_family, set_family)
-    instrument_description = property(get_instrument_description)
+    description = property(get_description)
     components = property(get_components)
 
 class DosemanInst(SaradInst):
     """Instrument with Doseman communication protocol
 
     Inherited properties:
-        instrument_description
+        description
     Inherited Public methods:
-        get_instrument_description(),
-        set_instrument_description(),
+        get_description(),
+        set_description(),
         get_family(),
         set_family(),
         get_id(),
@@ -278,12 +273,14 @@ class DosemanInst(SaradInst):
         if family is None:
             family = SaradCluster._f_doseman
         SaradInst.__init__(self, port, family)
-        self.__instrument_description = self.get_instrument_description()
+        self.__description = self.get_description()
         self._id = None #
-        self._type_id = self.__instrument_description['type_id']
-        self._type_name = self.__instrument_description['type_name']
-        self._software_version = self.__instrument_description['software_version']
-        self._serial_number = self.__instrument_description['serial_number']
+        self._type_id = self.__description['type_id']
+        for type_in_family in self.family['types']:
+            if type_in_family['type_id'] == self._type_id:
+                self._type_name = type_in_family['type_name']
+        self._software_version = self.__description['software_version']
+        self._serial_number = self.__description['serial_number']
         self._components = None # list
 
 class RscInst(SaradInst):
@@ -293,12 +290,12 @@ class RscInst(SaradInst):
         port: String containing the serial communication port
         family: Device family of the instrument expected to be at this port
         id: Identifier for an individual instrument in a cluster
-        instrument_description: Dictionary with instrument type, software version,
+        description: Dictionary with instrument type, software version,
                             and device number, components, sensors and measurands.
         components: List of sensor or actor components
     Inherited methods from SaradInst:
-        get_instrument_description(),
-        set_instrument_description(),
+        get_description(),
+        set_description(),
         get_family(),
         set_family(),
         get_id(),
@@ -318,12 +315,14 @@ class RscInst(SaradInst):
         if family is None:
             family = SaradCluster._f_radonscout
         SaradInst.__init__(self, port, family)
-        self.__instrument_description = self.get_instrument_description()
+        self.__description = self.get_description()
         self._id = None #
-        self._type_id = self.__instrument_description['type_id']
-        self._type_name = self.__instrument_description['type_name']
-        self._software_version = self.__instrument_description['software_version']
-        self._serial_number = self.__instrument_description['serial_number']
+        self._type_id = self.__description['type_id']
+        for type_in_family in self.family['types']:
+            if type_in_family['type_id'] == self._type_id:
+                self._type_name = type_in_family['type_name']
+        self._software_version = self.__description['software_version']
+        self._serial_number = self.__description['serial_number']
         self._components = None # list
 
     def get_all_recent_values(self):
@@ -408,7 +407,7 @@ class DacmInst(SaradInst):
     Inherited properties:
         port
         family
-        instrument_description
+        description
     Public methods:
         get_recent_values()
         get_recent_value(index)"""
@@ -420,12 +419,14 @@ class DacmInst(SaradInst):
         if family is None:
             family = SaradCluster._f_dacm
         SaradInst.__init__(self, port, family)
-        self.__instrument_description = self.get_instrument_description()
+        self.__description = self.get_description()
         self._id = None #
-        self._type_id = self.__instrument_description['type_id']
-        self._type_name = self.__instrument_description['type_name']
-        self._software_version = self.__instrument_description['software_version']
-        self._serial_number = self.__instrument_description['serial_number']
+        self._type_id = self.__description['type_id']
+        for type_in_family in self.family['types']:
+            if type_in_family['type_id'] == self._type_id:
+                self._type_name = type_in_family['type_name']
+        self._software_version = self.__description['software_version']
+        self._serial_number = self.__description['serial_number']
         self._components = None # list
 
     def get_all_recent_values(self):
@@ -451,7 +452,7 @@ class DacmInst(SaradInst):
             output = dict()
             output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
             output['measurand_id'] = measurand_id
-            output['value_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
+            output['sensor_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
             output['measurand'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
             r = self._parse_value_string(output['measurand'])
             output['measurand_operator'] = r['measurand_operator']
@@ -519,7 +520,7 @@ class SaradCluster(object):
     __network_types = [__t_zigbee]
 
     # Device families
-    _f_doseman = dict(name = 'Doseman family', id = 1, baudrate = 115200, \
+    _f_doseman = dict(family_name = 'Doseman family', family_id = 1, baudrate = 115200, \
                       parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
                       wait_for_reply = 0.1, \
                       get_id_cmd = [b'\x40', b''], \
@@ -527,7 +528,7 @@ class SaradCluster(object):
                       types = [__t_doseman, \
                                __t_dosemanpro, __t_myriam, __t_dm_rtm1688,\
                                __t_radonsensor, __t_progenysensor])
-    _f_radonscout = dict(name = 'Radon Scout family', id = 2, baudrate = 9600, \
+    _f_radonscout = dict(family_name = 'Radon Scout family', family_id = 2, baudrate = 9600, \
                          parity = serial.PARITY_NONE, write_sleeptime = 0, \
                          wait_for_reply = 0, \
                          get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
@@ -537,7 +538,7 @@ class SaradCluster(object):
                                   __t_radonscoutpmt, __t_thoronscout,\
                                   __t_radonscouthome, __t_radonscouthomep,\
                                   __t_radonscouthomeco2, __t_rtm1688geo])
-    _f_dacm = dict(name = 'DACM family', id = 5, baudrate = 9600, \
+    _f_dacm = dict(family_name = 'DACM family', family_id = 5, baudrate = 9600, \
                    parity = serial.PARITY_NONE, write_sleeptime = 0, \
                    wait_for_reply = 0, \
                    get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
@@ -597,22 +598,20 @@ class SaradCluster(object):
                     pass
             for port in ports_to_test:
                 unknown_instrument.port = port.device
-                instrument_description = unknown_instrument.instrument_description
-                if instrument_description:
+                description = unknown_instrument.description
+                if description:
                     ports_with_instruments.append(port)
-                    if unknown_instrument.family['id'] == 1:
+                    if unknown_instrument.family['family_id'] == 1:
                         connected_instrument = DosemanInst(port.device)
-                    elif unknown_instrument.family['id'] == 2:
+                    elif unknown_instrument.family['family_id'] == 2:
                         connected_instrument = RscInst(port.device)
-                    elif unknown_instrument.family['id'] == 5:
+                    elif unknown_instrument.family['family_id'] == 5:
                         connected_instrument = DacmInst(port.device)
                     else:
                         return False
-                    id = hid.encode(connected_instrument.family['id'],\
-                            connected_instrument.\
-                                    instrument_description['type_id'],\
-                            connected_instrument.\
-                                    instrument_description['serial_number'])
+                    id = hid.encode(connected_instrument.family['family_id'],\
+                            connected_instrument.description['type_id'],\
+                            connected_instrument.description['serial_number'])
                     connected_instrument.set_id(id)
                     connected_instruments.append(connected_instrument)
         return connected_instruments
@@ -651,7 +650,7 @@ if __name__=='__main__':
 
     def print_dacm_value(dacm_value):
         print("ComponentName: " + dacm_value['component_name'])
-        print("ValueName: " + dacm_value['value_name'])
+        print("SensorName: " + dacm_value['sensor_name'])
         print(DacmInst.measurand_names[dacm_value['measurand_id']] + \
               ": " + dacm_value['measurand'])
         if dacm_value['datetime'] is not None:

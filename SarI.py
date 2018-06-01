@@ -218,7 +218,7 @@ to the provided list of 1-byte command and data bytes."""
 
     def set_port(self, port):
         self.__port = port
-        if (port is not None) and (family is not None):
+        if (self.port is not None) and (self.family is not None):
             self.__description = self.__get_description()
 
     def get_id(self):
@@ -232,7 +232,7 @@ to the provided list of 1-byte command and data bytes."""
 
     def set_family(self, family):
         self.__family = family
-        if (port is not None) and (family is not None):
+        if (self.port is not None) and (self.family is not None):
             self.__description = self.__get_description()
 
     def get_type_id(self):

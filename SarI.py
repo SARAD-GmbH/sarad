@@ -36,6 +36,9 @@ class SaradInst(object):
     def __init__(self, port = None, family = None):
         self.__port = port
         self.__family = family
+        if (port is not None) and (family is not None):
+            print('port and family')
+            self.__description = self.__get_description()
         self.__components = []
 
     # Helper functions to be used here and in derived classes
@@ -156,7 +159,7 @@ class SaradInst(object):
                     payload = checked_answer['payload'],
                     number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
 
-    def _get_description(self):
+    def __get_description(self):
         """Returns a dictionary with instrument type, software version,\
  and serial number."""
         baudrate = self.__family['baudrate']
@@ -215,6 +218,8 @@ to the provided list of 1-byte command and data bytes."""
 
     def set_port(self, port):
         self.__port = port
+        if (port is not None) and (family is not None):
+            self.__description = self.__get_description()
 
     def get_id(self):
         return self.__id
@@ -227,18 +232,20 @@ to the provided list of 1-byte command and data bytes."""
 
     def set_family(self, family):
         self.__family = family
+        if (port is not None) and (family is not None):
+            self.__description = self.__get_description()
 
     def get_type_id(self):
-        if self._description:
-            return self._description['type_id']
+        if self.__description:
+            return self.__description['type_id']
 
     def get_software_version(self):
-        if self._description:
-            return self._description['software_version']
+        if self.__description:
+            return self.__description['software_version']
 
     def get_serial_number(self):
-        if self._description:
-            return self._description['serial_number']
+        if self.__description:
+            return self.__description['serial_number']
 
     def __str__(self):
         output = "Id: " + str(self.id) + "\n"
@@ -298,11 +305,6 @@ class DosemanInst(SaradInst):
         if family is None:
             family = SaradCluster.products[0]
         SaradInst.__init__(self, port, family)
-        self._description = self._get_description()
-        self.get_type_id()
-        self.get_software_version()
-        self.get_serial_number()
-        self.__components = None # list
 
 class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
@@ -338,7 +340,6 @@ class RscInst(SaradInst):
         if family is None:
             family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
-        self._description = self._get_description()
         self.get_type_id()
         self.get_software_version()
         self.get_serial_number()
@@ -454,7 +455,6 @@ class DacmInst(SaradInst):
         if family is None:
             family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
-        self._description = self._get_description()
         self.get_type_id()
         self.get_software_version()
         self.get_serial_number()

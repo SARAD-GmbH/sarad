@@ -32,4 +32,9 @@ def print_radon_scout_value(radon_scout_value):
     if radon_scout_value['datetime'] is not None:
         print("DateTime: " + radon_scout_value['datetime'].strftime("%c"))
 
+class Test:
+    def __init__(self):
+        self.output = self.sag_hallo()
 
+    def sag_hallo(self):
+        return 'Hallo mein Lieber!'

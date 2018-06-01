@@ -617,10 +617,14 @@ class SaradCluster(object):
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
         for port in ports_to_test:
+            # NOTE: The order of tests is very important, because the only
+            # difference between RadonScout and DACM GetId commands is the
+            # length of reply. Since the reply for DACM is longer than that for
+            # RadonScout, the test for RadonScout has always to be made before
+            # that for DACM.
             test_instrument = DosemanInst(port)
             if test_instrument.type_id and \
-               test_instrument.serial_number and \
-               (test_instrument.family['family_id'] == 1):
+               test_instrument.serial_number:
                 id = hid.encode(test_instrument.family['family_id'],\
                                 test_instrument.type_id,\
                                 test_instrument.serial_number)
@@ -629,8 +633,7 @@ class SaradCluster(object):
                 continue
             test_instrument = RscInst(port)
             if test_instrument.type_id and \
-               test_instrument.serial_number and \
-               (test_instrument.family['family_id'] == 2):
+               test_instrument.serial_number:
                 id = hid.encode(test_instrument.family['family_id'],\
                                 test_instrument.type_id,\
                                 test_instrument.serial_number)
@@ -639,8 +642,7 @@ class SaradCluster(object):
                 continue
             test_instrument = DacmInst(port)
             if test_instrument.type_id and \
-               test_instrument.serial_number and \
-               (test_instrument.family['family_id'] == 5):
+               test_instrument.serial_number:
                 id = hid.encode(test_instrument.family['family_id'],\
                                 test_instrument.type_id,\
                                 test_instrument.serial_number)

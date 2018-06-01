@@ -33,7 +33,7 @@ class SaradInst(object):
         add_component()
         get_reply()"""
 
-    def __init__(self, port = None, family =None):
+    def __init__(self, port = None, family = None):
         self.__port = port
         self.__family = family
         self.__components = []
@@ -296,7 +296,7 @@ class DosemanInst(SaradInst):
 
     def __init__(self, port, family = None):
         if family is None:
-            family = SaradCluster._f_doseman
+            family = SaradCluster.products[0]
         SaradInst.__init__(self, port, family)
         self._description = self._get_description()
         self.get_type_id()
@@ -336,7 +336,7 @@ class RscInst(SaradInst):
 
     def __init__(self, port, family = None):
         if family is None:
-            family = SaradCluster._f_radonscout
+            family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
         self._description = self._get_description()
         self.get_type_id()
@@ -452,7 +452,7 @@ class DacmInst(SaradInst):
                     'maximum of last completed interval']
     def __init__(self, port, family = None):
         if family is None:
-            family = SaradCluster._f_dacm
+            family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
         self._description = self._get_description()
         self.get_type_id()
@@ -509,18 +509,16 @@ class DacmInst(SaradInst):
 
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
-
+    Class attributes:
+        products
     Properties:
         native_ports
         active_ports
-        products
         connected_instruments
     Public methods:
         set_native_ports()
         get_native_ports()
         get_active_ports()
-        set_products()
-        get_products()
         get_connected_instruments()
         update_connected_instruments()
     """
@@ -578,12 +576,12 @@ class SaradCluster(object):
                    length_of_reply = 50, \
                    types = [__t_rtm2200])
 
-    def __init__(self, native_ports=None, products=None):
+    products = [_f_doseman, _f_radonscout, _f_dacm]
+
+    def __init__(self, native_ports=None):
         if native_ports is None:
             native_ports = []
         self.__native_ports = native_ports
-        if products is None:
-            self.__products = [self._f_doseman, self._f_radonscout, self._f_dacm]
         self.__connected_instruments = self.update_connected_instruments()
 
     def set_native_ports(self, native_ports):
@@ -612,12 +610,6 @@ class SaradCluster(object):
         for port in active_ports:
             self.__active_ports.append(port.device)
         return self.__active_ports
-
-    def set_products(self, products):
-        self.__products = products
-
-    def get_products(self):
-        return self.__products
 
     def update_connected_instruments(self):
         hid = hashids.Hashids()
@@ -661,7 +653,6 @@ class SaradCluster(object):
 
     native_ports = property(get_native_ports, set_native_ports)
     active_ports = property(get_active_ports)
-    products = property(get_products, set_products)
     connected_instruments = property(get_connected_instruments)
 
 class Component(object):

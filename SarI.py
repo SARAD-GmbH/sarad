@@ -37,9 +37,9 @@ class SaradInst(object):
         self.__port = port
         self.__family = family
         if (port is not None) and (family is not None):
-            print('port and family')
             self.__description = self.__get_description()
         self.__components = []
+        print('SaradInst object created.')
 
     # Helper functions to be used here and in derived classes
     def _bytes_to_float(self, value_bytes):
@@ -301,7 +301,7 @@ class DosemanInst(SaradInst):
         add_component()
         get_reply()"""
 
-    def __init__(self, port, family = None):
+    def __init__(self, port = None, family = None):
         if family is None:
             family = SaradCluster.products[0]
         SaradInst.__init__(self, port, family)
@@ -336,14 +336,10 @@ class RscInst(SaradInst):
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
 
-    def __init__(self, port, family = None):
+    def __init__(self, port = None, family = None):
         if family is None:
             family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
-        self.get_type_id()
-        self.get_software_version()
-        self.get_serial_number()
-        self.__components = None # list
 
     def get_all_recent_values(self):
         reply = self.get_reply([b'\x14', b''], 39)
@@ -451,14 +447,10 @@ class DacmInst(SaradInst):
                     'average of last completed interval', \
                     'minimum of last completed interval', \
                     'maximum of last completed interval']
-    def __init__(self, port, family = None):
+    def __init__(self, port = None, family = None):
         if family is None:
             family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
-        self.get_type_id()
-        self.get_software_version()
-        self.get_serial_number()
-        self.__components = None # list
 
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
@@ -614,15 +606,21 @@ class SaradCluster(object):
     def update_connected_instruments(self):
         hid = hashids.Hashids()
         ports_to_test = self.active_ports
+        print(str(len(ports_to_test)) + ' ports to test')
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
+        # NOTE: The order of tests is very important, because the only
+        # difference between RadonScout and DACM GetId commands is the
+        # length of reply. Since the reply for DACM is longer than that for
+        # RadonScout, the test for RadonScout has always to be made before
+        # that for DACM.
+        test_instrument = DosemanInst()
+        test_instrument.family = SaradCluster.products[0]
+        ports_with_instruments = []
+        print(ports_to_test)
         for port in ports_to_test:
-            # NOTE: The order of tests is very important, because the only
-            # difference between RadonScout and DACM GetId commands is the
-            # length of reply. Since the reply for DACM is longer than that for
-            # RadonScout, the test for RadonScout has always to be made before
-            # that for DACM.
-            test_instrument = DosemanInst(port)
+            print('Testing port ' + port + ' for Doseman.')
+            test_instrument.port = port
             if test_instrument.type_id and \
                test_instrument.serial_number:
                 id = hid.encode(test_instrument.family['family_id'],\
@@ -630,8 +628,39 @@ class SaradCluster(object):
                                 test_instrument.serial_number)
                 test_instrument.set_id(id)
                 connected_instruments.append(test_instrument)
-                continue
-            test_instrument = RscInst(port)
+                print('Doseman found on port ' + port)
+                ports_with_instruments.append(port)
+        for port in ports_with_instruments:
+            ports_to_test.remove(port)
+        test_instrument = RscInst()
+        test_instrument.family = SaradCluster.products[1]
+        ports_with_instruments = []
+        print(ports_to_test)
+        for port in ports_to_test:
+            print('Testing port ' + port + ' for Radon Scout.')
+            test_instrument.port = port
+            if test_instrument.type_id and \
+               test_instrument.serial_number:
+                id = hid.encode(test_instrument.family['family_id'],\
+                                test_instrument.type_id,\
+                                test_instrument.serial_number)
+                test_instrument.set_id(id)
+                print('Radon Scout found on port ' + port)
+                print(test_instrument)
+                connected_instruments.append(test_instrument)
+                ports_with_instruments.append(port)
+                if (ports_to_test.index(port) + 1) < len(ports_to_test):
+                    test_instrument = RscInst()
+                    test_instrument.family = SaradCluster.products[1]
+        for port in ports_with_instruments:
+            ports_to_test.remove(port)
+        test_instrument = DacmInst()
+        test_instrument.family = SaradCluster.products[2]
+        ports_with_instruments = []
+        print(ports_to_test)
+        for port in ports_to_test:
+            print('Testing port ' + port + ' for DACM')
+            test_instrument.port = port
             if test_instrument.type_id and \
                test_instrument.serial_number:
                 id = hid.encode(test_instrument.family['family_id'],\
@@ -639,15 +668,10 @@ class SaradCluster(object):
                                 test_instrument.serial_number)
                 test_instrument.set_id(id)
                 connected_instruments.append(test_instrument)
-                continue
-            test_instrument = DacmInst(port)
-            if test_instrument.type_id and \
-               test_instrument.serial_number:
-                id = hid.encode(test_instrument.family['family_id'],\
-                                test_instrument.type_id,\
-                                test_instrument.serial_number)
-                test_instrument.set_id(id)
-                connected_instruments.append(test_instrument)
+                print('DACM instrument found on port ' + port)
+                ports_with_instruments.append(port)
+        for port in ports_with_instruments:
+            ports_to_test.remove(port)
         return connected_instruments
 
     def get_connected_instruments(self):

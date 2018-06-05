@@ -513,6 +513,7 @@ class SaradCluster(object):
         get_active_ports()
         get_connected_instruments()
         update_connected_instruments()
+        next()
     """
 
     with open('instruments.yaml', 'r') as __f:
@@ -523,6 +524,21 @@ class SaradCluster(object):
             native_ports = []
         self.__native_ports = native_ports
         self.__connected_instruments = self.update_connected_instruments()
+        self.__i = 0
+        self.__n = len(self.__connected_instruments)
+
+    def __iter__(self):
+        return iter(self.__connected_instruments)
+
+    def next(self):
+        if self.__i < self.__n:
+            __i = self.__i
+            self.__i += 1
+            return self.__connected_instruments[__i]
+        else:
+            self.__i = 0
+            self.__n = len(self.__connected_instruments)
+            raise StopIteration()
 
     def set_native_ports(self, native_ports):
         self.__native_ports = native_ports

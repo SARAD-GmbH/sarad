@@ -515,63 +515,8 @@ class SaradCluster(object):
         update_connected_instruments()
     """
 
-    # DOSEman device types
-    __t_doseman = dict(type_name = 'DOSEman', type_id = 1)
-    __t_dosemanpro = dict(type_name = 'DOSEman Pro', type_id = 2)
-    __t_myriam = dict(type_name = 'MyRIAM', type_id = 3)
-    __t_dm_rtm1688 = dict(type_name = 'RTM 1688', type_id = 4)
-    __t_radonsensor = dict(type_name = 'Analog Radon Sensor', type_id = 5)
-    __t_progenysensor = dict(type_name='Analog Progeny Sensor', type_id = 6)
-
-    # Radon Scout device types
-    __t_radonscout1 = dict(type_name = 'Radon Scout 1', type_id = 1)
-    __t_radonscout2 = dict(type_name = 'Radon Scout 2', type_id = 2)
-    __t_radonscoutplus = dict(type_name = 'Radon Scout Plus', type_id = 3)
-    __t_rtm1688 = dict(type_name = 'RTM 1688', type_id = 4)
-    __t_radonscoutpmt = dict(type_name = 'Radon Scout PMT', type_id = 5)
-    __t_thoronscout = dict(type_name='Thoron Scout', type_id = 6)
-    __t_radonscouthome = dict(type_name = 'Radon Scout Home', type_id = 7)
-    __t_radonscouthomep = dict(type_name = 'Radon Scout Home - P', type_id = 8)
-    __t_radonscouthomeco2 = dict(type_name = 'Radon Scout Home - CO2', type_id = 9)
-    __t_rtm1688geo = dict(type_name = 'RTM 1688 Geo', type_id = 10)
-
-    # DACM device types
-    __t_rtm2200 = dict(type_name = 'RTM 2200', type_id = 2)
-
-    # Network interface types
-    __t_zigbee = dict(type_name = 'ZigBee adapter', type_id = 200)
-    __network_types = [__t_zigbee]
-
-    # Device families
-    _f_doseman = dict(family_name = 'Doseman family', family_id = 1, baudrate = 115200, \
-                      parity = serial.PARITY_EVEN, write_sleeptime = 0.001, \
-                      wait_for_reply = 0.1, \
-                      get_id_cmd = [b'\x40', b''], \
-                      length_of_reply = 11, \
-                      types = [__t_doseman, \
-                               __t_dosemanpro, __t_myriam, __t_dm_rtm1688,\
-                               __t_radonsensor, __t_progenysensor],
-                      family_class = DosemanInst)
-    _f_radonscout = dict(family_name = 'Radon Scout family', family_id = 2, baudrate = 9600, \
-                         parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                         wait_for_reply = 0, \
-                         get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                         length_of_reply = 19, \
-                         types = [__t_radonscout1, __t_radonscout2,\
-                                  __t_radonscoutplus, __t_rtm1688,\
-                                  __t_radonscoutpmt, __t_thoronscout,\
-                                  __t_radonscouthome, __t_radonscouthomep,\
-                                  __t_radonscouthomeco2, __t_rtm1688geo],
-                         family_class = RscInst)
-    _f_dacm = dict(family_name = 'DACM family', family_id = 5, baudrate = 9600, \
-                   parity = serial.PARITY_NONE, write_sleeptime = 0, \
-                   wait_for_reply = 0, \
-                   get_id_cmd = [b'\x0c', b'\xff\x00\x00'], \
-                   length_of_reply = 50, \
-                   types = [__t_rtm2200],
-                   family_class = DacmInst)
-
-    products = [_f_doseman, _f_radonscout, _f_dacm]
+    with open('instruments.yaml', 'r') as f:
+        products = yaml.load(f)
 
     def __init__(self, native_ports=None):
         if native_ports is None:
@@ -618,7 +563,15 @@ class SaradCluster(object):
         # RadonScout, the test for RadonScout has always to be made before
         # that for DACM.
         for family in SaradCluster.products:
-            test_instrument = family['family_class']()
+            if family['family_id'] == 1:
+                family_class = DosemanInst
+            elif family['family_id'] == 2:
+                family_class = RscInst
+            elif family['family_id'] == 5:
+                family_class = DacmInst
+            else:
+                break
+            test_instrument = family_class()
             test_instrument.family = family
             ports_with_instruments = []
             print(ports_to_test)
@@ -632,11 +585,10 @@ class SaradCluster(object):
                                     test_instrument.serial_number)
                     test_instrument.set_id(id)
                     print(family['family_name'] + ' found on port ' + port)
-                    print(test_instrument)
                     connected_instruments.append(test_instrument)
                     ports_with_instruments.append(port)
                     if (ports_to_test.index(port) + 1) < len(ports_to_test):
-                        test_instrument = family['family_class']()
+                        test_instrument = family_class()
                         test_instrument.family = family
             for port in ports_with_instruments:
                 ports_to_test.remove(port)

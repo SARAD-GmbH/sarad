@@ -515,8 +515,8 @@ class SaradCluster(object):
         update_connected_instruments()
     """
 
-    with open('instruments.yaml', 'r') as f:
-        products = yaml.load(f)
+    with open('instruments.yaml', 'r') as __f:
+        products = yaml.load(__f)
 
     def __init__(self, native_ports=None):
         if native_ports is None:

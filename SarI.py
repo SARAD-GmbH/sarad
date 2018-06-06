@@ -336,15 +336,18 @@ class RscInst(SaradInst):
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
 
-    def _get_parameter(self, parameter_name, family, type_id):
-        for inst_type in family['types']:
-            if inst_type['type_id'] == type_id:
+    def _build_component_list(self):
+        pass
+
+    def _get_parameter(self, parameter_name):
+        for inst_type in self.family['types']:
+            if inst_type['type_id'] == self.type_id:
                 try:
                     return inst_type[parameter_name]
                 except:
                     pass
         try:
-            return family[parameter_name]
+            return self.family[parameter_name]
         except:
             return False
 
@@ -419,8 +422,8 @@ class RscInst(SaradInst):
         return self.get_all_recent_values()[component_id]
 
     def _get_battery_voltage(self):
-        battery_bytes = self._get_parameter('battery_bytes', self.family, self.type_id)
-        battery_coeff = self._get_parameter('battery_coeff', self.family, self.type_id)
+        battery_bytes = self._get_parameter('battery_bytes')
+        battery_coeff = self._get_parameter('battery_coeff')
         if not (battery_coeff and battery_bytes):
             return "This instrument type doesn't provide \
             battery voltage information"

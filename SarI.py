@@ -30,7 +30,8 @@ class SaradInst(object):
         get_type_id()
         get_software_version()
         get_serial_number()
-        add_component()
+        get_components()
+        set_components()
         get_reply()"""
 
     def __init__(self, port = None, family = None):
@@ -215,37 +216,46 @@ to the provided list of 1-byte command and data bytes."""
 
     def get_port(self):
         return self.__port
-
     def set_port(self, port):
         self.__port = port
         if (self.port is not None) and (self.family is not None):
             self.__description = self.__get_description()
+    port = property(get_port, set_port)
 
     def get_id(self):
         return self.__id
-
     def set_id(self, id):
         self.__id = id
+    id = property(get_id, set_id)
 
     def get_family(self):
         return self.__family
-
     def set_family(self, family):
         self.__family = family
         if (self.port is not None) and (self.family is not None):
             self.__description = self.__get_description()
+    family = property(get_family, set_family)
 
     def get_type_id(self):
         if self.__description:
             return self.__description['type_id']
+    type_id = property(get_type_id)
 
     def get_software_version(self):
         if self.__description:
             return self.__description['software_version']
+    software_version = property(get_software_version)
 
     def get_serial_number(self):
         if self.__description:
             return self.__description['serial_number']
+    serial_number = property(get_serial_number)
+
+    def get_components(self):
+        return self.__components
+    def set_components(self, components):
+        self.__components = components
+    components = property(get_components, set_components)
 
     def __str__(self):
         output = "Id: " + str(self.id) + "\n"
@@ -261,21 +271,6 @@ to the provided list of 1-byte command and data bytes."""
         output += "SoftwareVersion: " + str(self.software_version) + "\n"
         output += "SerialNumber: " + str(self.serial_number) + "\n"
         return output
-
-    def add_component(self, component):
-        """Add an instrument component"""
-        self.__components += [component]
-
-    def get_components(self):
-        return self.__components
-
-    port = property(get_port, set_port)
-    id = property(get_id, set_id)
-    family = property(get_family, set_family)
-    type_id = property(get_type_id)
-    software_version = property(get_software_version)
-    serial_number = property(get_serial_number)
-    components = property(get_components)
 
 class DosemanInst(SaradInst):
     """Instrument with Doseman communication protocol
@@ -298,7 +293,8 @@ class DosemanInst(SaradInst):
         get_type_id()
         get_software_version()
         get_serial_number()
-        add_component()
+        get_components()
+        set_components()
         get_reply()"""
 
     def __init__(self, port = None, family = None):
@@ -327,7 +323,8 @@ class RscInst(SaradInst):
         get_type_id()
         get_software_version()
         get_serial_number()
-        add_component()
+        get_components()
+        set_components()
         get_reply()
     Public methods:
         get_all_recent_values()
@@ -335,9 +332,6 @@ class RscInst(SaradInst):
 
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
-
-    def _build_component_list(self):
-        pass
 
     def _get_parameter(self, parameter_name):
         for inst_type in self.family['types']:
@@ -350,6 +344,37 @@ class RscInst(SaradInst):
             return self.family[parameter_name]
         except:
             return False
+
+    def _build_component_list(self):
+        for component_object in self.components:
+            del component_object
+        self.components = []
+        component_dict = self._get_parameter('components')
+        for component in component_dict:
+            component_object = Component(component['component_id'], \
+                                         component['component_name'])
+            # build sensor list
+            for sensor in component['sensors']:
+                sensor_object = Sensor(sensor['sensor_id'], \
+                                       sensor['sensor_name'])
+                # build measurand list
+                for measurand in sensor['measurands']:
+                    try:
+                        unit = measurand['measurand_unit']
+                    except:
+                        unit = ''
+                    try:
+                        source = measurand['measurand_source']
+                    except:
+                        source = None
+                    measurand_object = Measurand(measurand['measurand_id'], \
+                                                 measurand['measurand_name'], \
+                                                 unit, \
+                                                 source)
+                    sensor_object.measurands += [measurand_object]
+                component_object.sensors += [sensor_object]
+            self.components += [component_object]
+        return len(self.components)
 
     def __init__(self, port = None, family = None):
         if family is None:
@@ -458,7 +483,8 @@ class DacmInst(SaradInst):
         get_type_id()
         get_software_version()
         get_serial_number()
-        add_component()
+        get_components()
+        set_components()
         get_reply()
     Public methods:
         get_recent_values()
@@ -639,25 +665,102 @@ class SaradCluster(object):
 
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""
-    def __init__(self) :
-        self.id = None #
-        self.name = None #
-        self.sensors = None # list
-        pass
+    def __init__(self, component_id, component_name):
+        self.__id = component_id
+        self.__name = component_name
+        self.__sensors = []
+
+    def get_id(self):
+        return self.__id
+    def set_id(self, id):
+        self.__id = id
+    id = property(get_id, set_id)
+
+    def get_name(self):
+        return self.__name
+    def set_name(self, name):
+        self.__name = name
+    name = property(get_name, set_name)
+
+    def get_sensors(self):
+        return self.__sensors
+    def set_sensors(self, sensors):
+        self.__sensors = sensors
+    sensors = property(get_sensors, set_sensors)
+
 class Sensor(object):
-    def __init__(self) :
-        self.id = None #
-        self.name = None #
-        self.measurands = None # list
-        pass
+    def __init__(self, sensor_id, sensor_name):
+        self.__id = sensor_id
+        self.__name = sensor_name
+        self.__measurands = []
+
+    def get_id(self):
+        return self.__id
+    def set_id(self, id):
+        self.__id = id
+    id = property(get_id, set_id)
+
+    def get_name(self):
+        return self.__name
+    def set_name(self, name):
+        self.__name = name
+    name = property(get_name, set_name)
+
+    def get_measurands(self):
+        return self.__measurands
+    def set_measurands(self, measurands):
+        self.__measurands = measurands
+    measurands = property(get_measurands, set_measurands)
+
 class Measurand(object):
-    def __init__(self) :
-        self.id = None #
-        self.name = None #
-        self.operator = None #
-        self.value = None #
-        self.unit = None #
-        pass
+    def __init__(self, measurand_id, measurand_name, \
+                 measurand_unit = None, measurand_source = None):
+        self.__id = measurand_id
+        self.__name = measurand_name
+        if measurand_unit is not None:
+            self.__unit = measurand_unit
+        else:
+            self.__unit = ''
+        if measurand_source is not None:
+            self.__source = measurand_source
+        self.__value = None
+        self.__operator = ''
+
+    def get_id(self):
+        return self.__id
+    def set_id(self, id):
+        self.__id = id
+    id = property(get_id, set_id)
+
+    def get_name(self):
+        return self.__name
+    def set_name(self, name):
+        self.__name = name
+    name = property(get_name, set_name)
+
+    def get_unit(self):
+        return self.__unit
+    def set_unit(self, unit):
+        self.__unit = unit
+    unit = property(get_unit, set_unit)
+
+    def get_source(self):
+        return self.__source
+    def set_source(self, source):
+        self.__source = source
+    source = property(get_source, set_source)
+
+    def get_operator(self):
+        return self.__operator
+    def set_operator(self, operator):
+        self.__operator = operator
+    operator = property(get_operator, set_operator)
+
+    def get_value(self):
+        return self.__value
+    def set_value(self, value):
+        self.__value = value
+    value = property(get_value, set_value)
 
 # Test environment
 if __name__=='__main__':

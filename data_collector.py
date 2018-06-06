@@ -57,7 +57,6 @@ def cluster(path, lock_path):
             mycluster = SarI.SaradCluster()
             for instrument in mycluster:
                 print(instrument)
-                print()
             with open(path, 'wb') as f:
                 pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
     except Timeout:

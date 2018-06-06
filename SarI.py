@@ -336,6 +336,18 @@ class RscInst(SaradInst):
     __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
                          'pressure', 'tilt']
 
+    def _get_parameter(self, parameter_name, family, type_id):
+        for inst_type in family['types']:
+            if inst_type['type_id'] == type_id:
+                try:
+                    return inst_type[parameter_name]
+                except:
+                    pass
+        try:
+            return family[parameter_name]
+        except:
+            return False
+
     def __init__(self, port = None, family = None):
         if family is None:
             family = SaradCluster.products[1]
@@ -406,11 +418,16 @@ class RscInst(SaradInst):
         """Get a dictionaries with recent measuring values from one sensor."""
         return self.get_all_recent_values()[component_id]
 
-    def get_battery_voltage(self):
-        reply = self.get_reply([b'\x0d', b''], 9)
+    def _get_battery_voltage(self):
+        battery_bytes = self._get_parameter('battery_bytes', self.family, self.type_id)
+        battery_coeff = self._get_parameter('battery_coeff', self.family, self.type_id)
+        if not (battery_coeff and battery_bytes):
+            return "This instrument type doesn't provide \
+            battery voltage information"
+        reply = self.get_reply([b'\x0d', b''], battery_bytes + 7)
         if reply and (reply[0] == 10):
             try:
-                voltage = 0.00323 * int.from_bytes(reply[1:], byteorder='little', signed=False)
+                voltage = battery_coeff * int.from_bytes(reply[1:], byteorder='little', signed=False)
                 print(voltage)
             except ParsingError:
                 print("Error parsing the payload.")

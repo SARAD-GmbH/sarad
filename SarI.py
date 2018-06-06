@@ -39,6 +39,7 @@ class SaradInst(object):
         self.__family = family
         if (port is not None) and (family is not None):
             self.__description = self.__get_description()
+            self._build_component_list()
         self.__components = []
         self.__i = 0
         self.__n = len(self.__components)

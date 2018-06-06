@@ -40,7 +40,21 @@ class SaradInst(object):
         if (port is not None) and (family is not None):
             self.__description = self.__get_description()
         self.__components = []
-        print('SaradInst object created.')
+        self.__i = 0
+        self.__n = len(self.__components)
+
+    def __iter__(self):
+        return iter(self.__components)
+
+    def next(self):
+        if self.__i < self.__n:
+            __i = self.__i
+            self.__i += 1
+            return self.__components[__i]
+        else:
+            self.__i = 0
+            self.__n = len(self.__components)
+            raise StopIteration()
 
     # Helper functions to be used here and in derived classes
     def _bytes_to_float(self, value_bytes):
@@ -75,6 +89,10 @@ class SaradInst(object):
                 output['measurand_value'] = ''
                 output['measurand_unit'] = ''
         return output
+
+    def _build_component_list(self):
+        """Will be overriden by derived classes."""
+        pass
 
     # Private methods
     def __make_command_msg(self, cmd_data):
@@ -220,6 +238,7 @@ to the provided list of 1-byte command and data bytes."""
         self.__port = port
         if (self.port is not None) and (self.family is not None):
             self.__description = self.__get_description()
+            self._build_component_list()
     port = property(get_port, set_port)
 
     def get_id(self):
@@ -234,6 +253,7 @@ to the provided list of 1-byte command and data bytes."""
         self.__family = family
         if (self.port is not None) and (self.family is not None):
             self.__description = self.__get_description()
+            self._build_component_list()
     family = property(get_family, set_family)
 
     def get_type_id(self):
@@ -350,6 +370,8 @@ class RscInst(SaradInst):
             del component_object
         self.components = []
         component_dict = self._get_parameter('components')
+        if not component_dict:
+            return False
         for component in component_dict:
             component_object = Component(component['component_id'], \
                                          component['component_name'])
@@ -669,6 +691,29 @@ class Component(object):
         self.__id = component_id
         self.__name = component_name
         self.__sensors = []
+        self.__i = 0
+        self.__n = len(self.__sensors)
+
+    def __iter__(self):
+        return iter(self.__sensors)
+
+    def __str__(self):
+        output = "ComponentId: " + str(self.id) + "\n"
+        output += "ComponentName: " + self.name + "\n"
+        output += "Sensors:\n"
+        for sensor in self.sensors:
+            output += str(sensor)
+        return output
+
+    def next(self):
+        if self.__i < self.__n:
+            __i = self.__i
+            self.__i += 1
+            return self.__sensors[__i]
+        else:
+            self.__i = 0
+            self.__n = len(self.__sensors)
+            raise StopIteration()
 
     def get_id(self):
         return self.__id
@@ -693,6 +738,29 @@ class Sensor(object):
         self.__id = sensor_id
         self.__name = sensor_name
         self.__measurands = []
+        self.__i = 0
+        self.__n = len(self.__measurands)
+
+    def __iter__(self):
+        return iter(self.__measurands)
+
+    def __str__(self):
+        output = "SensorId: " + str(self.id) + "\n"
+        output += "SensorName: " + self.name + "\n"
+        output += "Measurands:\n"
+        for measurand in self.measurands:
+            output += str(measurand)
+        return output
+
+    def next(self):
+        if self.__i < self.__n:
+            __i = self.__i
+            self.__i += 1
+            return self.__measurands[__i]
+        else:
+            self.__i = 0
+            self.__n = len(self.__measurands)
+            raise StopIteration()
 
     def get_id(self):
         return self.__id
@@ -723,8 +791,21 @@ class Measurand(object):
             self.__unit = ''
         if measurand_source is not None:
             self.__source = measurand_source
+        else:
+            self.__source = ''
         self.__value = None
         self.__operator = ''
+
+    def __str__(self):
+        output = "MeasurandId: " + str(self.id) + "\n"
+        output += "MeasurandName: " + self.name + "\n"
+        if self.value:
+            output += "Value: " + self.operator + str(self.value) + \
+                      self.unit + "\n"
+        else:
+            output += "MeasurandUnit: " + self.unit + "\n"
+            output += "MeasurandSource: " + str(self.source) + "\n"
+        return output
 
     def get_id(self):
         return self.__id

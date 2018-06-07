@@ -35,12 +35,9 @@ def value(instrument, component, sensor, measurand, path, lock_path):
                 mycluster = SarI.SaradCluster()
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.id == instrument:
-                    print(my_instrument.\
-                          get_recent_value(\
-                                           component,\
-                                           sensor,\
-                                           measurand\
-                          )['value'])
+                    my_instrument.get_recent_value(component, sensor, measurand)
+                    print(my_instrument.components[component].sensors[sensor].\
+                          measurands[measurand].value)
             with open(path, 'wb') as f:
                 pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
     except Timeout:

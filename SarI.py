@@ -414,53 +414,68 @@ class RscInst(SaradInst):
                 device_time_d = reply[4]
                 device_time_m = reply[5]
                 device_time_y = reply[6]
-                radon = self._bytes_to_float(reply[7:11])  # measurand_source = 0
-                radon_error = reply[11]                    # 1
-                thoron = self._bytes_to_float(reply[12:16])  # 2
-                thoron_error = reply[16]                     # 3
-                temperature = self._bytes_to_float(reply[17:21])  # 4
-                humidity = self._bytes_to_float(reply[21:25])     # 5
-                pressure = self._bytes_to_float(reply[25:29])     # 6
-                tilt = int.from_bytes(reply[29:33], byteorder='big', signed=False)  # 7
-                device_time = datetime(device_time_y + 2000, device_time_m,
-                                       device_time_d, device_time_h, device_time_min)
+                source = []
+                source.append(self._bytes_to_float(reply[7:11]))            # 0
+                source.append(reply[11])                                    # 1
+                source.append(self._bytes_to_float(reply[12:16]))           # 2
+                source.append(reply[16])                                    # 3
+                source.append(self._bytes_to_float(reply[17:21]))           # 4
+                source.append(self._bytes_to_float(reply[21:25]))           # 5
+                source.append(self._bytes_to_float(reply[25:29]))           # 6
+                source.append(int.from_bytes(reply[29:33], \
+                                             byteorder='big', signed=False))  # 7
+                source.append(self._get_battery_voltage())                  # 8
+                device_time = datetime(device_time_y + 2000, device_time_m, \
+                                       device_time_d, device_time_h, \
+                                       device_time_min)
             except:
                 print("Error parsing the payload.")
                 return False
+            for component in self.components:
+                for sensor in component.sensors:
+                    for measurand in sensor.measurands:
+                        try:
+                            measurand.value = source[measurand.source]
+                        except:
+                            print("Can't get value for source " + \
+                                  str(measurand.source) + " in " + \
+                                  component.name + '/' + \
+                                  sensor.name + '/' + \
+                                  measurand.name + '.')
             return [dict(sample_interval = sample_interval,
                          datetime = device_time,
                          measurand_id = 0,
                          component_name = self.__component_names[0],
-                         value = radon,
+                         value = source[0],
                          measurand_unit = 'Bq/m³',
-                         error = radon_error,
+                         error = source[1],
                          error_unit = '%'),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          measurand_id = 0,
                          component_name = self.__component_names[1],
-                         value = thoron,
-                         error = thoron_error),
+                         value = source[2],
+                         error = source[3]),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          measurand_id = 0,
                          component_name = self.__component_names[2],
-                         value = temperature),
+                         value = source[4]),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          measurand_id = 0,
                          component_name = self.__component_names[3],
-                         value = humidity),
+                         value = source[5]),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          measurand_id = 0,
                          component_name = self.__component_names[4],
-                         value = pressure),
+                         value = source[6]),
                     dict(sample_interval = sample_interval,
                          datetime = device_time,
                          measurand_id = 0,
                          component_name = self.__component_names[5],
-                         value = tilt)]
+                         value = source[7])]
         else:
             print("The instrument doesn't reply.")
             return False
@@ -479,11 +494,13 @@ class RscInst(SaradInst):
         if reply and (reply[0] == 10):
             try:
                 voltage = battery_coeff * int.from_bytes(reply[1:], byteorder='little', signed=False)
-                print(voltage)
+                return voltage
             except ParsingError:
                 print("Error parsing the payload.")
+                return None
         else:
             print("The instrument doesn't reply.")
+            return None
 
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol
@@ -800,8 +817,8 @@ class Measurand(object):
     def __str__(self):
         output = "MeasurandId: " + str(self.id) + "\n"
         output += "MeasurandName: " + self.name + "\n"
-        if self.value:
-            output += "Value: " + self.operator + str(self.value) + \
+        if self.value is not None:
+            output += "Value: " + self.operator + str(self.value) + ' ' + \
                       self.unit + "\n"
         else:
             output += "MeasurandUnit: " + self.unit + "\n"

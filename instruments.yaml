@@ -76,6 +76,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -141,6 +142,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -207,6 +209,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -275,6 +278,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -334,6 +338,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -397,6 +402,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -460,6 +466,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -525,6 +532,7 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_unit: V
+          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:

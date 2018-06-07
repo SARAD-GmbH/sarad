@@ -5,6 +5,7 @@ import serial
 import serial.tools.list_ports
 import time
 from datetime import datetime
+from datetime import timedelta
 import struct
 import hashids
 import yaml
@@ -406,7 +407,7 @@ class RscInst(SaradInst):
         reply = self.get_reply([b'\x14', b''], 39)
         if reply and (reply[0] == 10):
             try:
-                sample_interval = reply[1]
+                sample_interval = timedelta(seconds = reply[1])
                 device_time_min = reply[2]
                 device_time_h = reply[3]
                 device_time_d = reply[4]
@@ -431,9 +432,11 @@ class RscInst(SaradInst):
                 return False
             for component in self.components:
                 for sensor in component.sensors:
+                    sensor.interval = sample_interval
                     for measurand in sensor.measurands:
                         try:
                             measurand.value = source[measurand.source]
+                            measurand.time = device_time
                         except:
                             print("Can't get value for source " + \
                                   str(measurand.source) + " in " + \
@@ -721,6 +724,7 @@ class Sensor(object):
     def __init__(self, sensor_id, sensor_name):
         self.__id = sensor_id
         self.__name = sensor_name
+        self.__interval = None
         self.__measurands = []
         self.__i = 0
         self.__n = len(self.__measurands)
@@ -731,6 +735,7 @@ class Sensor(object):
     def __str__(self):
         output = "SensorId: " + str(self.id) + "\n"
         output += "SensorName: " + self.name + "\n"
+        output += "SensorInterval: " + str(self.interval) + "\n"
         output += "Measurands:\n"
         for measurand in self.measurands:
             output += str(measurand)
@@ -758,6 +763,12 @@ class Sensor(object):
         self.__name = name
     name = property(get_name, set_name)
 
+    def get_interval(self):
+        return self.__interval
+    def set_interval(self, interval):
+        self.__interval = interval
+    interval = property(get_interval, set_interval)
+
     def get_measurands(self):
         return self.__measurands
     def set_measurands(self, measurands):
@@ -778,6 +789,7 @@ class Measurand(object):
         else:
             self.__source = ''
         self.__value = None
+        self.__time = None
         self.__operator = ''
 
     def __str__(self):
@@ -786,6 +798,7 @@ class Measurand(object):
         if self.value is not None:
             output += "Value: " + self.operator + str(self.value) + ' ' + \
                       self.unit + "\n"
+            output += "Time: " + str(self.time) + "\n"
         else:
             output += "MeasurandUnit: " + self.unit + "\n"
             output += "MeasurandSource: " + str(self.source) + "\n"
@@ -826,6 +839,12 @@ class Measurand(object):
     def set_value(self, value):
         self.__value = value
     value = property(get_value, set_value)
+
+    def get_time(self):
+        return self.__time
+    def set_time(self, time):
+        self.__time = time
+    time = property(get_time, set_time)
 
 # Test environment
 if __name__=='__main__':

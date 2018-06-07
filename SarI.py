@@ -351,9 +351,6 @@ class RscInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
-    __component_names = ['radon', 'thoron', 'temperature', 'humidity', \
-                         'pressure', 'tilt']
-
     def _get_parameter(self, parameter_name):
         for inst_type in self.family['types']:
             if inst_type['type_id'] == self.type_id:
@@ -405,6 +402,7 @@ class RscInst(SaradInst):
         SaradInst.__init__(self, port, family)
 
     def get_all_recent_values(self):
+        """Fill the component objects with recent readings."""
         reply = self.get_reply([b'\x14', b''], 39)
         if reply and (reply[0] == 10):
             try:
@@ -442,47 +440,15 @@ class RscInst(SaradInst):
                                   component.name + '/' + \
                                   sensor.name + '/' + \
                                   measurand.name + '.')
-            return [dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[0],
-                         value = source[0],
-                         measurand_unit = 'Bq/m³',
-                         error = source[1],
-                         error_unit = '%'),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[1],
-                         value = source[2],
-                         error = source[3]),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[2],
-                         value = source[4]),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[3],
-                         value = source[5]),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[4],
-                         value = source[6]),
-                    dict(sample_interval = sample_interval,
-                         datetime = device_time,
-                         measurand_id = 0,
-                         component_name = self.__component_names[5],
-                         value = source[7])]
+            return True
         else:
             print("The instrument doesn't reply.")
             return False
 
-    def get_recent_value(self, component_id, sensor_id = 0, measurand_id = 0):
-        """Get a dictionaries with recent measuring values from one sensor."""
-        return self.get_all_recent_values()[component_id]
+    def get_recent_value(self, component_id = None, sensor_id = None, \
+                         measurand_id = None):
+        """Fill component objects with recent measuring values.  This function does the same like get_all_recent_values() and is only here to provide a compatible API to the DACM interface"""
+        return self.get_all_recent_values()
 
     def _get_battery_voltage(self):
         battery_bytes = self._get_parameter('battery_bytes')

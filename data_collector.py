@@ -59,16 +59,15 @@ def cluster(path, lock_path):
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
-def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, mycluster):
+def send_trap(component_mapping, host, instrument, zbx, mycluster):
     metrics = []
     for component_map in component_mapping:
-        value = instrument.get_recent_value(\
-                                            component_map['id'],\
-                                            sensor,\
-                                            measurand\
-        )['value']
-        key = component_map['name']
-        metrics.append(ZabbixMetric(host, key, value))
+        if instrument.get_all_recent_values() == True:
+            value = instrument.components[component_map['component_id']].\
+                    sensors[component_map['sensor_id']].\
+                    measurands[component_map['measurand_id']].value
+            key = component_map['item']
+            metrics.append(ZabbixMetric(host, key, value))
     zbx.send(metrics)
 
 @cli.command()
@@ -81,16 +80,18 @@ def send_trap(component_mapping, host, instrument, sensor, measurand, zbx, myclu
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
 def trapper(instrument, host, server, path, lock_path, once, period):
     """Start a Zabbix trapper service to provide all values from an instrument."""
+    # The component_mapping provides a mapping between
+    # component/sensor/measurand and Zabbix items
     component_mapping = [
-        dict(id = 0, name = 'radon'),
-        dict(id = 1, name = 'thoron'),
-        dict(id = 2, name = 'temperature'),
-        dict(id = 3, name = 'humidity'),
-        dict(id = 4, name = 'pressure'),
-        dict(id = 5, name = 'tilt'),
+        dict(component_id = 1, sensor_id = 0, measurand_id = 0, item = 'radon'),
+        dict(component_id = 1, sensor_id = 1, measurand_id = 0, item = 'thoron'),
+        dict(component_id = 0, sensor_id = 0, measurand_id = 0, \
+             item = 'temperature'),
+        dict(component_id = 0, sensor_id = 1, measurand_id = 0, item = 'humidity'),
+        dict(component_id = 0, sensor_id = 2, measurand_id = 0, item = 'pressure'),
+        dict(component_id = 0, sensor_id = 3, measurand_id = 0, item = 'tilt'),
+        dict(component_id = 0, sensor_id = 4, measurand_id = 0, item = 'battery'),
     ]
-    sensor = 0
-    measurand = 0
     zbx = ZabbixSender(server)
     lock = FileLock(lock_path)
     starttime = time.time()
@@ -104,11 +105,10 @@ def trapper(instrument, host, server, path, lock_path, once, period):
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.id == instrument:
                     while not once:
-                        send_trap(component_mapping, host, my_instrument, sensor,\
-                                  measurand, zbx, mycluster)
+                        send_trap(component_mapping, host, my_instrument, zbx, \
+                                  mycluster)
                         time.sleep(period - time.time() % period)
-                    send_trap(component_mapping, host, my_instrument, sensor,\
-                              measurand, zbx, mycluster)
+                    send_trap(component_mapping, host, my_instrument, zbx, mycluster)
                     with open(path, 'wb') as f:
                         pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
     except Timeout:

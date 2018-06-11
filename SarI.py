@@ -414,13 +414,13 @@ class RscInst(SaradInst):
                 device_time_m = reply[5]
                 device_time_y = reply[6]
                 source = []
-                source.append(self._bytes_to_float(reply[7:11]))            # 0
+                source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
                 source.append(reply[11])                                    # 1
-                source.append(self._bytes_to_float(reply[12:16]))           # 2
+                source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
                 source.append(reply[16])                                    # 3
-                source.append(self._bytes_to_float(reply[17:21]))           # 4
-                source.append(self._bytes_to_float(reply[21:25]))           # 5
-                source.append(self._bytes_to_float(reply[25:29]))           # 6
+                source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
+                source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
+                source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
                 source.append(int.from_bytes(reply[29:33], \
                                              byteorder='big', signed=False))  # 7
                 source.append(self._get_battery_voltage())                  # 8
@@ -463,7 +463,7 @@ class RscInst(SaradInst):
         if reply and (reply[0] == 10):
             try:
                 voltage = battery_coeff * int.from_bytes(reply[1:], byteorder='little', signed=False)
-                return voltage
+                return round(voltage, 2)
             except ParsingError:
                 print("Error parsing the payload.")
                 return None

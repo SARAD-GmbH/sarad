@@ -3,9 +3,9 @@ from setuptools import setup
 setup(
     name='data_collector',
     version='0.1',
-    py_modules=['data_collector', 'SarI'],
+    py_modules=['data_collector', 'SarI', 'NbEasy'],
     install_requires=[
-        'Click', 'pyserial', 'filelock', 'struct', 'hashids', 'pyyaml'
+        'Click', 'pyserial', 'filelock', 'hashids', 'pyyaml'
     ],
     entry_points='''
         [console_scripts]

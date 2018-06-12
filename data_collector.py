@@ -10,11 +10,12 @@ from filelock import Timeout, FileLock
 from pyzabbix import ZabbixMetric, ZabbixSender
 import time
 from datetime import datetime
+import logging
 
 @click.group()
 def cli():
     """Description for the group of commands"""
-    pass
+    logging.basicConfig(level=logging.DEBUG)
 
 @cli.command()
 @click.option('--instrument', default='j2hRuRDy', help='Instrument Id.  Run ~data_collector cluster~ to get the list of available instruments.')

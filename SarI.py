@@ -9,6 +9,7 @@ from datetime import timedelta
 import struct
 import hashids
 import yaml
+import logging
 
 class SaradInst(object):
     """Basic class for the serial communication protocol of SARAD instruments
@@ -213,7 +214,7 @@ class SaradInst(object):
                             software_version = software_version,
                             serial_number = serial_number)
             except:
-                print("Error parsing the payload.")
+                logging.error("Error parsing the payload.")
         else:
             return False
 
@@ -428,7 +429,7 @@ class RscInst(SaradInst):
                                        device_time_d, device_time_h, \
                                        device_time_min)
             except:
-                print("Error parsing the payload.")
+                logging.error("Error parsing the payload.")
                 return False
             for component in self.components:
                 for sensor in component.sensors:
@@ -438,14 +439,14 @@ class RscInst(SaradInst):
                             measurand.value = source[measurand.source]
                             measurand.time = device_time
                         except:
-                            print("Can't get value for source " + \
-                                  str(measurand.source) + " in " + \
-                                  component.name + '/' + \
-                                  sensor.name + '/' + \
-                                  measurand.name + '.')
+                            logging.error("Can't get value for source " + \
+                                          str(measurand.source) + " in " + \
+                                          component.name + '/' + \
+                                          sensor.name + '/' + \
+                                          measurand.name + '.')
             return True
         else:
-            print("The instrument doesn't reply.")
+            logging.error("The instrument doesn't reply.")
             return False
 
     def get_recent_value(self, component_id = None, sensor_id = None, \
@@ -465,10 +466,10 @@ class RscInst(SaradInst):
                 voltage = battery_coeff * int.from_bytes(reply[1:], byteorder='little', signed=False)
                 return round(voltage, 2)
             except ParsingError:
-                print("Error parsing the payload.")
+                logging.error("Error parsing the payload.")
                 return None
         else:
-            print("The instrument doesn't reply.")
+            logging.error("The instrument doesn't reply.")
             return None
 
 class DacmInst(SaradInst):
@@ -548,10 +549,10 @@ class DacmInst(SaradInst):
             output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
             return output
         elif reply[0] == 0:
-            print("Measurand not available.")
+            logging.error("Measurand not available.")
             return False
         else:
-            print("The instrument doesn't reply.")
+            logging.error("The instrument doesn't reply.")
             return False
 
 class SaradCluster(object):
@@ -625,7 +626,7 @@ class SaradCluster(object):
     def update_connected_instruments(self):
         hid = hashids.Hashids()
         ports_to_test = self.active_ports
-        print(str(len(ports_to_test)) + ' ports to test')
+        logging.info(str(len(ports_to_test)) + ' ports to test')
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
         # NOTE: The order of tests is very important, because the only
@@ -645,9 +646,10 @@ class SaradCluster(object):
             test_instrument = family_class()
             test_instrument.family = family
             ports_with_instruments = []
-            print(ports_to_test)
+            logging.info(ports_to_test)
             for port in ports_to_test:
-                print('Testing port ' + port + ' for ' + family['family_name'])
+                logging.info('Testing port ' + port + ' for ' + \
+                             family['family_name'])
                 test_instrument.port = port
                 if test_instrument.type_id and \
                    test_instrument.serial_number:
@@ -655,7 +657,7 @@ class SaradCluster(object):
                                     test_instrument.type_id,\
                                     test_instrument.serial_number)
                     test_instrument.set_id(id)
-                    print(family['family_name'] + ' found on port ' + port)
+                    logging.info(family['family_name'] + ' found on port ' + port)
                     connected_instruments.append(test_instrument)
                     ports_with_instruments.append(port)
                     if (ports_to_test.index(port) + 1) < len(ports_to_test):
@@ -848,27 +850,8 @@ class Measurand(object):
 
 # Test environment
 if __name__=='__main__':
-
-    def print_dacm_value(dacm_value):
-        print("ComponentName: " + dacm_value['component_name'])
-        print("SensorName: " + dacm_value['sensor_name'])
-        print(DacmInst.measurand_names[dacm_value['measurand_id']] + \
-              ": " + dacm_value['measurand'])
-        if dacm_value['datetime'] is not None:
-            print("DateTime: " + dacm_value['datetime'].strftime("%c"))
-        print("GPS: " + dacm_value['gps'])
-
-    def print_radon_scout_value(radon_scout_value):
-        print(repr(("Radon: " + str(radon_scout_value['radon']) + " Bq/m³")))
-        if radon_scout_value['datetime'] is not None:
-            print("DateTime: " + radon_scout_value['datetime'].strftime("%c"))
+    logging.basicConfig(level=logging.DEBUG)
 
     mycluster = SaradCluster()
-    for connected_instrument in mycluster.connected_instruments:
+    for connected_instrument in mycluster:
         print(connected_instrument)
-        print()
-
-    # thoronscout = RscInst('COM16')
-    # print(thoronscout.get_reply([b'\x0c', b''], 1000))
-
-    # rtm2200 = DacmInst('COM18')

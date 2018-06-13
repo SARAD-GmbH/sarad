@@ -136,13 +136,14 @@ def trapper(instrument, host, server, path, lock_path, once, period):
 def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
     for component_map in component_mapping:
         if instrument.get_all_recent_values() == True:
-            value = instrument.components[component_map['component_id']].\
-                    sensors[component_map['sensor_id']].\
-                    measurands[component_map['measurand_id']].value
+            measurand = instrument.components[component_map['component_id']].\
+                        sensors[component_map['sensor_id']].\
+                        measurands[component_map['measurand_id']]
+            value = measurand.value
             key = '{}/{}/{}'.format(component_map['component_id'], \
                                     component_map['sensor_id'], \
                                     component_map['measurand_id'])
-            time = datetime.utcnow().replace(microsecond = 0).isoformat()
+            time = measurand.time.isoformat()
             message = key + ';' + str(value) + ';' + time
             iot_device.transmit(message)
 

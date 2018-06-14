@@ -557,6 +557,7 @@ class DacmInst(SaradInst):
 
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
+
     Class attributes:
         products
     Properties:
@@ -723,6 +724,15 @@ class Component(object):
     sensors = property(get_sensors, set_sensors)
 
 class Sensor(object):
+    """Class describing a sensor that is part of a component.
+
+    Properties:
+        id
+        name
+        interval: Measuring interval in seconds
+    Public methods:
+        get_measurands()
+    """
     def __init__(self, sensor_id, sensor_name):
         self.__id = sensor_id
         self.__name = sensor_name
@@ -778,6 +788,17 @@ class Sensor(object):
     measurands = property(get_measurands, set_measurands)
 
 class Measurand(object):
+    """Class providing a measurand that is delivered by a sensor.
+
+    Properties:
+        id
+        name
+        operator
+        value
+        unit
+        source
+        time
+    """
     def __init__(self, measurand_id, measurand_name, \
                  measurand_unit = None, measurand_source = None):
         self.__id = measurand_id

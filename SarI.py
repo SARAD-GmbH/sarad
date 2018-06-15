@@ -48,19 +48,9 @@ class SaradInst(object):
     def _initialize(self):
         self.__description = self.__get_description()
         self._build_component_list()
-        self._synchronize()
-        self.__time_reference = self._get_time_reference()
 
     def _build_component_list(self):
         """Build up a list of components with sensors and measurands. Will be overriden by derived classes."""
-        pass
-
-    def _synchronize(self):
-        """Set the real time clock of the instrument to UTC and synchronize it to the host time. Will be overriden by derived classes."""
-        pass
-
-    def _get_time_reference(self):
-        """Will be overriden by derived classes."""
         pass
 
     def __iter__(self):
@@ -183,7 +173,7 @@ class SaradInst(object):
         payload: Payload of answer
         number_of_bytes_in_payload"""
         ser = serial.Serial(serial_port, baudrate, \
-                            timeout=1, parity=parity, \
+                            timeout=5, parity=parity, \
                             stopbits=serial.STOPBITS_ONE)
         for element in message:
             byte = (element).to_bytes(1,'big')
@@ -250,6 +240,7 @@ to the provided list of 1-byte command and data bytes."""
         if checked_payload['is_valid']:
             return checked_payload['payload']
         else:
+            logging.debug(checked_payload['payload'])
             return False
 
     def get_port(self):
@@ -365,6 +356,8 @@ class RscInst(SaradInst):
         set_components()
         get_reply()
     Public methods:
+        stop_cycle()
+        start_cycle()
         get_all_recent_values()
         get_recent_value(index)
         set_real_time_clock(datetime)"""
@@ -414,25 +407,6 @@ class RscInst(SaradInst):
                 component_object.sensors += [sensor_object]
             self.components += [component_object]
         return len(self.components)
-
-    def _synchronize(self):
-        if self.set_real_time_clock(datetime.utcnow()):
-            logging.info('Instrument time set to UTC and synchronized.')
-            return True
-        else:
-            logging.error('The instrument is not synchronized with the host.')
-            return False
-
-    def _get_time_reference(self):
-        """Find out a starting point for the calculation of polling times. In Radon Scout family, like the interval, it is the same for all sensors."""
-        if self.get_all_recent_values():
-            time_reference = self.components[0].sensors[0].measurands[0].time
-            for component in self.components:
-                for sensor in component.sensors:
-                    sensor.time_reference = time_reference
-            return time_reference
-        else:
-            return False
 
     def __init__(self, port = None, family = None):
         if family is None:
@@ -502,10 +476,38 @@ class RscInst(SaradInst):
                                     datetime.year - 2000])
         reply = self.get_reply([b'\x05', instr_datetime], 7)
         if reply and (reply[0] == 10):
+            logging.debug("Time on instrument {} set to UTC.".\
+                          format(self.id))
             return True
         else:
-            logging.error("Setting the time on the instrument failed.")
+            logging.error("Setting the time on instrument with id {} failed.".\
+                          format(self.id))
             return False
+
+    def stop_cycle(self):
+        reply = self.get_reply([b'\x15', b''], 7)
+        if reply and (reply[0] == 10):
+            logging.debug('Cycle stopped at instrument with id {}'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error("stop_cycle() failed at instrument with Id {}".\
+                          format(self.id))
+            return False
+
+    def _push_button(self):
+        reply = self.get_reply([b'\x12', b''], 7)
+        if reply and (reply[0] == 10):
+            logging.debug('Push button simulated at instrument with id {}'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error("Push button failed at instrument with Id {}".\
+                          format(self.id))
+            return False
+
+    def start_cycle(self):
+        return self.stop_cycle() and self._push_button()
 
     def _get_battery_voltage(self):
         battery_bytes = self._get_parameter('battery_bytes')
@@ -550,6 +552,8 @@ class DacmInst(SaradInst):
         set_components()
         get_reply()
     Public methods:
+        stop_cycle()
+        start_cycle()
         get_recent_values()
         get_recent_value(index)"""
     __measurand_names = ['recent sampling', \
@@ -560,6 +564,49 @@ class DacmInst(SaradInst):
         if family is None:
             family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
+
+    def set_real_time_clock(self, datetime):
+        """Set the instrument time."""
+        instr_datetime = bytearray([datetime.second,
+                                    datetime.minute,
+                                    datetime.hour,
+                                    datetime.day,
+                                    datetime.month,
+                                    datetime.year - 2000])
+        reply = self.get_reply([b'\x10', instr_datetime], 7)
+        if reply and (reply[0] == 10):
+            logging.debug("Time on instrument {} set to UTC.".\
+                          format(self.id))
+            return True
+        else:
+            logging.error("Setting the time on instrument with id {} failed.".\
+                          format(self.id))
+            return False
+
+    def stop_cycle(self):
+        reply = self.get_reply([b'\x16', b''], 7)
+        if reply and (reply[0] == 10):
+            logging.debug('Cycle stopped at instrument with id {}'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error("stop_cycle() failed at instrument with Id {}".\
+                          format(self.id))
+            return False
+
+    def start_cycle(self, cycle_index = 0):
+        reply = self.get_reply([b'\x15', bytes([cycle_index])], 9)
+        if reply and (reply[0] == 10):
+            logging.debug('Cycle {} started at instrument with id {}'.\
+                          format(cycle_index, self.id))
+            return True
+        else:
+            logging.error("start_cycle() failed at instrument with Id {}".\
+                          format(self.id))
+            if reply[0] == 11:
+                logging.error('DACM instrument replied with error code {}'.\
+                              format(reply[1]))
+            return False
 
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
@@ -617,6 +664,7 @@ class SaradCluster(object):
         native_ports
         active_ports
         connected_instruments
+        start_time
     Public methods:
         set_native_ports()
         get_native_ports()
@@ -624,6 +672,7 @@ class SaradCluster(object):
         get_connected_instruments()
         update_connected_instruments()
         next()
+        synchronize(): Stop all instruments, set time, start all measurings
     """
 
     with open('instruments.yaml', 'r') as __f:
@@ -650,11 +699,22 @@ class SaradCluster(object):
             self.__n = len(self.__connected_instruments)
             raise StopIteration()
 
-    def set_native_ports(self, native_ports):
-        self.__native_ports = native_ports
-
-    def get_native_ports(self):
-        return self.__native_ports
+    def synchronize(self):
+        for instrument in self.connected_instruments:
+            try:
+                instrument.stop_cycle()
+            except:
+                logging.error('Not all instruments have been stopped as intended.')
+                return False
+        self.__start_time = datetime.utcnow()
+        for instrument in self.connected_instruments:
+            try:
+                instrument.set_real_time_clock(self.__start_time)
+                instrument.start_cycle()
+            except:
+                logging.error('Failed to set time and start cycles on all instruments.')
+                return False
+        return True
 
     def get_active_ports(self):
         """SARAD instruments can be connected:
@@ -724,9 +784,20 @@ class SaradCluster(object):
     def get_connected_instruments(self):
         return self.__connected_instruments
 
+    def set_native_ports(self, native_ports):
+        self.__native_ports = native_ports
+    def get_native_ports(self):
+        return self.__native_ports
     native_ports = property(get_native_ports, set_native_ports)
+
     active_ports = property(get_active_ports)
     connected_instruments = property(get_connected_instruments)
+
+    def set_start_time(self, start_time):
+        self.__start_time = start_time
+    def get_start_time(self):
+        return self.__start_time
+    start_time = property(get_start_time, set_start_time)
 
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""
@@ -783,7 +854,6 @@ class Sensor(object):
         id
         name
         interval: Measuring interval in seconds
-        time_reference: Time reference for the calculation of best polling times
     Public methods:
         get_measurands()
     """
@@ -802,7 +872,6 @@ class Sensor(object):
         output = "SensorId: " + str(self.id) + "\n"
         output += "SensorName: " + self.name + "\n"
         output += "SensorInterval: " + str(self.interval) + "\n"
-        output += "SensorTimeRef: " + str(self.time_reference) + "\n"
         output += "Measurands:\n"
         for measurand in self.measurands:
             output += str(measurand)
@@ -835,12 +904,6 @@ class Sensor(object):
     def set_interval(self, interval):
         self.__interval = interval
     interval = property(get_interval, set_interval)
-
-    def get_time_reference(self):
-        return self.__time_reference
-    def set_time_reference(self, time_reference):
-        self.__time_reference = time_reference
-    time_reference = property(get_time_reference, set_time_reference)
 
     def get_measurands(self):
         return self.__measurands

@@ -154,7 +154,7 @@ def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
 @click.option('--udp_port', default='9876', type=click.STRING, help='UDP port of cloud server')
 @click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path and file name to cache the cluster in a Python Pickle file.')
 @click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
-@click.option('--period', default=None, type=click.IntRange(30, 7200), help='Time interval in seconds for the periodic retrieval of values.  If this value is not provided, it will be set to the interval gained from the instrument.  Use CTRL+C to stop the program.')
+@click.option('--period', default='auto', help='Time interval in seconds for the periodic retrieval of values.  If this value is not provided, it will be set to the interval gained from the instrument.  Use CTRL+C to stop the program.')
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
 def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
     """Start a trapper service to transmit all values from an instrument into an IoT cloud."""

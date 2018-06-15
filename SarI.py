@@ -40,11 +40,23 @@ class SaradInst(object):
         self.__port = port
         self.__family = family
         if (port is not None) and (family is not None):
-            self.__description = self.__get_description()
-            self._build_component_list()
+            self._initialize()
         self.__components = []
         self.__i = 0
         self.__n = len(self.__components)
+
+    def _initialize(self):
+        self.__description = self.__get_description()
+        self._build_component_list()
+        self.__time_reference = self._get_time_reference()
+
+    def _build_component_list(self):
+        """Will be overriden by derived classes."""
+        pass
+
+    def _get_time_reference(self):
+        """Will be overriden by derived classes."""
+        pass
 
     def __iter__(self):
         return iter(self.__components)
@@ -240,8 +252,7 @@ to the provided list of 1-byte command and data bytes."""
     def set_port(self, port):
         self.__port = port
         if (self.port is not None) and (self.family is not None):
-            self.__description = self.__get_description()
-            self._build_component_list()
+            self._initialize()
     port = property(get_port, set_port)
 
     def get_id(self):
@@ -255,8 +266,7 @@ to the provided list of 1-byte command and data bytes."""
     def set_family(self, family):
         self.__family = family
         if (self.port is not None) and (self.family is not None):
-            self.__description = self.__get_description()
-            self._build_component_list()
+            self._initialize()
     family = property(get_family, set_family)
 
     def get_type_id(self):
@@ -366,6 +376,7 @@ class RscInst(SaradInst):
             return False
 
     def _build_component_list(self):
+        logging.debug('Building component list for Radon Scout instrument.')
         for component_object in self.components:
             del component_object
         self.components = []
@@ -397,6 +408,14 @@ class RscInst(SaradInst):
                 component_object.sensors += [sensor_object]
             self.components += [component_object]
         return len(self.components)
+
+    def _get_time_reference(self):
+        """Find out the measuring interval that---in this family---is the same for all sensors."""
+        if self.get_all_recent_values():
+            sensor = self.components[0].sensors[0]
+            return [sensor.measurands[0].time, sensor.interval]
+        else:
+            return False
 
     def __init__(self, port = None, family = None):
         if family is None:
@@ -438,6 +457,8 @@ class RscInst(SaradInst):
                         try:
                             measurand.value = source[measurand.source]
                             measurand.time = device_time
+                            if measurand.source == 8:  # battery voltage
+                                sensor.interval = timedelta(seconds = 1)
                         except:
                             logging.error("Can't get value for source " + \
                                           str(measurand.source) + " in " + \

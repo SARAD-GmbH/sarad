@@ -48,10 +48,15 @@ class SaradInst(object):
     def _initialize(self):
         self.__description = self.__get_description()
         self._build_component_list()
+        self._synchronize()
         self.__time_reference = self._get_time_reference()
 
     def _build_component_list(self):
-        """Will be overriden by derived classes."""
+        """Build up a list of components with sensors and measurands. Will be overriden by derived classes."""
+        pass
+
+    def _synchronize(self):
+        """Set the real time clock of the instrument to UTC and synchronize it to the host time. Will be overriden by derived classes."""
         pass
 
     def _get_time_reference(self):
@@ -361,7 +366,8 @@ class RscInst(SaradInst):
         get_reply()
     Public methods:
         get_all_recent_values()
-        get_recent_value(index)"""
+        get_recent_value(index)
+        set_real_time_clock(datetime)"""
 
     def _get_parameter(self, parameter_name):
         for inst_type in self.family['types']:
@@ -408,6 +414,14 @@ class RscInst(SaradInst):
                 component_object.sensors += [sensor_object]
             self.components += [component_object]
         return len(self.components)
+
+    def _synchronize(self):
+        if self.set_real_time_clock(datetime.utcnow()):
+            logging.info('Instrument time set to UTC and synchronized.')
+            return True
+        else:
+            logging.error('The instrument is not synchronized with the host.')
+            return False
 
     def _get_time_reference(self):
         """Find out a starting point for the calculation of polling times. In Radon Scout family, like the interval, it is the same for all sensors."""
@@ -477,6 +491,21 @@ class RscInst(SaradInst):
                          measurand_id = None):
         """Fill component objects with recent measuring values.  This function does the same like get_all_recent_values() and is only here to provide a compatible API to the DACM interface"""
         return self.get_all_recent_values()
+
+    def set_real_time_clock(self, datetime):
+        """Set the instrument time."""
+        instr_datetime = bytearray([datetime.second,
+                                    datetime.minute,
+                                    datetime.hour,
+                                    datetime.day,
+                                    datetime.month,
+                                    datetime.year - 2000])
+        reply = self.get_reply([b'\x05', instr_datetime], 7)
+        if reply and (reply[0] == 10):
+            return True
+        else:
+            logging.error("Setting the time on the instrument failed.")
+            return False
 
     def _get_battery_voltage(self):
         battery_bytes = self._get_parameter('battery_bytes')

@@ -410,10 +410,13 @@ class RscInst(SaradInst):
         return len(self.components)
 
     def _get_time_reference(self):
-        """Find out the measuring interval that---in this family---is the same for all sensors."""
+        """Find out a starting point for the calculation of polling times. In Radon Scout family, like the interval, it is the same for all sensors."""
         if self.get_all_recent_values():
-            sensor = self.components[0].sensors[0]
-            return [sensor.measurands[0].time, sensor.interval]
+            time_reference = self.components[0].sensors[0].measurands[0].time
+            for component in self.components:
+                for sensor in component.sensors:
+                    sensor.time_reference = time_reference
+            return time_reference
         else:
             return False
 
@@ -751,6 +754,7 @@ class Sensor(object):
         id
         name
         interval: Measuring interval in seconds
+        time_reference: Time reference for the calculation of best polling times
     Public methods:
         get_measurands()
     """
@@ -769,6 +773,7 @@ class Sensor(object):
         output = "SensorId: " + str(self.id) + "\n"
         output += "SensorName: " + self.name + "\n"
         output += "SensorInterval: " + str(self.interval) + "\n"
+        output += "SensorTimeRef: " + str(self.time_reference) + "\n"
         output += "Measurands:\n"
         for measurand in self.measurands:
             output += str(measurand)
@@ -801,6 +806,12 @@ class Sensor(object):
     def set_interval(self, interval):
         self.__interval = interval
     interval = property(get_interval, set_interval)
+
+    def get_time_reference(self):
+        return self.__time_reference
+    def set_time_reference(self, time_reference):
+        self.__time_reference = time_reference
+    time_reference = property(get_time_reference, set_time_reference)
 
     def get_measurands(self):
         return self.__measurands

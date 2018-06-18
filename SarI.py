@@ -412,13 +412,19 @@ class RscInst(SaradInst):
         if family is None:
             family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
+        self.__interval = timedelta(seconds = 30)
 
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
+        # Do nothing as long as the previous values are valid.
+        if (datetime.utcnow() - self.__last_sampling_time) < self.__interval:
+            logging.debug('The values from last sampling are still valid.')
+            return True
         reply = self.get_reply([b'\x14', b''], 39)
+        self.__last_sampling_time = datetime.utcnow()
         if reply and (reply[0] == 10):
             try:
-                sample_interval = timedelta(seconds = reply[1])
+                sample_interval = timedelta(minutes = reply[1])
                 device_time_min = reply[2]
                 device_time_h = reply[3]
                 device_time_d = reply[4]
@@ -441,6 +447,7 @@ class RscInst(SaradInst):
             except:
                 logging.error("Error parsing the payload.")
                 return False
+            self.__interval = sample_interval
             for component in self.components:
                 for sensor in component.sensors:
                     sensor.interval = sample_interval
@@ -507,6 +514,7 @@ class RscInst(SaradInst):
             return False
 
     def start_cycle(self):
+        self.__last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
 
     def _get_battery_voltage(self):

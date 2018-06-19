@@ -5,7 +5,7 @@ setup(
     version='0.1',
     py_modules=['data_collector', 'SarI', 'NbEasy'],
     install_requires=[
-        'Click', 'pyserial', 'filelock', 'hashids', 'pyyaml'
+        'Click', 'pyserial', 'filelock', 'hashids', 'pyyaml', 'py-zabbix'
     ],
     entry_points='''
         [console_scripts]

@@ -133,6 +133,8 @@ class SaradInst(object):
         #     is_control_message: True if control message
         #     payload: Payload of answer
         #     number_of_bytes_in_payload
+        logging.debug('Checking answer from serial port:')
+        logging.debug(answer)
         if answer.startswith(b'B') & answer.endswith(b'E'):
             control_byte = answer[1]
             neg_control_byte = answer[2]
@@ -172,8 +174,8 @@ class SaradInst(object):
         is_control_message: True if control message
         payload: Payload of answer
         number_of_bytes_in_payload"""
-        ser = serial.Serial(serial_port, baudrate, \
-                            timeout=5, parity=parity, \
+        ser = serial.Serial(serial_port, baudrate, bytesize=8, xonxoff=0, \
+                            timeout=5, parity=parity, rtscts=0,\
                             stopbits=serial.STOPBITS_ONE)
         for element in message:
             byte = (element).to_bytes(1,'big')
@@ -181,6 +183,11 @@ class SaradInst(object):
             time.sleep(write_sleeptime)
         time.sleep(wait_for_reply)
         answer = ser.read(expected_length_of_reply)
+        time.sleep(0.1)
+        while ser.in_waiting:
+            logging.debug('{} bytes waiting'.format(ser.in_waiting))
+            ser.read(ser.in_waiting)
+            time.sleep(0.5)
         ser.close()
         checked_answer = self.__check_answer(answer)
         return dict(is_valid = checked_answer['is_valid'],
@@ -197,6 +204,7 @@ class SaradInst(object):
         wait_for_reply = self.__family['wait_for_reply']
         get_version_msg = self.__make_command_msg(self.family['get_id_cmd'])
         length_of_reply = self.__family['length_of_reply']
+        logging.debug('BaudRate: {}'.format(baudrate))
         checked_payload = self.__get_message_payload(self.__port,\
                                                      baudrate,\
                                                      parity,\
@@ -204,6 +212,7 @@ class SaradInst(object):
                                                      wait_for_reply,\
                                                      get_version_msg,\
                                                      length_of_reply)
+        logging.debug(checked_payload)
         if checked_payload['is_valid']:
             try:
                 payload = checked_payload['payload']
@@ -770,8 +779,8 @@ class SaradCluster(object):
             ports_with_instruments = []
             logging.info(ports_to_test)
             for port in ports_to_test:
-                logging.info('Testing port ' + port + ' for ' + \
-                             family['family_name'])
+                logging.info('Testing port {} for {}.'.\
+                             format(port, family['family_name']))
                 test_instrument.port = port
                 if test_instrument.type_id and \
                    test_instrument.serial_number:

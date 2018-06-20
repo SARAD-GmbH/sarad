@@ -128,34 +128,34 @@ class SaradInst(object):
         """Will be overriden by derived classes."""
         pass
 
-    def _make_setup_word(self):
+    def _encode_setup_word(self):
         """Compile the SetupWord for Doseman an RadonScout devices from its components.  All used arguments from self are enum objects."""
-        if self.signal.value:
-            bv_signal = BitVector(intVal = self.signal.value - 1, size = 2)
-        else:
-            bv_signal = BitVector(bitstring = '00')
-        if self.radon_mode.value:
-            bv_radon_mode = BitVector(intVal = self.radon_mode.value - 1, size = 1)
-        else:
-            bv_radon_mode = BitVector(bitstring = '0')
-        if self.pump_mode.value:
-            bv_pump_mode = BitVector(intVal = self.pump_mode.value - 1, size = 1)
-        else:
-            bv_pump_mode = BitVector(bitstring = '0')
-        if self.units.value:
-            bv_units = BitVector(intVal = self.units.value - 1, size = 1)
-        else:
-            bv_units = BitVector(bitstring = '0')
-        if self.chamber_size.value:
-            bv_chamber_size = BitVector(intVal = self.chamber_size.value - 1, \
-                                        size = 2)
-        else:
-            bv_chamber_size = BitVector(bitstring = '00')
+        bv_signal = BitVector(intVal = self.signal.value - 1, size = 2)
+        bv_radon_mode = BitVector(intVal = self.radon_mode.value - 1, size = 1)
+        bv_pump_mode = BitVector(intVal = self.pump_mode.value - 1, size = 1)
+        bv_pump_mode = BitVector(bitstring = '0')
+        bv_units = BitVector(intVal = self.units.value - 1, size = 1)
+        bv_units = BitVector(bitstring = '0')
+        bv_chamber_size = BitVector(intVal = self.chamber_size.value - 1, \
+                                    size = 2)
         bv_padding = BitVector(bitstring = '000000000')
         bv = bv_padding + bv_chamber_size + bv_units + bv_pump_mode + \
              bv_radon_mode + bv_signal
         logging.debug(str(bv))
         return bv.get_bitvector_in_ascii().encode('utf-8')
+
+    def _decode_setup_word(self, setup_word):
+        bv = BitVector(rawbytes = setup_word)
+        signal_index = bv[6:8].int_val()
+        self.signal = list(self.Signal)[signal_index]
+        radon_mode_index = bv[5]
+        self.radon_mode = list(self.Radon_mode)[radon_mode_index]
+        pump_mode_index = bv[4]
+        self.pump_mode = list(self.Pump_mode)[pump_mode_index]
+        units_index = bv[3]
+        self.units = list(self.Units)[units_index]
+        chamber_size_index = bv[1:3].int_val()
+        self.chamber_size = list(self.Chamber_size)[chamber_size_index]
 
     def _get_parameter(self, parameter_name):
         for inst_type in self.family['types']:
@@ -168,9 +168,6 @@ class SaradInst(object):
             return self.family[parameter_name]
         except:
             return False
-
-    def set_config(self):
-        pass
 
     # Private methods
     def __make_command_msg(self, cmd_data):
@@ -432,15 +429,23 @@ class RscInst(SaradInst):
         get_components()
         set_components()
         get_reply()
-        set_config()
-        get_config()
     Public methods:
-        stop_cycle()
-        start_cycle()
         get_all_recent_values()
         get_recent_value(index)
-        set_real_time_clock(datetime)"""
+        set_real_time_clock(datetime)
+        stop_cycle()
+        start_cycle()
+        set_config()
+        get_config()"""
 
+    def __init__(self, port = None, family = None):
+        if family is None:
+            family = SaradCluster.products[1]
+        SaradInst.__init__(self, port, family)
+        self.__interval = timedelta(seconds = 30)
+
+
+    # Private methods, overridden from SaradInst
     def _build_component_list(self):
         logging.debug('Building component list for Radon Scout instrument.')
         for component_object in self.components:
@@ -475,12 +480,39 @@ class RscInst(SaradInst):
             self.components += [component_object]
         return len(self.components)
 
-    def __init__(self, port = None, family = None):
-        if family is None:
-            family = SaradCluster.products[1]
-        SaradInst.__init__(self, port, family)
-        self.__interval = timedelta(seconds = 30)
 
+    # Private helper methods
+    def _get_battery_voltage(self):
+        battery_bytes = self._get_parameter('battery_bytes')
+        battery_coeff = self._get_parameter('battery_coeff')
+        if not (battery_coeff and battery_bytes):
+            return "This instrument type doesn't provide \
+            battery voltage information"
+        reply = self.get_reply([b'\x0d', b''], battery_bytes + 7)
+        if reply and (reply[0] == 10):
+            try:
+                voltage = battery_coeff * int.from_bytes(reply[1:], byteorder='little', signed=False)
+                return round(voltage, 2)
+            except ParsingError:
+                logging.error("Error parsing the payload.")
+                return None
+        else:
+            logging.error("The instrument doesn't reply.")
+            return None
+
+    def _push_button(self):
+        reply = self.get_reply([b'\x12', b''], 7)
+        if reply and (reply[0] == 10):
+            logging.debug('Push button simulated at instrument with id {}'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error("Push button failed at instrument with Id {}".\
+                          format(self.id))
+            return False
+
+
+    # Public methods
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
         # Do nothing as long as the previous values are valid.
@@ -573,38 +605,32 @@ class RscInst(SaradInst):
                           format(self.id))
             return False
 
-    def _push_button(self):
-        reply = self.get_reply([b'\x12', b''], 7)
-        if reply and (reply[0] == 10):
-            logging.debug('Push button simulated at instrument with id {}'.\
-                          format(self.id))
-            return True
-        else:
-            logging.error("Push button failed at instrument with Id {}".\
-                          format(self.id))
-            return False
-
     def start_cycle(self):
         self._last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
 
-    def _get_battery_voltage(self):
-        battery_bytes = self._get_parameter('battery_bytes')
-        battery_coeff = self._get_parameter('battery_coeff')
-        if not (battery_coeff and battery_bytes):
-            return "This instrument type doesn't provide \
-            battery voltage information"
-        reply = self.get_reply([b'\x0d', b''], battery_bytes + 7)
+    def get_config(self):
+        reply = self.get_reply([b'\x10', b''], 14)
         if reply and (reply[0] == 10):
+            logging.debug('Getting configuration from instrument with Id {}'.\
+                          format(self.id))
             try:
-                voltage = battery_coeff * int.from_bytes(reply[1:], byteorder='little', signed=False)
-                return round(voltage, 2)
-            except ParsingError:
+                self.__interval = timedelta(minutes = reply[1])
+                setup_word = reply[2:3]
+                self._decode_setup_word(setup_word)
+                self.__alarm_level = int.from_bytes(reply[4:8], \
+                byteorder='little', signed=False)
+            except:
                 logging.error("Error parsing the payload.")
-                return None
+                return False
+            return True
         else:
-            logging.error("The instrument doesn't reply.")
-            return None
+            logging.error("Get configuration failed at instrument with Id {}".\
+                          format(self.id))
+            return False
+
+    def set_config(self):
+        pass
 
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol

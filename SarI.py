@@ -48,6 +48,7 @@ class SaradInst(object):
     def _initialize(self):
         self.__description = self.__get_description()
         self._build_component_list()
+        self._last_sampling_time = None
 
     def _build_component_list(self):
         """Build up a list of components with sensors and measurands. Will be overriden by derived classes."""
@@ -426,11 +427,15 @@ class RscInst(SaradInst):
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
         # Do nothing as long as the previous values are valid.
-        if (datetime.utcnow() - self.__last_sampling_time) < self.__interval:
+        if self._last_sampling_time is None:
+            logging.warning('The gathered values might be invalid. ' + \
+                'You should use function start_cycle() in your application ' + \
+            'for a regular initialization of the measuring cycle.')
+        elif (datetime.utcnow() - self._last_sampling_time) < self.__interval:
             logging.debug('The values from last sampling are still valid.')
             return True
         reply = self.get_reply([b'\x14', b''], 39)
-        self.__last_sampling_time = datetime.utcnow()
+        self._last_sampling_time = datetime.utcnow()
         if reply and (reply[0] == 10):
             try:
                 sample_interval = timedelta(minutes = reply[1])
@@ -523,7 +528,7 @@ class RscInst(SaradInst):
             return False
 
     def start_cycle(self):
-        self.__last_sampling_time = datetime.utcnow()
+        self._last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
 
     def _get_battery_voltage(self):

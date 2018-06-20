@@ -10,6 +10,8 @@ import struct
 import hashids
 import yaml
 import logging
+from BitVector import BitVector
+from enum import Enum
 
 class SaradInst(object):
     """Basic class for the serial communication protocol of SARAD instruments
@@ -48,6 +50,7 @@ class SaradInst(object):
     def _initialize(self):
         self.__description = self.__get_description()
         self._build_component_list()
+        self._build_config_objects()
         self._last_sampling_time = None
 
     def _build_component_list(self):
@@ -101,8 +104,72 @@ class SaradInst(object):
                 output['measurand_unit'] = ''
         return output
 
+    def _build_config_objects(self):
+        """Initialize a set of enum objects for device configuration from information obtained from the instruments.yaml file."""
+        logging.debug('Initialize enum objects for device configuration.')
+        config_dict = self._get_parameter('config_parameters')
+        if not config_dict:
+            return False
+        for config_parameter in config_dict:
+            if config_parameter['type'] == 'enum':
+                name = config_parameter['name']
+                class_name = name.capitalize()
+                enum_creator = "Enum(class_name, config_parameter['enum'])"
+                exec("self.{} = {}".format(class_name, enum_creator))
+                logging.debug('Enum class {} created.'.format(class_name))
+                exec("self.{} = {}".format(name, \
+                                           'list(self.' + class_name +')[0]'))
+                logging.debug(\
+                    'Enum object {} created and initialy set to first value.'.\
+                    format(name))
+        return True
+
     def _build_component_list(self):
         """Will be overriden by derived classes."""
+        pass
+
+    def _make_setup_word(self):
+        """Compile the SetupWord for Doseman an RadonScout devices from its components.  All used arguments from self are enum objects."""
+        if self.signal.value:
+            bv_signal = BitVector(intVal = self.signal.value - 1, size = 2)
+        else:
+            bv_signal = BitVector(bitstring = '00')
+        if self.radon_mode.value:
+            bv_radon_mode = BitVector(intVal = self.radon_mode.value - 1, size = 1)
+        else:
+            bv_radon_mode = BitVector(bitstring = '0')
+        if self.pump_mode.value:
+            bv_pump_mode = BitVector(intVal = self.pump_mode.value - 1, size = 1)
+        else:
+            bv_pump_mode = BitVector(bitstring = '0')
+        if self.units.value:
+            bv_units = BitVector(intVal = self.units.value - 1, size = 1)
+        else:
+            bv_units = BitVector(bitstring = '0')
+        if self.chamber_size.value:
+            bv_chamber_size = BitVector(intVal = self.chamber_size.value - 1, \
+                                        size = 2)
+        else:
+            bv_chamber_size = BitVector(bitstring = '00')
+        bv_padding = BitVector(bitstring = '000000000')
+        bv = bv_padding + bv_chamber_size + bv_units + bv_pump_mode + \
+             bv_radon_mode + bv_signal
+        logging.debug(str(bv))
+        return bv.get_bitvector_in_ascii().encode('utf-8')
+
+    def _get_parameter(self, parameter_name):
+        for inst_type in self.family['types']:
+            if inst_type['type_id'] == self.type_id:
+                try:
+                    return inst_type[parameter_name]
+                except:
+                    pass
+        try:
+            return self.family[parameter_name]
+        except:
+            return False
+
+    def set_config(self):
         pass
 
     # Private methods
@@ -365,24 +432,14 @@ class RscInst(SaradInst):
         get_components()
         set_components()
         get_reply()
+        set_config()
+        get_config()
     Public methods:
         stop_cycle()
         start_cycle()
         get_all_recent_values()
         get_recent_value(index)
         set_real_time_clock(datetime)"""
-
-    def _get_parameter(self, parameter_name):
-        for inst_type in self.family['types']:
-            if inst_type['type_id'] == self.type_id:
-                try:
-                    return inst_type[parameter_name]
-                except:
-                    pass
-        try:
-            return self.family[parameter_name]
-        except:
-            return False
 
     def _build_component_list(self):
         logging.debug('Building component list for Radon Scout instrument.')
@@ -1022,3 +1079,9 @@ if __name__=='__main__':
     mycluster = SaradCluster()
     for connected_instrument in mycluster:
         print(connected_instrument)
+    ts = mycluster.next()
+    ts.signal = ts.Signal.off
+    ts.pump_mode = ts.Pump_mode.continuous
+    ts.radon_mode = ts.Radon_mode.fast
+    ts.units = ts.Units.si
+    ts.chamber_size = ts.Chamber_size.xl

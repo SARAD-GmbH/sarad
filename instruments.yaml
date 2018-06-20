@@ -12,6 +12,32 @@
   wait_for_reply: 0.1
   write_sleeptime: 0.001
   parity: E
+  config_parameters:
+  - name: interval
+    type: integer
+    description: >
+      Duration of integration interval in minutes.
+  - name: radon_mode
+    type: enum
+    enum: {slow: 1, fast: 2}
+    description: >
+      TBD
+  - name: pump_mode
+    type: enum
+    enum: {continuous: 1, interval: 2}
+  - name: units
+    type: enum
+    enum: {si: 1, us: 2}
+  - name: signal
+    type: enum
+    enum: {'off': 1, alarm: 2, sniffer_po216: 3, po216_po218: 4}
+  - name: chamber_size
+    type: enum
+    enum: {s: 1, m: 2, l: 3, xl: 4}
+  - name: alarm_level
+    type: integer
+    description: >
+      Alarm level in Bq/m³
   types:
   - {type_id: 1, type_name: DOSEman}
   - {type_id: 2, type_name: DOSEman Pro}
@@ -32,6 +58,32 @@
   wait_for_reply: 0
   write_sleeptime: 0
   parity: N
+  config_parameters:
+  - name: interval
+    type: integer
+    description: >
+      Duration of integration interval in minutes.
+  - name: radon_mode
+    type: enum
+    enum: {slow: 1, fast: 2}
+    description: >
+      TBD
+  - name: pump_mode
+    type: enum
+    enum: {continuous: 1, interval: 2}
+  - name: units
+    type: enum
+    enum: {si: 1, us: 2}
+  - name: signal
+    type: enum
+    enum: {'off': 1, alarm: 2, sniffer_po216: 3, po216_po218: 4}
+  - name: chamber_size
+    type: enum
+    enum: {s: 1, m: 2, l: 3, xl: 4}
+  - name: alarm_level
+    type: integer
+    description: >
+      Alarm level in Bq/m³
   battery_bytes: 1
   battery_coeff: 0.00647
   types:

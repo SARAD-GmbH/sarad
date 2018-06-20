@@ -46,6 +46,7 @@ class SaradInst(object):
         self.__components = []
         self.__i = 0
         self.__n = len(self.__components)
+        self.__interval = None
 
     def _initialize(self):
         self.__description = self.__get_description()
@@ -442,8 +443,6 @@ class RscInst(SaradInst):
         if family is None:
             family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
-        self.__interval = timedelta(seconds = 30)
-
 
     # Private methods, overridden from SaradInst
     def _build_component_list(self):
@@ -521,7 +520,8 @@ class RscInst(SaradInst):
                 'You should use function start_cycle() in your application ' + \
             'for a regular initialization of the measuring cycle.')
         elif (datetime.utcnow() - self._last_sampling_time) < self.__interval:
-            logging.debug('The values from last sampling are still valid.')
+            logging.debug('We do not have new values yet. Sample interval = {}'.\
+                          format(self.__interval))
             return True
         reply = self.get_reply([b'\x14', b''], 39)
         self._last_sampling_time = datetime.utcnow()
@@ -606,6 +606,7 @@ class RscInst(SaradInst):
             return False
 
     def start_cycle(self):
+        self.get_config()  # to set self.__interval
         self._last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
 

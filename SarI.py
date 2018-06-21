@@ -672,6 +672,30 @@ class RscInst(SaradInst):
                           format(self.id))
             return False
 
+    def set_long_interval(self):
+        reply = self.get_reply([b'\x03', b''], 7)
+        if reply and (reply[0] == 10):
+            self.__interval = timedelta(hours = 3)
+            logging.debug('Instrument with id {} set to 3 h interval.'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error('Interval setting failed at instrument with Id {}.'.\
+                          format(self.id))
+            return False
+
+    def set_short_interval(self):
+        reply = self.get_reply([b'\x04', b''], 7)
+        if reply and (reply[0] == 10):
+            self.__interval = timedelta(hours = 1)
+            logging.debug('Instrument with id {} set to 1 h interval.'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error('Interval setting failed at instrument with Id {}.'.\
+                          format(self.id))
+            return False
+
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol
 

@@ -264,40 +264,31 @@ class SaradInst(object):
     def __get_description(self):
         """Returns a dictionary with instrument type, software version,\
  and serial number."""
-        baudrate = self.__family['baudrate']
-        parity = self.__family['parity']
-        write_sleeptime = self.__family['write_sleeptime']
-        wait_for_reply = self.__family['wait_for_reply']
-        get_version_msg = self.__make_command_msg(self.family['get_id_cmd'])
-        length_of_reply = self.__family['length_of_reply']
-        logging.debug('BaudRate: {}'.format(baudrate))
-        checked_payload = self.__get_message_payload(self.__port,\
-                                                     baudrate,\
-                                                     parity,\
-                                                     write_sleeptime,\
-                                                     wait_for_reply,\
-                                                     get_version_msg,\
-                                                     length_of_reply)
-        logging.debug(checked_payload)
-        if checked_payload['is_valid']:
+        id_cmd = self.family['get_id_cmd']
+        length_of_reply = self.family['length_of_reply']
+        reply = self.get_reply(id_cmd, length_of_reply)
+        if reply and (reply[0] == 10):
+            logging.debug('Get description successful.')
             try:
-                payload = checked_payload['payload']
-                type_id = payload[1]
-                software_version = payload[2]
-                if self.__family['family_id'] == 5:  # DACM has big endian order of bytes
-                    serial_number = int.from_bytes(payload[3:5], \
+                type_id = reply[1]
+                software_version = reply[2]
+                if self.family['family_id'] == 5:
+                    # DACM has big endian order of bytes
+                    serial_number = int.from_bytes(reply[3:5], \
                                                    byteorder='big', \
                                                    signed=False)
                 else:
-                    serial_number = int.from_bytes(payload[3:5], \
+                    # All other devices use little endian
+                    serial_number = int.from_bytes(reply[3:5], \
                                                    byteorder='little', \
                                                    signed=False)
                 return dict(type_id = type_id,
                             software_version = software_version,
                             serial_number = serial_number)
             except:
-                logging.error("Error parsing the payload.")
+                logging.error('Error parsing the payload.')
         else:
+            logging.error('Get description failed.')
             return False
 
     # Public methods

@@ -59,6 +59,9 @@
   write_sleeptime: 0
   parity: N
   config_parameters:
+  - name: lock
+    type: enum
+    enum: {unlocked: 0, locked: 1}
   - name: interval
     type: integer
     description: >

@@ -601,7 +601,7 @@ class RscInst(SaradInst):
                           format(self.id))
             return True
         else:
-            logging.error("stop_cycle() failed at instrument with Id {}".\
+            logging.error('stop_cycle() failed at instrument with Id {}'.\
                           format(self.id))
             return False
 
@@ -645,6 +645,30 @@ class RscInst(SaradInst):
             return True
         else:
             logging.error("Set configuration failed at instrument with Id {}".\
+                          format(self.id))
+            return False
+
+    def set_lock(self):
+        reply = self.get_reply([b'\x01', b''], 7)
+        if reply and (reply[0] == 10):
+            self.lock = self.Lock.locked
+            logging.debug('Instrument with id {} locked.'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error('Locking failed at instrument with Id {}.'.\
+                          format(self.id))
+            return False
+
+    def set_unlock(self):
+        reply = self.get_reply([b'\x02', b''], 7)
+        if reply and (reply[0] == 10):
+            self.lock = self.Lock.unlocked
+            logging.debug('Instrument with id {} unlocked.'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error('Unlocking failed at instrument with Id {}.'.\
                           format(self.id))
             return False
 

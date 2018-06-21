@@ -436,8 +436,8 @@ class RscInst(SaradInst):
         set_real_time_clock(datetime)
         stop_cycle()
         start_cycle()
-        set_config()
-        get_config()"""
+        get_config()
+        set_config()"""
 
     def __init__(self, port = None, family = None):
         if family is None:
@@ -620,7 +620,8 @@ class RscInst(SaradInst):
                 setup_word = reply[2:3]
                 self._decode_setup_word(setup_word)
                 self.__alarm_level = int.from_bytes(reply[4:8], \
-                byteorder='little', signed=False)
+                                                    byteorder='little', \
+                                                    signed=False)
             except:
                 logging.error("Error parsing the payload.")
                 return False
@@ -631,7 +632,21 @@ class RscInst(SaradInst):
             return False
 
     def set_config(self):
-        pass
+        setup_word = self._encode_setup_word()
+        interval = int(self.__interval.seconds/60)
+        setup_data = (interval).to_bytes(1, byteorder = 'little') + \
+                    setup_word + \
+                    (self.__alarm_level).to_bytes(4, byteorder = 'little')
+        logging.debug(setup_data)
+        reply = self.get_reply([b'\x0f', setup_data], 7)
+        if reply and (reply[0] == 10):
+            logging.debug('Set configuration successfull at instrument with Id {}'.\
+                          format(self.id))
+            return True
+        else:
+            logging.error("Set configuration failed at instrument with Id {}".\
+                          format(self.id))
+            return False
 
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol

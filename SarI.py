@@ -631,7 +631,7 @@ class RscInst(SaradInst):
         logging.debug(setup_data)
         reply = self.get_reply([b'\x0f', setup_data], 7)
         if reply and (reply[0] == 10):
-            logging.debug('Set configuration successfull at instrument with Id {}'.\
+            logging.debug('Set configuration successful at instrument with Id {}'.\
                           format(self.id))
             return True
         else:
@@ -961,6 +961,7 @@ class SaradCluster(object):
 
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""
+
     def __init__(self, component_id, component_name):
         self.__id = component_id
         self.__name = component_name

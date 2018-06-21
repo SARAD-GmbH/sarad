@@ -64,8 +64,8 @@
     enum: {unlocked: 0, locked: 1}
   - name: interval
     type: integer
-    description: > 
-      Duration of integration interval in minutes. 
+    description: >
+      Duration of integration interval in minutes.
       If type is integer, every positive integer is allowed.
       If type is enum, it can only be switched between 3 hours and 1 hour.
   - name: radon_mode

@@ -209,30 +209,44 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
 @cli.command()
 @click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster properties in a PICKLE file.')
 @click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
-def display(path, lock_path):
+@click.option('--target', default='screen', help='Where the values shall go to? (screen, iot, zabbix, display).')
+def transmit(path, lock_path, target):
+    # Define a function to be executed on scheduled times
+    def send(target, instrument, component, sensor):
+        for measurand in sensor:
+            c_idx = list(instrument).index(component)
+            s_idx = list(component).index(sensor)
+            m_idx = list(sensor).index(measurand)
+        instrument.get_recent_value(c_idx, s_idx, m_idx)
+        if target == 'screen':
+            print(sensor)
+        elif target == 'iot':
+            pass
+        elif target == 'zabbix':
+            pass
+        elif target == 'display':
+            pass
+        else:
+            logging.error('Target must be either screen, iot, zabbix or display.')
+
+    # Get the list of instruments in the cluster
     try:
         with open(path, 'rb') as f:
             mycluster = pickle.load(f)
     except:
         mycluster = SarI.SaradCluster()
         mycluster.update_connected_instruments()
+    # Start measuring cycles at all instruments
+    mycluster.synchronize()
+    for instrument in mycluster:
+        instrument.set_lock()
+    # Build the scheduler
+    start_time = mycluster.start_time
     for instrument in mycluster:
         for component in instrument:
             for sensor in component:
-                for measurand in sensor:
-                    c_idx = list(instrument).index(component)
-                    s_idx = list(component).index(sensor)
-                    m_idx = list(sensor).index(measurand)
-                    instrument.get_recent_value(c_idx, s_idx, m_idx)
-                print(sensor)
-
-    # schedule.every(5).seconds.do(job, "hard", "really hard")
-    # schedule.every(10).minutes.do(job)
-    # schedule.every().hour.do(job)
-    # schedule.every().day.at("10:30").do(job)
-    # schedule.every().monday.do(job)
-    # schedule.every().wednesday.at("13:15").do(job)
-
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
+                schedule.every(sensor.interval.seconds).\
+                    seconds.do(send, target, instrument, component, sensor)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

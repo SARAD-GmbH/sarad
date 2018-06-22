@@ -558,7 +558,7 @@ class RscInst(SaradInst):
                             measurand.value = source[measurand.source]
                             measurand.time = device_time
                             if measurand.source == 8:  # battery voltage
-                                sensor.interval = timedelta(seconds = 1)
+                                sensor.interval = timedelta(seconds = 5)
                         except:
                             logging.error("Can't get value for source " + \
                                           str(measurand.source) + " in " + \

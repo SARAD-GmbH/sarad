@@ -9,8 +9,7 @@ from datetime import timedelta
 import struct
 import hashids
 import yaml
-import json
-import base64
+import pickle
 import logging
 from BitVector import BitVector
 from enum import Enum
@@ -40,6 +39,34 @@ class SaradInst(object):
         set_components()
         get_reply()"""
 
+    class Lock(Enum):
+        unlocked = 1
+        locked = 2
+
+    class Radon_mode(Enum):
+        slow = 1
+        fast = 2
+
+    class Pump_mode(Enum):
+        continuous = 1
+        interval = 2
+
+    class Units(Enum):
+        si = 1
+        us = 2
+
+    class Signal(Enum):
+        off = 1
+        alarm = 2
+        sniffer_po216 = 3
+        po216_po218 = 4
+
+    class Chamber_size(Enum):
+        s = 1
+        m = 2
+        l = 3
+        xl = 4
+
     def __init__(self, port = None, family = None):
         self.__port = port
         self.__family = family
@@ -53,7 +80,6 @@ class SaradInst(object):
     def _initialize(self):
         self.__description = self.__get_description()
         self._build_component_list()
-        self._build_config_objects()
         self._last_sampling_time = None
 
     def _build_component_list(self):
@@ -106,26 +132,6 @@ class SaradInst(object):
                 output['measurand_value'] = ''
                 output['measurand_unit'] = ''
         return output
-
-    def _build_config_objects(self):
-        """Initialize a set of enum objects for device configuration from information obtained from the instruments.yaml file."""
-        logging.debug('Initialize enum objects for device configuration.')
-        config_dict = self._get_parameter('config_parameters')
-        if not config_dict:
-            return False
-        for config_parameter in config_dict:
-            if config_parameter['type'] == 'enum':
-                name = config_parameter['name']
-                class_name = name.capitalize()
-                enum_creator = "Enum(class_name, config_parameter['enum'], module = __name__, qualname = 'SaradInst.{}')".format(class_name)
-                exec("self.{} = {}".format(class_name, enum_creator))
-                logging.debug('Enum class {} created.'.format(class_name))
-                exec("self.{} = {}".format(name, \
-                                           'list(self.' + class_name +')[0]'))
-                logging.debug(\
-                    'Enum object {} created and initialy set to first value.'.\
-                    format(name))
-        return True
 
     def _build_component_list(self):
         """Will be overriden by derived classes."""
@@ -977,19 +983,10 @@ class SaradCluster(object):
     start_time = property(get_start_time, set_start_time)
 
     def dump(self, file):
-        def jdefault(o):
-            if isinstance(o, set):
-                return list(o)
-            if isinstance(o, bytes):
-                return base64.b64encode(o).decode('utf-8')
-            if isinstance(o, self.Lock):
-                return 'lock'
-            # .replace("'", '"')
-            return o.__dict__
-        json.dumps(self, default = jdefault)
+        pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
 
     def load(self, file):
-        pass
+        self = pickle.load(file)
 
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""

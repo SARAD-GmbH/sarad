@@ -60,7 +60,7 @@ def cluster(path, lock_path):
             for instrument in mycluster:
                 print(instrument)
             with open(path, 'wb') as f:
-                json.dump(mycluster, f)
+                mycluster.dump(f)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 

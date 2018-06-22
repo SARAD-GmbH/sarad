@@ -61,7 +61,7 @@
   config_parameters:
   - name: lock
     type: enum
-    enum: {unlocked: 0, locked: 1}
+    enum: {unlocked: 1, locked: 2}
   - name: interval
     type: integer
     description: >

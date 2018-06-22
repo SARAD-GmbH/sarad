@@ -9,6 +9,7 @@ from datetime import timedelta
 import struct
 import hashids
 import yaml
+import pickle
 import logging
 from BitVector import BitVector
 from enum import Enum
@@ -38,6 +39,34 @@ class SaradInst(object):
         set_components()
         get_reply()"""
 
+    class Lock(Enum):
+        unlocked = 1
+        locked = 2
+
+    class Radon_mode(Enum):
+        slow = 1
+        fast = 2
+
+    class Pump_mode(Enum):
+        continuous = 1
+        interval = 2
+
+    class Units(Enum):
+        si = 1
+        us = 2
+
+    class Signal(Enum):
+        off = 1
+        alarm = 2
+        sniffer_po216 = 3
+        po216_po218 = 4
+
+    class Chamber_size(Enum):
+        s = 1
+        m = 2
+        l = 3
+        xl = 4
+
     def __init__(self, port = None, family = None):
         self.__port = port
         self.__family = family
@@ -51,7 +80,6 @@ class SaradInst(object):
     def _initialize(self):
         self.__description = self.__get_description()
         self._build_component_list()
-        self._build_config_objects()
         self._last_sampling_time = None
 
     def _build_component_list(self):
@@ -104,26 +132,6 @@ class SaradInst(object):
                 output['measurand_value'] = ''
                 output['measurand_unit'] = ''
         return output
-
-    def _build_config_objects(self):
-        """Initialize a set of enum objects for device configuration from information obtained from the instruments.yaml file."""
-        logging.debug('Initialize enum objects for device configuration.')
-        config_dict = self._get_parameter('config_parameters')
-        if not config_dict:
-            return False
-        for config_parameter in config_dict:
-            if config_parameter['type'] == 'enum':
-                name = config_parameter['name']
-                class_name = name.capitalize()
-                enum_creator = "Enum(class_name, config_parameter['enum'])"
-                exec("self.{} = {}".format(class_name, enum_creator))
-                logging.debug('Enum class {} created.'.format(class_name))
-                exec("self.{} = {}".format(name, \
-                                           'list(self.' + class_name +')[0]'))
-                logging.debug(\
-                    'Enum object {} created and initialy set to first value.'.\
-                    format(name))
-        return True
 
     def _build_component_list(self):
         """Will be overriden by derived classes."""
@@ -565,13 +573,12 @@ class RscInst(SaradInst):
     def get_recent_value(self, component_id = None, sensor_id = None, \
                          measurand_id = None):
         """Fill component objects with recent measuring values.  This function does the same like get_all_recent_values() and is only here to provide a compatible API to the DACM interface"""
-        for component in self.components:
-            for sensor in component.sensors:
-                for measurand in sensor:
-                    if measurand.source == 8:  # battery voltage
-                        measurand.value = self._get_battery_voltage()
-                        measurand.time = datetime.utcnow().replace(microsecond=0)
-                        return measurand.value
+        for measurand in self.components[component_id].sensors[sensor_id]:
+            logging.debug(measurand)
+            if measurand.source == 8:  # battery voltage
+                measurand.value = self._get_battery_voltage()
+                measurand.time = datetime.utcnow().replace(microsecond=0)
+                return measurand.value
         return self.get_all_recent_values()
 
     def set_real_time_clock(self, datetime):
@@ -843,6 +850,7 @@ class SaradCluster(object):
         update_connected_instruments()
         next()
         synchronize(): Stop all instruments, set time, start all measurings
+        dump(): Save all properties to a Pickle file
     """
 
     with open('instruments.yaml', 'r') as __f:
@@ -852,9 +860,10 @@ class SaradCluster(object):
         if native_ports is None:
             native_ports = []
         self.__native_ports = native_ports
-        self.__connected_instruments = self.update_connected_instruments()
         self.__i = 0
-        self.__n = len(self.__connected_instruments)
+        self.__n = 0
+        self.__start_time = 0
+        self.__connected_instruments = []
 
     def __iter__(self):
         return iter(self.__connected_instruments)
@@ -949,6 +958,8 @@ class SaradCluster(object):
                         test_instrument.family = family
             for port in ports_with_instruments:
                 ports_to_test.remove(port)
+        self.__connected_instruments = connected_instruments
+        self.__n = len(connected_instruments)
         return connected_instruments
 
     def get_connected_instruments(self):
@@ -968,6 +979,10 @@ class SaradCluster(object):
     def get_start_time(self):
         return self.__start_time
     start_time = property(get_start_time, set_start_time)
+
+    def dump(self, file):
+        logging.debug('Pickling mycluster into file.')
+        pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
 
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""
@@ -1169,6 +1184,7 @@ if __name__=='__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     mycluster = SaradCluster()
+    mycluster.update_connected_instruments()
     for connected_instrument in mycluster:
         print(connected_instrument)
     ts = mycluster.next()

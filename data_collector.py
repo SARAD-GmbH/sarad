@@ -9,6 +9,7 @@ import pickle
 from filelock import Timeout, FileLock
 from pyzabbix import ZabbixMetric, ZabbixSender
 import time
+import schedule
 from datetime import datetime
 import logging
 
@@ -197,3 +198,30 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
                         pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
+
+@cli.command()
+@click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
+def display(path, lock_path):
+    try:
+        with open(path, 'rb') as f:
+            mycluster = pickle.load(f)
+    except:
+        mycluster = SarI.SaradCluster()
+    for instrument in mycluster:
+        for component in instrument:
+            for sensor in component:
+                for measurand in sensor:
+                    instrument.get_recent_value(component, sensor, measurand)
+                print(sensor)
+
+    # schedule.every(5).seconds.do(job, "hard", "really hard")
+    # schedule.every(10).minutes.do(job)
+    # schedule.every().hour.do(job)
+    # schedule.every().day.at("10:30").do(job)
+    # schedule.every().monday.do(job)
+    # schedule.every().wednesday.at("13:15").do(job)
+
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)

@@ -6,7 +6,7 @@ setup(
     py_modules=['data_collector', 'SarI', 'NbEasy'],
     install_requires=[
         'Click', 'pyserial', 'filelock', 'hashids', 'pyyaml', 'py-zabbix', \
-        'bitvector'
+        'bitvector', 'schedule'
     ],
     entry_points='''
         [console_scripts]

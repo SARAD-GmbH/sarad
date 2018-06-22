@@ -203,20 +203,23 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
         print("Another instance of this application currently holds the lock.")
 
 @cli.command()
-@click.option('--path', type=click.Path(writable=True), default='mycluster.json', help='The path and file name to cache the cluster properties in a JSON file.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster properties in a PICKLE file.')
 @click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
 def display(path, lock_path):
-    mycluster = SarI.SaradCluster()
     try:
         with open(path, 'rb') as f:
-            mycluster.load(f)
+            mycluster = pickle.load(f)
     except:
+        mycluster = SarI.SaradCluster()
         mycluster.update_connected_instruments()
     for instrument in mycluster:
         for component in instrument:
             for sensor in component:
                 for measurand in sensor:
-                    instrument.get_recent_value(component, sensor, measurand)
+                    c_idx = list(instrument).index(component)
+                    s_idx = list(component).index(sensor)
+                    m_idx = list(sensor).index(measurand)
+                    instrument.get_recent_value(c_idx, s_idx, m_idx)
                 print(sensor)
 
     # schedule.every(5).seconds.do(job, "hard", "really hard")

@@ -573,13 +573,12 @@ class RscInst(SaradInst):
     def get_recent_value(self, component_id = None, sensor_id = None, \
                          measurand_id = None):
         """Fill component objects with recent measuring values.  This function does the same like get_all_recent_values() and is only here to provide a compatible API to the DACM interface"""
-        for component in self.components:
-            for sensor in component.sensors:
-                for measurand in sensor:
-                    if measurand.source == 8:  # battery voltage
-                        measurand.value = self._get_battery_voltage()
-                        measurand.time = datetime.utcnow().replace(microsecond=0)
-                        return measurand.value
+        for measurand in self.components[component_id].sensors[sensor_id]:
+            logging.debug(measurand)
+            if measurand.source == 8:  # battery voltage
+                measurand.value = self._get_battery_voltage()
+                measurand.time = datetime.utcnow().replace(microsecond=0)
+                return measurand.value
         return self.get_all_recent_values()
 
     def set_real_time_clock(self, datetime):

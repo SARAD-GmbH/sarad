@@ -9,6 +9,8 @@ from datetime import timedelta
 import struct
 import hashids
 import yaml
+import json
+import base64
 import logging
 from BitVector import BitVector
 from enum import Enum
@@ -115,7 +117,7 @@ class SaradInst(object):
             if config_parameter['type'] == 'enum':
                 name = config_parameter['name']
                 class_name = name.capitalize()
-                enum_creator = "Enum(class_name, config_parameter['enum'])"
+                enum_creator = "Enum(class_name, config_parameter['enum'], module = __name__, qualname = 'SaradInst.{}')".format(class_name)
                 exec("self.{} = {}".format(class_name, enum_creator))
                 logging.debug('Enum class {} created.'.format(class_name))
                 exec("self.{} = {}".format(name, \
@@ -843,6 +845,8 @@ class SaradCluster(object):
         update_connected_instruments()
         next()
         synchronize(): Stop all instruments, set time, start all measurings
+        dump(): Save all properties to a JSON file
+        load(): Load all properties from a JSON file
     """
 
     with open('instruments.yaml', 'r') as __f:
@@ -852,9 +856,10 @@ class SaradCluster(object):
         if native_ports is None:
             native_ports = []
         self.__native_ports = native_ports
-        self.__connected_instruments = self.update_connected_instruments()
         self.__i = 0
-        self.__n = len(self.__connected_instruments)
+        self.__n = 0
+        self.__start_time = 0
+        self.__connected_instruments = []
 
     def __iter__(self):
         return iter(self.__connected_instruments)
@@ -949,6 +954,8 @@ class SaradCluster(object):
                         test_instrument.family = family
             for port in ports_with_instruments:
                 ports_to_test.remove(port)
+        self.__connected_instruments = connected_instruments
+        self.__n = len(connected_instruments)
         return connected_instruments
 
     def get_connected_instruments(self):
@@ -968,6 +975,21 @@ class SaradCluster(object):
     def get_start_time(self):
         return self.__start_time
     start_time = property(get_start_time, set_start_time)
+
+    def dump(self, file):
+        def jdefault(o):
+            if isinstance(o, set):
+                return list(o)
+            if isinstance(o, bytes):
+                return base64.b64encode(o).decode('utf-8')
+            if isinstance(o, self.Lock):
+                return 'lock'
+            # .replace("'", '"')
+            return o.__dict__
+        json.dumps(self, default = jdefault)
+
+    def load(self, file):
+        pass
 
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""
@@ -1169,6 +1191,7 @@ if __name__=='__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     mycluster = SaradCluster()
+    mycluster.update_connected_instruments()
     for connected_instrument in mycluster:
         print(connected_instrument)
     ts = mycluster.next()

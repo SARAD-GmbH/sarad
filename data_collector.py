@@ -5,7 +5,6 @@ Made to be a data source for Zabbix agent."""
 import SarI
 import NbEasy
 import click
-import pickle
 from filelock import Timeout, FileLock
 from pyzabbix import ZabbixMetric, ZabbixSender
 import time
@@ -23,7 +22,7 @@ def cli():
 @click.option('--component', default=0, type=click.IntRange(0, 63), help='The Id of the sensor component.')
 @click.option('--sensor', default=0, type=click.IntRange(0, 255), help='The Id of the sensor of the component.')
 @click.option('--measurand', default=0, type=click.IntRange(0, 3), help='The Id of the measurand of the sensor.')
-@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.json', help='The path and file name to cache the cluster properties in a JSON file.')
 @click.option('--lock_path', type=click.Path(writable=True), default='mycluster.lock', help='The path and file name of the lock file.')
 def value(instrument, component, sensor, measurand, path, lock_path):
     """Command line application that gives back the most recent value of a SARAD
@@ -32,23 +31,24 @@ def value(instrument, component, sensor, measurand, path, lock_path):
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
+            mycluster = SarI.SaradCluster()
             try:
                 with open(path, 'rb') as f:
-                    mycluster = pickle.load(f)
+                    mycluster.load(f)
             except:
-                mycluster = SarI.SaradCluster()
+                mycluster.update_connected_instruments()
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.id == instrument:
                     my_instrument.get_recent_value(component, sensor, measurand)
                     print(my_instrument.components[component].sensors[sensor].\
                           measurands[measurand].value)
             with open(path, 'wb') as f:
-                pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
+                mycluster.dump(f)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
 @cli.command()
-@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.json', help='The path and file name to cache the cluster properties in a JSON file.')
 @click.option('--lock_path', type=click.Path(writable=True), default='mycluster.lock', help='The path and file name of the lock file.')
 def cluster(path, lock_path):
     """Show list of connected SARAD instruments."""
@@ -56,15 +56,16 @@ def cluster(path, lock_path):
     try:
         with lock.acquire(timeout=10):
             mycluster = SarI.SaradCluster()
+            mycluster.update_connected_instruments()
             for instrument in mycluster:
                 print(instrument)
             with open(path, 'wb') as f:
-                pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
+                json.dump(mycluster, f)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
 @cli.command()
-@click.option('--path', type=click.Path(writable=True), default='iotcluster.pickle', help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--path', type=click.Path(writable=True), default='iotcluster.json', help='The path and file name to cache the list of available IoT devices in a JSON file.')
 @click.option('--lock_path', type=click.Path(writable=True), default='iotcluster.lock', help='The path and file name of the lock file.')
 def list_iot_devices(path, lock_path):
     """Show list of connected NB-IoT devices."""
@@ -75,7 +76,7 @@ def list_iot_devices(path, lock_path):
             for device in iotcluster:
                 print(device)
             with open(path, 'wb') as f:
-                pickle.dump(iotcluster, f, pickle.HIGHEST_PROTOCOL)
+                iotcluster.dump(f)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
@@ -94,7 +95,7 @@ def send_trap(component_mapping, host, instrument, zbx, mycluster):
 @click.option('--instrument', default='j2hRuRDy', help='Instrument Id.  Run ~data_collector cluster~ to get the list of available instruments.')
 @click.option('--host', default='localhost', type=click.STRING, help='Host name as defined in Zabbix')
 @click.option('--server', default='127.0.0.1', type=click.STRING, help='Server IP address or name')
-@click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.json', help='The path and file name to cache the cluster properties in a JSON file.')
 @click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
 @click.option('--period', default=60, type=click.IntRange(30, 7200), help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
@@ -117,11 +118,12 @@ def trapper(instrument, host, server, path, lock_path, once, period):
     starttime = time.time()
     try:
         with lock.acquire(timeout=10):
+            mycluster = SarI.SaradCluster()
             try:
                 with open(path, 'rb') as f:
-                    mycluster = pickle.load(f)
+                    mycluster.load(f)
             except:
-                mycluster = SarI.SaradCluster()
+                mycluster.update_connected_instruments()
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.id == instrument:
                     while not once:
@@ -130,7 +132,7 @@ def trapper(instrument, host, server, path, lock_path, once, period):
                         time.sleep(period - time.time() % period)
                     send_trap(component_mapping, host, my_instrument, zbx, mycluster)
                     with open(path, 'wb') as f:
-                        pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
+                        mycluster.dump(f)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
@@ -153,7 +155,7 @@ def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
 @click.option('--imei', default='357518080146079', help='International Mobile Equipment Identity of the NB-IoT device to be used.  Run ~data_collector list_iot_devices~ to get the list of available devices.')
 @click.option('--ip_address', default='213.136.85.114', type=click.STRING, help='IP address of cloud server')
 @click.option('--udp_port', default='9876', type=click.STRING, help='UDP port of cloud server')
-@click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.json', help='The path and file name to cache the cluster properties in a JSON file.')
 @click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
 @click.option('--period', default='auto', help='Time interval in seconds for the periodic retrieval of values.  If this value is not provided, it will be set to the interval gained from the instrument.  Use CTRL+C to stop the program.')
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
@@ -182,11 +184,12 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
     starttime = time.time()
     try:
         with lock.acquire(timeout=10):
+            mycluster = SarI.SaradCluster()
             try:
                 with open(path, 'rb') as f:
-                    mycluster = pickle.load(f)
+                    mycluster.load(f)
             except:
-                mycluster = SarI.SaradCluster()
+                mycluster.update_connected_instruments()
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.id == instrument:
                     while not once:
@@ -195,19 +198,20 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
                         time.sleep(period - time.time() % period)
                     send_iot_trap(component_mapping, my_instrument, iot_device, mycluster)
                     with open(path, 'wb') as f:
-                        pickle.dump(mycluster, f, pickle.HIGHEST_PROTOCOL)
+                        mycluster.dump(f)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
 
 @cli.command()
-@click.option('--path', default='mycluster.pickle', type=click.Path(writable=True), help='The path and file name to cache the cluster in a Python Pickle file.')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.json', help='The path and file name to cache the cluster properties in a JSON file.')
 @click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
 def display(path, lock_path):
+    mycluster = SarI.SaradCluster()
     try:
         with open(path, 'rb') as f:
-            mycluster = pickle.load(f)
+            mycluster.load(f)
     except:
-        mycluster = SarI.SaradCluster()
+        mycluster.update_connected_instruments()
     for instrument in mycluster:
         for component in instrument:
             for sensor in component:

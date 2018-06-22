@@ -850,8 +850,7 @@ class SaradCluster(object):
         update_connected_instruments()
         next()
         synchronize(): Stop all instruments, set time, start all measurings
-        dump(): Save all properties to a JSON file
-        load(): Load all properties from a JSON file
+        dump(): Save all properties to a Pickle file
     """
 
     with open('instruments.yaml', 'r') as __f:
@@ -982,10 +981,8 @@ class SaradCluster(object):
     start_time = property(get_start_time, set_start_time)
 
     def dump(self, file):
+        logging.debug('Pickling mycluster into file.')
         pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
-
-    def load(self, file):
-        self = pickle.load(file)
 
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""

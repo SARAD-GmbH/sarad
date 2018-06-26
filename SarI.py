@@ -728,7 +728,7 @@ class DacmInst(SaradInst):
 
     # Private methods, overridden from SaradInst
     def _get_description(self):
-        """Set instrument type, software version, and serial number."""
+        """Get descriptive data about DACM instrument."""
         id_cmd = self.family['get_id_cmd']
         length_of_reply = self.family['length_of_reply']
         reply = self.get_reply(id_cmd, length_of_reply)
@@ -740,6 +740,28 @@ class DacmInst(SaradInst):
                 self._serial_number = int.from_bytes(reply[3:5], \
                                                      byteorder='big', \
                                                      signed=False)
+                manu_day = reply[5]
+                manu_month = reply[6]
+                manu_year = int.from_bytes(reply[7:9], \
+                                           byteorder='big', \
+                                           signed=False)
+                self._date_of_manufacture = datetime(manu_year, manu_month, \
+                                                     manu_day)
+                upd_day = reply[9]
+                upd_month = reply[10]
+                upd_year = int.from_bytes(reply[11:13], \
+                                          byteorder='big', \
+                                          signed=False)
+                self._date_of_update = datetime(upd_year, upd_month, upd_day)
+                self._module_blocksize = reply[13]
+                self._component_blocksize = reply[14]
+                self._component_count = reply[15]
+                self._bit_ctrl = BitVector(rawbytes = reply[16:20])
+                self._value_ctrl = BitVector(rawbytes = reply[20:24])
+                self._cycle_blocksize = reply[24]
+                self._cycle_count_limit = reply[25]
+                self._step_count_limit = reply[26]
+                self._language = reply[27]
                 return True
             except:
                 logging.error('Error parsing the payload.')
@@ -748,6 +770,31 @@ class DacmInst(SaradInst):
             logging.error('Get description failed.')
             return False
 
+    def _get_module_information(self):
+        """Get descriptive data about DACM instrument."""
+        reply = self.get_reply([b'\x01', b''],79)
+        if reply and (reply[0] == 10):
+            logging.debug('Get module information successful.')
+            try:
+                self._address = reply[1]
+                config_day = reply[2]
+                config_month = reply[3]
+                config_year = int.from_bytes(reply[4:6], byteorder='big', \
+                                             signed=False)
+                self._date_of_config = datetime(config_year, config_month, \
+                                                config_day)
+                self._module_name = reply[6:39].split(b'\x00')[0].decode("ascii")
+                self._config_name = reply[39:].split(b'\x00')[0].decode("ascii")
+                return True
+            except:
+                logging.error('Error parsing the payload.')
+                return False
+        else:
+            logging.error('Get description failed.')
+            return False
+
+
+    # Public methods
     def set_real_time_clock(self, datetime):
         """Set the instrument time."""
         instr_datetime = bytearray([datetime.second,

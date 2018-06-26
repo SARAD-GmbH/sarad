@@ -76,11 +76,35 @@ class SaradInst(object):
         self.__i = 0
         self.__n = len(self.__components)
         self.__interval = None
+        self._type_id = None
+        self._software_version = None
+        self._serial_number = None
 
     def _initialize(self):
-        self.__description = self.__get_description()
+        self._get_description()
         self._build_component_list()
         self._last_sampling_time = None
+
+    def _get_description(self):
+        """Set instrument type, software version, and serial number."""
+        id_cmd = self.family['get_id_cmd']
+        length_of_reply = self.family['length_of_reply']
+        reply = self.get_reply(id_cmd, length_of_reply)
+        if reply and (reply[0] == 10):
+            logging.debug('Get description successful.')
+            try:
+                self._type_id = reply[1]
+                self._software_version = reply[2]
+                self._serial_number = int.from_bytes(reply[3:5], \
+                                                     byteorder='little', \
+                                                     signed=False)
+                return True
+            except:
+                logging.error('Error parsing the payload.')
+                return False
+        else:
+            logging.error('Get description failed.')
+            return False
 
     def _build_component_list(self):
         """Build up a list of components with sensors and measurands. Will be overriden by derived classes."""
@@ -132,10 +156,6 @@ class SaradInst(object):
                 output['measurand_value'] = ''
                 output['measurand_unit'] = ''
         return output
-
-    def _build_component_list(self):
-        """Will be overriden by derived classes."""
-        pass
 
     def _encode_setup_word(self):
         """Compile the SetupWord for Doseman an RadonScout devices from its components.  All used arguments from self are enum objects."""
@@ -269,36 +289,6 @@ class SaradInst(object):
                     payload = checked_answer['payload'],
                     number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
 
-    def __get_description(self):
-        """Returns a dictionary with instrument type, software version,\
- and serial number."""
-        id_cmd = self.family['get_id_cmd']
-        length_of_reply = self.family['length_of_reply']
-        reply = self.get_reply(id_cmd, length_of_reply)
-        if reply and (reply[0] == 10):
-            logging.debug('Get description successful.')
-            try:
-                type_id = reply[1]
-                software_version = reply[2]
-                if self.family['family_id'] == 5:
-                    # DACM has big endian order of bytes
-                    serial_number = int.from_bytes(reply[3:5], \
-                                                   byteorder='big', \
-                                                   signed=False)
-                else:
-                    # All other devices use little endian
-                    serial_number = int.from_bytes(reply[3:5], \
-                                                   byteorder='little', \
-                                                   signed=False)
-                return dict(type_id = type_id,
-                            software_version = software_version,
-                            serial_number = serial_number)
-            except:
-                logging.error('Error parsing the payload.')
-        else:
-            logging.error('Get description failed.')
-            return False
-
     # Public methods
     def get_reply(self, cmd_data, reply_length = 50):
         """Returns a bytestring of the payload of the instruments reply \
@@ -340,18 +330,15 @@ to the provided list of 1-byte command and data bytes."""
     family = property(get_family, set_family)
 
     def get_type_id(self):
-        if self.__description:
-            return self.__description['type_id']
+        return self._type_id
     type_id = property(get_type_id)
 
     def get_software_version(self):
-        if self.__description:
-            return self.__description['software_version']
+        return self._software_version
     software_version = property(get_software_version)
 
     def get_serial_number(self):
-        if self.__description:
-            return self.__description['serial_number']
+        return self._serial_number
     serial_number = property(get_serial_number)
 
     def get_components(self):
@@ -733,14 +720,33 @@ class DacmInst(SaradInst):
         start_cycle()
         get_recent_values()
         get_recent_value(index)"""
-    __measurand_names = ['recent sampling', \
-                    'average of last completed interval', \
-                    'minimum of last completed interval', \
-                    'maximum of last completed interval']
+
     def __init__(self, port = None, family = None):
         if family is None:
             family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
+
+    # Private methods, overridden from SaradInst
+    def _get_description(self):
+        """Set instrument type, software version, and serial number."""
+        id_cmd = self.family['get_id_cmd']
+        length_of_reply = self.family['length_of_reply']
+        reply = self.get_reply(id_cmd, length_of_reply)
+        if reply and (reply[0] == 10):
+            logging.debug('Get description successful.')
+            try:
+                self._type_id = reply[1]
+                self._software_version = reply[2]
+                self._serial_number = int.from_bytes(reply[3:5], \
+                                                     byteorder='big', \
+                                                     signed=False)
+                return True
+            except:
+                logging.error('Error parsing the payload.')
+                return False
+        else:
+            logging.error('Get description failed.')
+            return False
 
     def set_real_time_clock(self, datetime):
         """Set the instrument time."""

@@ -16,7 +16,7 @@ import pickle
 @click.group()
 def cli():
     """Description for the group of commands"""
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
 
 @cli.command()
 @click.option('--instrument', default='j2hRuRDy', help='Instrument Id.  Run ~data_collector cluster~ to get the list of available instruments.')
@@ -247,6 +247,7 @@ def transmit(path, lock_path, target):
             for sensor in component:
                 schedule.every(sensor.interval.seconds).\
                     seconds.do(send, target, instrument, component, sensor)
+                logging.debug(sensor.interval.seconds)
     while True:
         schedule.run_pending()
         time.sleep(1)

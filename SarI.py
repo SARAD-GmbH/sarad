@@ -262,7 +262,7 @@ class SaradInst(object):
                     payload = payload,
                     number_of_bytes_in_payload = number_of_bytes_in_payload)
 
-    def __get_message_payload(self, message, expected_length_of_reply):
+    def __get_message_payload(self, message, expected_length_of_reply, timeout):
         """ Returns a dictionary of:
         is_valid: True if answer is valid, False otherwise
         is_control_message: True if control message
@@ -274,7 +274,7 @@ class SaradInst(object):
         write_sleeptime = self.__family['write_sleeptime']
         wait_for_reply = self.__family['wait_for_reply']
         ser = serial.Serial(serial_port, baudrate, bytesize=8, xonxoff=0, \
-                            timeout=5, parity=parity, rtscts=0,\
+                            timeout=timeout, parity=parity, rtscts=0,\
                             stopbits=serial.STOPBITS_ONE)
         for element in message:
             byte = (element).to_bytes(1,'big')
@@ -295,11 +295,11 @@ class SaradInst(object):
                     number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
 
     # Public methods
-    def get_reply(self, cmd_data, reply_length = 50):
+    def get_reply(self, cmd_data, reply_length = 50, timeout = 1):
         """Returns a bytestring of the payload of the instruments reply \
 to the provided list of 1-byte command and data bytes."""
         msg = self.__make_command_msg(cmd_data)
-        checked_payload = self.__get_message_payload(msg, reply_length)
+        checked_payload = self.__get_message_payload(msg, reply_length, timeout)
         if checked_payload['is_valid']:
             return checked_payload['payload']
         else:
@@ -845,7 +845,7 @@ class DacmInst(SaradInst):
             return False
 
     def start_cycle(self, cycle_index = 0):
-        reply = self.get_reply([b'\x15', bytes([cycle_index])], 9)
+        reply = self.get_reply([b'\x15', bytes([cycle_index])], 9, timeout = 5)
         if reply and (reply[0] == 10):
             logging.debug('Cycle {} started at instrument with id {}'.\
                           format(cycle_index, self.id))

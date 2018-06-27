@@ -262,12 +262,17 @@ class SaradInst(object):
                     payload = payload,
                     number_of_bytes_in_payload = number_of_bytes_in_payload)
 
-    def __get_message_payload(self, serial_port, baudrate, parity, write_sleeptime, wait_for_reply, message, expected_length_of_reply):
+    def __get_message_payload(self, message, expected_length_of_reply):
         """ Returns a dictionary of:
         is_valid: True if answer is valid, False otherwise
         is_control_message: True if control message
         payload: Payload of answer
         number_of_bytes_in_payload"""
+        serial_port = self.__port
+        baudrate = self.__family['baudrate']
+        parity = self.__family['parity']
+        write_sleeptime = self.__family['write_sleeptime']
+        wait_for_reply = self.__family['wait_for_reply']
         ser = serial.Serial(serial_port, baudrate, bytesize=8, xonxoff=0, \
                             timeout=5, parity=parity, rtscts=0,\
                             stopbits=serial.STOPBITS_ONE)
@@ -294,13 +299,7 @@ class SaradInst(object):
         """Returns a bytestring of the payload of the instruments reply \
 to the provided list of 1-byte command and data bytes."""
         msg = self.__make_command_msg(cmd_data)
-        checked_payload = self.__get_message_payload(self.__port,\
-                                        self.__family['baudrate'],\
-                                        self.__family['parity'],\
-                                        self.__family['write_sleeptime'],\
-                                        self.__family['wait_for_reply'],\
-                                        msg,\
-                                        reply_length)
+        checked_payload = self.__get_message_payload(msg, reply_length)
         if checked_payload['is_valid']:
             return checked_payload['payload']
         else:

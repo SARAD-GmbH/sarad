@@ -726,6 +726,27 @@ class DacmInst(SaradInst):
             family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
 
+    def __str__(self):
+        output = "Id: " + str(self.id) + "\n"
+        output += "SerialDevice: " + self.port + "\n"
+        output += "Baudrate: " + str(self.family['baudrate']) + "\n"
+        output += "FamilyName: " + str(self.family['family_name']) + "\n"
+        output += "FamilyId: " + str(self.family['family_id']) + "\n"
+        for type_in_family in self.family['types']:
+            if type_in_family['type_id'] == self.type_id:
+                type_name = type_in_family['type_name']
+                output += "TypName: " + type_name + "\n"
+        output += "TypeId: " + str(self.type_id) + "\n"
+        output += "SoftwareVersion: " + str(self.software_version) + "\n"
+        output += "LastUpdate: " + str(self.date_of_update) + "\n"
+        output += "SerialNumber: " + str(self.serial_number) + "\n"
+        output += "DateOfManufacture: " + str(self.date_of_manufacture) + "\n"
+        output += "Address: " + str(self.address) + "\n"
+        output += "LastConfig: " + str(self.date_of_config) + "\n"
+        output += "ModuleName: " + str(self.module_name) + "\n"
+        output += "ConfigName: " + str(self.config_name) + "\n"
+        return output
+
     # Private methods, overridden from SaradInst
     def _get_description(self):
         """Get descriptive data about DACM instrument."""
@@ -762,7 +783,7 @@ class DacmInst(SaradInst):
                 self._cycle_count_limit = reply[25]
                 self._step_count_limit = reply[26]
                 self._language = reply[27]
-                return True
+                return True and self._get_module_information()
             except:
                 logging.error('Error parsing the payload.')
                 return False
@@ -884,6 +905,47 @@ class DacmInst(SaradInst):
         else:
             logging.error("The instrument doesn't reply.")
             return False
+
+
+    def get_address(self):
+        return self._address
+    def set_address(self, address):
+        self._address = address
+        if (self.port is not None) and (self.address is not None):
+            self._initialize()
+    address = property(get_address, set_address)
+
+    def get_date_of_config(self):
+        return self._date_of_config
+    def set_date_of_config(self, date_of_config):
+        self._date_of_config = date_of_config
+        if (self.port is not None) and (self.date_of_config is not None):
+            self._initialize()
+    date_of_config = property(get_date_of_config, set_date_of_config)
+
+    def get_module_name(self):
+        return self._module_name
+    def set_module_name(self, module_name):
+        self._module_name = module_name
+        if (self.port is not None) and (self.module_name is not None):
+            self._initialize()
+    module_name = property(get_module_name, set_module_name)
+
+    def get_config_name(self):
+        return self._config_name
+    def set_config_name(self, config_name):
+        self._config_name = config_name
+        if (self.port is not None) and (self.config_name is not None):
+            self._initialize()
+    config_name = property(get_config_name, set_config_name)
+
+    def get_date_of_manufacture(self):
+        return self._date_of_manufacture
+    date_of_manufacture = property(get_date_of_manufacture)
+
+    def get_date_of_update(self):
+        return self._date_of_update
+    date_of_update = property(get_date_of_update)
 
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller

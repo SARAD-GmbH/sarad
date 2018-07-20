@@ -1,0 +1,50 @@
+#+STARTUP: indent
+#+DRAWERS: PROPERTIES
+#+TITLE: SarI and data_collector
+#+AUTHOR:    Michael Strey
+#+EMAIL:     strey@sarad.de
+#+LANGUAGE: en
+#+OPTIONS: toc:2 H:5 email:t tags:t |:t todo:t d:nil
+- SarI :: a class library to access SARAD instruments via their serial
+          interfaces, comprises all recent SARAD instruments with their
+          proprietary protocolls
+- data_collector :: a sample command line application to demonstrate the usage
+                    of SarI and send measuring values to Zabbix or a NB-IoT
+                    module
+* Caveat
+Work in progress. 
+Code might be buggy, clumsy or uncomplete. 
+Be careful, feel free to improve things and come back to me with questions.
+
+-- Michael Strey
+
+* What is it about?
+SARAD GmbH is a manufacturer of instruments for environmental measuring with a focus on radioactivity, radon and gases.  
+All instruments have a serial interface -- 
+usually a RS-232, RS-422 or USB creating a virtual serial port -- 
+for remote control, configuration, telemetry and data download.
+The protocol on the serial interface is proprietary and differs from device family to device family and even between device types.  
+Up to now, the instruments can only be controlled with the proprietary software applications provided by SARAD.
+
+This library is an attempt to empower SARAD customers to make their own software solutions to control SARAD instruments.
+It brings all proprietary SARAD protocols and instruments together and allows to access them via a unique software interface.
+ 
+* Getting started
+Requires Python 3.
+
+Clone the repository to your local computer and move into the directory.
+#+BEGIN_SRC python
+pip install --editable ./ 
+#+END_SRC
+
+Afterwards you should be able to run the sample application by calling
+#+BEGIN_SRC shell
+data_collector
+#+END_SRC
+
+Get further help with
+#+BEGIN_SRC shell
+data_collector value --help
+#+END_SRC
+
+*Read the code!*

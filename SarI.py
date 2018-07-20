@@ -792,7 +792,7 @@ class DacmInst(SaradInst):
 
     def _get_module_information(self):
         """Get descriptive data about DACM instrument."""
-        reply = self.get_reply([b'\x01', b''],79)
+        reply = self.get_reply([b'\x01', b''], 79)
         if reply and (reply[0] == 10):
             logging.debug('Get module information successful.')
             try:
@@ -813,6 +813,34 @@ class DacmInst(SaradInst):
             logging.error('Get description failed.')
             return False
 
+    def _get_component_information(self, component_index):
+        """Get information about one component of a DACM instrument."""
+        reply = self.get_reply([b'\x03', bytes([component_index])], 27)
+        if reply and (reply[0] == 10):
+            logging.debug('Get component information successful.')
+            try:
+                revision = reply[1]
+                component_type = reply[2]
+                availability = reply[3]
+                ctrl_format = reply[4]
+                conf_block_size = reply[5]
+                data_record_size = int.from_bytes(reply[6:8], byteorder='big', \
+                                                  signed=False)
+                name = reply[8:16].split(b'\x00')[0].decode("ascii")
+                hw_capability = BitVector(rawbytes = reply[16:20])
+                return dict(revision = revision, component_type = component_type, \
+                            availability = availability, \
+                            ctrl_format = ctrl_format, \
+                            conf_block_size = conf_block_size, \
+                            data_record_size = data_record_size, \
+                            name = name, \
+                            hw_capability = hw_capability)
+            except:
+                logging.error('Error parsing the payload.')
+                return False
+        else:
+            logging.error('Get description failed.')
+            return False
 
     # Public methods
     def set_real_time_clock(self, datetime):

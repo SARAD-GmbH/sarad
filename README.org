@@ -7,7 +7,7 @@
 #+OPTIONS: toc:2 H:5 email:t tags:t |:t todo:t d:nil
 - SarI :: a class library to access SARAD instruments via their serial
           interfaces, comprises all recent SARAD instruments with their
-          proprietary protocolls
+          proprietary protocols
 - data_collector :: a sample command line application to demonstrate the usage
                     of SarI and send measuring values to Zabbix or a NB-IoT
                     module
@@ -33,7 +33,7 @@ It brings all proprietary SARAD protocols and instruments together and allows to
 Requires Python 3.
 
 Clone the repository to your local computer and move into the directory.
-#+BEGIN_SRC python
+#+BEGIN_SRC shell
 pip install --editable ./ 
 #+END_SRC
 

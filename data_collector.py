@@ -95,16 +95,7 @@ def send_trap(component_mapping, host, instrument, zbx, mycluster):
             metrics.append(ZabbixMetric(host, key, value))
     zbx.send(metrics)
 
-@cli.command()
-@click.option('--instrument', default='j2hRuRDy', help='Instrument Id.  Run ~data_collector cluster~ to get the list of available instruments.')
-@click.option('--host', default='localhost', type=click.STRING, help='Host name as defined in Zabbix')
-@click.option('--server', default='127.0.0.1', type=click.STRING, help='Server IP address or name')
-@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster properties in a PICKLE file.')
-@click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
-@click.option('--period', default=60, type=click.IntRange(30, 7200), help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
-@click.option('--once', is_flag=True, help='Retrieve only one set of data.')
-def trapper(instrument, host, server, path, lock_path, once, period):
-    """Start a Zabbix trapper service to provide all values from an instrument."""
+def start_trapper(instrument, host, server, path, lock_path, once, period):
     # The component_mapping provides a mapping between
     # component/sensor/measurand and Zabbix items
     component_mapping = [
@@ -122,6 +113,10 @@ def trapper(instrument, host, server, path, lock_path, once, period):
     starttime = time.time()
     try:
         with lock.acquire(timeout=10):
+            logging.debug("Path: " + path)
+            with open('last_session', 'w' ) as f:
+                f.write(instrument + " " + host + " " +  server + " " +  path  + " " + lock_path + " " + str(period))
+
             try:
                 with open(path, 'rb') as f:
                     mycluster = pickle.load(f)
@@ -139,6 +134,20 @@ def trapper(instrument, host, server, path, lock_path, once, period):
                         mycluster.dump(f)
     except Timeout:
         print("Another instance of this application currently holds the lock.")
+
+
+@cli.command()
+@click.option('--instrument', default='j2hRuRDy', help='Instrument Id.  Run ~data_collector cluster~ to get the list of available instruments.')
+@click.option('--host', default='localhost', type=click.STRING, help='Host name as defined in Zabbix')
+@click.option('--server', default='127.0.0.1', type=click.STRING, help='Server IP address or name')
+@click.option('--path', type=click.Path(writable=True), default='mycluster.pickle', help='The path and file name to cache the cluster properties in a PICKLE file.')
+@click.option('--lock_path', default='mycluster.lock', type=click.Path(writable=True), help='The path and file name of the lock file.')
+@click.option('--period', default=60, type=click.IntRange(30, 7200), help='Time interval in seconds for the periodic retrieval of values.  Use CTRL+C to stop the program.')
+@click.option('--once', is_flag=True, help='Retrieve only one set of data.')
+def trapper(instrument, host, server, path, lock_path, once, period):
+    """Start a Zabbix trapper service to provide all values from an instrument."""
+    start_trapper(instrument, host, server, path, lock_path, once, period)
+
 
 def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
     for component_map in component_mapping:
@@ -251,3 +260,19 @@ def transmit(path, lock_path, target):
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+@cli.command()
+def last_session():
+    """Starts the last trapper session as continuous service"""
+    try:
+        with open('last_session') as f:
+            last_args = f.read().split(" ")
+            logging.debug("Using arguments from last run:" + str(last_args))
+            # def trapper(instrument -0, host - 1, server -2, path -3, lock_path -4, once, period -5):
+            start_trapper(last_args[0], last_args[1], last_args[2], last_args[3], last_args[4], False, int(last_args[5]))
+    except IOError:
+        logging.debug("No last run detected. Using defaults: ['j2hRuRDy', 'localhost', '127.0.0.1', 'mycluster.pickle', 'mycluster.lock', '60']")
+        start_trapper('j2hRuRDy', 'localhost', '127.0.0.1', 'mycluster.pickle', 'mycluster.lock', False ,60)
+
+
+

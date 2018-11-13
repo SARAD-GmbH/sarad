@@ -1,2 +1,8 @@
-*.dia
-*.dia~
+*
+!*/
+!/*.py
+!/*.yaml
+!doc/**/*
+!LICENSE
+!.gitignore
+!/systemd/*.service

@@ -12,9 +12,24 @@ systemdconfigname=data_collector.service
 systemdconfig=systemd/$systemdconfigname
 systemdtarget=/etc/systemd/system
 etckeeper=/usr/bin/etckeeper
+python3=/usr/bin/python3
+pip3=/usr/bin/pip3
 dry=false
 
 echo $BASH
+
+# Is python3 installed
+if ( ! [ -x $python3 ] ) 
+	then
+		echo "[!]  This installation requires python3 to be installed at $python3.";
+		exit -5;
+fi;
+
+if ( ! [ -x $pip ] ) 
+	then
+		echo "[!] This installation requires pip3 (python3) to be installed at $pip.";
+		exit -6;
+fi;
 
 # Are all files present and ready to be copied?
 
@@ -73,7 +88,11 @@ fi
 
 echo "[*]  Installing instrument database"
 if ( ! $dry ); then install --group=root --owner=root --mode=644 $config "/etc/$name/"; else echo "[D]  install --group=root --owner=root --mode=644 $config /etc/$name/;";  fi;
-
+echo "[*]  Installing data collector binary";
+if ( ! $dry ); then $pip3 install --editable ./; else echo "[D] $pip3 install --editable ./"; fi;
+if ( ! $dry ); then python3 setup.py build; else echo "[D]  python3 setup.py build;"; fi;
+if ( ! $dry ); then python3 setup.py install; else echo "[D]  python3 setup.py install;"; fi;
+	
 
 if ( $usesystemd ) 
 	then 

@@ -6,5 +6,5 @@
 !LICENSE
 !.gitignore
 !/systemd/*.service
-!/bin/*
+!/bin/install_service
 !README.org

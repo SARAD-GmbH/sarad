@@ -89,9 +89,9 @@ fi
 echo "[*]  Installing instrument database"
 if ( ! $dry ); then install --group=root --owner=root --mode=644 $config "/etc/$name/"; else echo "[D]  install --group=root --owner=root --mode=644 $config /etc/$name/;";  fi;
 echo "[*]  Installing data collector binary";
-if ( ! $dry ); then $pip3 install --editable ./; else echo "[D] $pip3 install --editable ./"; fi;
-if ( ! $dry ); then python3 setup.py build; else echo "[D]  python3 setup.py build;"; fi;
-if ( ! $dry ); then python3 setup.py install; else echo "[D]  python3 setup.py install;"; fi;
+if ( ! $dry ); then $pip3 install --editable ./ >> install.log 2>> install.err ; else echo "[D] $pip3 install --editable ./"; fi;
+if ( ! $dry ); then python3 setup.py build >> install.log 2>> install.err; else echo "[D]  python3 setup.py build;"; fi;
+if ( ! $dry ); then python3 setup.py install >> install.log 2>> install.err; else echo "[D]  python3 setup.py install;"; fi;
 	
 
 if ( $usesystemd ) 
@@ -105,8 +105,8 @@ fi;
 if ( $useetckeeper )
 	then
 		echo "[*]  Commiting changes";
-		if ( ! $dry ); then $etckeeper commit "Installing / Updating Data Collector"; else echo "[D]  $etckeeper commit Installing / Updating Data Collector;"; fi;
+		if ( ! $dry ); then $etckeeper commit "Installing / Updating Data Collector" >> install.log 2>> install.err; else echo "[D]  $etckeeper commit Installing / Updating Data Collector;"; fi;
 
 fi
 
-echo $etckeeper  
+echo "[*]  Done";

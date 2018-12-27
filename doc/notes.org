@@ -16,9 +16,9 @@
 * Naming convention
 - Cluster :: One or more Instruments connected with one Controller via one or
              more serial interfaces (RS-232, RS-485, USB, Zigbee connected to
-             USB or RS-232).
+             USB or RS-232, modem).
 - Family :: Each Instrument belongs to one of the three Families: Doseman, DACM
-            and RadonScout.
+            or RadonScout.
 - Instrument :: A SARAD product with serial interface and at least one Sensor
                 and maybe one or more Actors. Every Instrument is characterized
                 by FamilyId, TypeId, SoftwareVersion and SerialNumber. As soon
@@ -117,3 +117,26 @@ communication parameters and sensor and actor configuration of SARAD instruments
 of various types as well as of the configuration of individual instruments.
 Instruments, Components, Sensors and Measurands are described in a hierarchical
 tree.
+
+* Example application /data_collector.py/
+** What is it?
+The data_collector application allows to:
+- list all Instruments in a Cluster
+- read measurands from an Instrument
+- run a [[https://www.zabbix.com/documentation/3.4/manual/config/items/itemtypes/trapper][Zabbix trapper]] service to send all Measurands delivered by an Instrument to a Zabbix network monitoring system.
+
+Moreover the application contains some experimental code to send data via a NB-IoT module to a cloud server.
+** Usage
+Use
+#+BEGIN_SRC shell
+data_collector --help
+#+END_SRC
+to get help about the usage.
+
+** Installation as systemd service
+In productive environments you have to make sure that the the application will
+be restarted automatically in the case of an exception and that the service will
+be started on reboot.
+Therefore /data_collector/ can be started as /systemd/ service.
+
+Use the shell script ~bin/install_service~ to setup /data_collector/ in such an environment.

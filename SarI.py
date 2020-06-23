@@ -158,7 +158,7 @@ class SaradInst(object):
         return output
 
     def _encode_setup_word(self):
-        """Compile the SetupWord for Doseman an RadonScout devices from its components.  All used arguments from self are enum objects."""
+        """Compile the SetupWord for Doseman and RadonScout devices from its components.  All used arguments from self are enum objects."""
         bv_signal = BitVector(intVal = self.signal.value - 1, size = 2)
         bv_radon_mode = BitVector(intVal = self.radon_mode.value - 1, size = 1)
         bv_pump_mode = BitVector(intVal = self.pump_mode.value - 1, size = 1)
@@ -228,7 +228,7 @@ class SaradInst(object):
         #     payload: Payload of answer
         #     number_of_bytes_in_payload
         logging.debug('Checking answer from serial port:')
-        logging.debug(answer)
+        logging.debug('Raw answer: {}'.format(answer)) 
         if answer.startswith(b'B') & answer.endswith(b'E'):
             control_byte = answer[1]
             neg_control_byte = answer[2]
@@ -257,6 +257,7 @@ class SaradInst(object):
             is_control = False
             payload = b''
             number_of_bytes_in_payload = 0
+        logging.debug('Payload: {}'.format(payload))
         return dict(is_valid = is_valid,
                     is_control = is_control,
                     payload = payload,
@@ -518,17 +519,17 @@ class RscInst(SaradInst):
                 device_time_d = reply[4]
                 device_time_m = reply[5]
                 device_time_y = reply[6]
-                source = []
-                source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
-                source.append(reply[11])                                    # 1
+                source = []                                          # measurand_source
+                source.append(round(self._bytes_to_float(reply[7:11]), 2))   # 0
+                source.append(reply[11])                                     # 1
                 source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
-                source.append(reply[16])                                    # 3
+                source.append(reply[16])                                     # 3
                 source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
                 source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
                 source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
                 source.append(int.from_bytes(reply[29:33], \
-                                             byteorder='big', signed=False))  # 7
-                source.append(self._get_battery_voltage())                  # 8
+                                             byteorder='big', signed=False)) # 7
+                source.append(self._get_battery_voltage())                   # 8
                 device_time = datetime(device_time_y + 2000, device_time_m, \
                                        device_time_d, device_time_h, \
                                        device_time_min)

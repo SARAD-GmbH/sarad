@@ -1,18 +1,18 @@
 """Collection of classes to communicate with SARAD instruments about (virtual)
 serial interfaces."""
 
-import serial
-import serial.tools.list_ports
 import time
 from datetime import datetime
 from datetime import timedelta
 import struct
-import hashids
-import yaml
+from enum import Enum
 import pickle
 import logging
+import hashids
+import yaml
 from BitVector import BitVector
-from enum import Enum
+import serial
+import serial.tools.list_ports
 
 class SaradInst(object):
     """Basic class for the serial communication protocol of SARAD instruments
@@ -228,7 +228,7 @@ class SaradInst(object):
         #     payload: Payload of answer
         #     number_of_bytes_in_payload
         logging.debug('Checking answer from serial port:')
-        logging.debug('Raw answer: {}'.format(answer)) 
+        logging.debug('Raw answer: {}'.format(answer))
         if answer.startswith(b'B') & answer.endswith(b'E'):
             control_byte = answer[1]
             neg_control_byte = answer[2]

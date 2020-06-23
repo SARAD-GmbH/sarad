@@ -14,7 +14,8 @@ from BitVector import BitVector
 import serial
 import serial.tools.list_ports
 
-class SaradInst(object):
+# * SaradInst
+class SaradInst():
     """Basic class for the serial communication protocol of SARAD instruments
 
     Properties:
@@ -362,6 +363,7 @@ to the provided list of 1-byte command and data bytes."""
         output += "SerialNumber: " + str(self.serial_number) + "\n"
         return output
 
+# * DosemanInst
 class DosemanInst(SaradInst):
     """Instrument with Doseman communication protocol
 
@@ -420,6 +422,7 @@ class DosemanInst(SaradInst):
             logging.error('Get description failed.')
             return False
 
+# * RscInst
 class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
 
@@ -752,6 +755,7 @@ class RscInst(SaradInst):
                           format(self.id))
             return False
 
+# * DacmInst
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol
 
@@ -1036,6 +1040,7 @@ class DacmInst(SaradInst):
         return self._date_of_update
     date_of_update = property(get_date_of_update)
 
+# * SaradCluster
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
 
@@ -1383,8 +1388,8 @@ class Measurand(object):
         self.__time = time
     time = property(get_time, set_time)
 
-# Test environment
-if __name__=='__main__':
+# * Test environment
+if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     mycluster = SaradCluster()

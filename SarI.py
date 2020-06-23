@@ -1058,7 +1058,7 @@ class SaradCluster(object):
     """
 
     with open('instruments.yaml', 'r') as __f:
-        products = yaml.load(__f)
+        products = yaml.safe_load(__f)
 
     def __init__(self, native_ports=None):
         if native_ports is None:
@@ -1139,7 +1139,7 @@ class SaradCluster(object):
             elif family['family_id'] == 5:
                 family_class = DacmInst
             else:
-                break
+                continue
             test_instrument = family_class()
             test_instrument.family = family
             ports_with_instruments = []

@@ -691,6 +691,39 @@ class RscInst(SaradInst):
                           format(self.id))
             return False
 
+    def get_wifi_access(self):
+        """Get the Wi-Fi access data from instrument."""
+        reply = self.get_reply([b'\x18', b''], 131)
+        if reply and (reply[0] == 10):
+            try:
+                logging.debug(reply)
+                self.__ssid = reply[0:33].rstrip(b'0')
+                self.__password = reply[33:97].rstrip(b'0')
+                self.__ip_address = reply[97:121].rstrip(b'0')
+                self.__server_port = int.from_bytes(reply[121:123], 'big')
+            except:
+                logging.error("Error parsing the payload.")
+                return False
+        return True
+
+    def set_wifi_access(self, ssid, password, ip_address, server_port):
+        """Set the Wi-Fi access data."""
+        access_data = b''.join(
+            [bytes(ssid, 'utf-8').ljust(33, b'0'),
+             bytes(password, 'utf-8').ljust(64, b'0'),
+             bytes(ip_address, 'utf-8').ljust(24, b'0'),
+             server_port.to_bytes(2, 'big')])
+        logging.debug(access_data)
+        reply = self.get_reply([b'\x17', access_data], 124)
+        if reply and (reply[0] == 10):
+            logging.debug("Wi-Fi access data on instrument {} set.".\
+                          format(self.id))
+            return True
+        else:
+            logging.error("Setting the Wi-Fi access data on instrument with id {} failed.".\
+                          format(self.id))
+            return False
+
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol
 

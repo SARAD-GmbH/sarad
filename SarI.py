@@ -14,6 +14,7 @@ from BitVector import BitVector
 import serial
 import serial.tools.list_ports
 
+
 # * SaradInst
 class SaradInst():
     """Basic class for the serial communication protocol of SARAD instruments
@@ -39,7 +40,6 @@ class SaradInst():
         get_components()
         set_components()
         get_reply()"""
-
     class Lock(Enum):
         unlocked = 1
         locked = 2
@@ -68,7 +68,7 @@ class SaradInst():
         l = 3
         xl = 4
 
-    def __init__(self, port = None, family = None):
+    def __init__(self, port=None, family=None):
         self.__port = port
         self.__family = family
         if (port is not None) and (family is not None):
@@ -109,7 +109,6 @@ class SaradInst():
 
     def _build_component_list(self):
         """Build up a list of components with sensors and measurands. Will be overriden by derived classes."""
-        pass
 
     def __iter__(self):
         return iter(self.__components)
@@ -134,14 +133,14 @@ class SaradInst():
     def _parse_value_string(self, value_string):
         """Take a string containing a physical value with operator, value and unit and decompose it into its parts for further mathematical processing."""
         output = dict()
-        r = value_string        # just an abbreviation for the following
+        r = value_string  # just an abbreviation for the following
         if r == 'No valid data!':
             output['measurand_operator'] = ''
             output['measurand_value'] = ''
             output['measurand_unit'] = ''
         else:
             try:
-                if ('<' in r)  or ('>' in r):
+                if ('<' in r) or ('>' in r):
                     output['measurand_operator'] = r[0]
                     r1 = r[1:]
                 else:
@@ -160,22 +159,22 @@ class SaradInst():
 
     def _encode_setup_word(self):
         """Compile the SetupWord for Doseman and RadonScout devices from its components.  All used arguments from self are enum objects."""
-        bv_signal = BitVector(intVal = self.signal.value - 1, size = 2)
-        bv_radon_mode = BitVector(intVal = self.radon_mode.value - 1, size = 1)
-        bv_pump_mode = BitVector(intVal = self.pump_mode.value - 1, size = 1)
-        bv_pump_mode = BitVector(bitstring = '0')
-        bv_units = BitVector(intVal = self.units.value - 1, size = 1)
-        bv_units = BitVector(bitstring = '0')
+        bv_signal = BitVector(intVal=self.signal.value - 1, size=2)
+        bv_radon_mode = BitVector(intVal=self.radon_mode.value - 1, size=1)
+        bv_pump_mode = BitVector(intVal=self.pump_mode.value - 1, size=1)
+        bv_pump_mode = BitVector(bitstring='0')
+        bv_units = BitVector(intVal=self.units.value - 1, size=1)
+        bv_units = BitVector(bitstring='0')
         bv_chamber_size = BitVector(intVal = self.chamber_size.value - 1, \
                                     size = 2)
-        bv_padding = BitVector(bitstring = '000000000')
+        bv_padding = BitVector(bitstring='000000000')
         bv = bv_padding + bv_chamber_size + bv_units + bv_pump_mode + \
              bv_radon_mode + bv_signal
         logging.debug(str(bv))
         return bv.get_bitvector_in_ascii().encode('utf-8')
 
     def _decode_setup_word(self, setup_word):
-        bv = BitVector(rawbytes = setup_word)
+        bv = BitVector(rawbytes=setup_word)
         signal_index = bv[6:8].int_val()
         self.signal = list(self.Signal)[signal_index]
         radon_mode_index = bv[5]
@@ -207,8 +206,8 @@ class SaradInst():
         data = cmd_data[1]
         payload = cmd + data
         control_byte = len(payload) - 1
-        if cmd:          # Control message
-            control_byte = control_byte | 0x80 # set Bit 7
+        if cmd:  # Control message
+            control_byte = control_byte | 0x80  # set Bit 7
         neg_control_byte = control_byte ^ 0xff
         checksum = 0
         for byte in payload:
@@ -241,14 +240,15 @@ class SaradInst():
             else:
                 is_control = False
             status_byte = answer[3]
-            payload = answer[3:3+number_of_bytes_in_payload]
+            payload = answer[3:3 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
                 calculated_checksum = calculated_checksum + byte
             received_checksum_bytes = answer[3 + number_of_bytes_in_payload:5 +
                                              number_of_bytes_in_payload]
             received_checksum = int.from_bytes(received_checksum_bytes,
-                                               byteorder='little', signed=False)
+                                               byteorder='little',
+                                               signed=False)
             if received_checksum == calculated_checksum:
                 checksum_ok = True
             is_valid = control_byte_ok & checksum_ok
@@ -259,12 +259,13 @@ class SaradInst():
             payload = b''
             number_of_bytes_in_payload = 0
         logging.debug('Payload: {}'.format(payload))
-        return dict(is_valid = is_valid,
-                    is_control = is_control,
-                    payload = payload,
-                    number_of_bytes_in_payload = number_of_bytes_in_payload)
+        return dict(is_valid=is_valid,
+                    is_control=is_control,
+                    payload=payload,
+                    number_of_bytes_in_payload=number_of_bytes_in_payload)
 
-    def __get_message_payload(self, message, expected_length_of_reply, timeout):
+    def __get_message_payload(self, message, expected_length_of_reply,
+                              timeout):
         """ Returns a dictionary of:
         is_valid: True if answer is valid, False otherwise
         is_control_message: True if control message
@@ -279,7 +280,7 @@ class SaradInst():
                             timeout=timeout, parity=parity, rtscts=0,\
                             stopbits=serial.STOPBITS_ONE)
         for element in message:
-            byte = (element).to_bytes(1,'big')
+            byte = (element).to_bytes(1, 'big')
             ser.write(byte)
             time.sleep(write_sleeptime)
         time.sleep(wait_for_reply)
@@ -291,17 +292,19 @@ class SaradInst():
             time.sleep(0.5)
         ser.close()
         checked_answer = self.__check_answer(answer)
-        return dict(is_valid = checked_answer['is_valid'],
-                    is_control = checked_answer['is_control'],
-                    payload = checked_answer['payload'],
-                    number_of_bytes_in_payload = checked_answer['number_of_bytes_in_payload'])
+        return dict(is_valid=checked_answer['is_valid'],
+                    is_control=checked_answer['is_control'],
+                    payload=checked_answer['payload'],
+                    number_of_bytes_in_payload=checked_answer[
+                        'number_of_bytes_in_payload'])
 
     # Public methods
-    def get_reply(self, cmd_data, reply_length = 50, timeout = 1):
+    def get_reply(self, cmd_data, reply_length=50, timeout=1):
         """Returns a bytestring of the payload of the instruments reply \
 to the provided list of 1-byte command and data bytes."""
         msg = self.__make_command_msg(cmd_data)
-        checked_payload = self.__get_message_payload(msg, reply_length, timeout)
+        checked_payload = self.__get_message_payload(msg, reply_length,
+                                                     timeout)
         if checked_payload['is_valid']:
             return checked_payload['payload']
         else:
@@ -310,42 +313,53 @@ to the provided list of 1-byte command and data bytes."""
 
     def get_port(self):
         return self.__port
+
     def set_port(self, port):
         self.__port = port
         if (self.port is not None) and (self.family is not None):
             self._initialize()
+
     port = property(get_port, set_port)
 
     def get_id(self):
         return self.__id
+
     def set_id(self, id):
         self.__id = id
+
     id = property(get_id, set_id)
 
     def get_family(self):
         return self.__family
+
     def set_family(self, family):
         self.__family = family
         if (self.port is not None) and (self.family is not None):
             self._initialize()
+
     family = property(get_family, set_family)
 
     def get_type_id(self):
         return self._type_id
+
     type_id = property(get_type_id)
 
     def get_software_version(self):
         return self._software_version
+
     software_version = property(get_software_version)
 
     def get_serial_number(self):
         return self._serial_number
+
     serial_number = property(get_serial_number)
 
     def get_components(self):
         return self.__components
+
     def set_components(self, components):
         self.__components = components
+
     components = property(get_components, set_components)
 
     def __str__(self):
@@ -362,6 +376,7 @@ to the provided list of 1-byte command and data bytes."""
         output += "SoftwareVersion: " + str(self.software_version) + "\n"
         output += "SerialNumber: " + str(self.serial_number) + "\n"
         return output
+
 
 # * DosemanInst
 class DosemanInst(SaradInst):
@@ -388,8 +403,7 @@ class DosemanInst(SaradInst):
         get_components()
         set_components()
         get_reply()"""
-
-    def __init__(self, port = None, family = None):
+    def __init__(self, port=None, family=None):
         if family is None:
             family = SaradCluster.products[0]
         SaradInst.__init__(self, port, family)
@@ -421,6 +435,7 @@ class DosemanInst(SaradInst):
         else:
             logging.error('Get description failed.')
             return False
+
 
 # * RscInst
 class RscInst(SaradInst):
@@ -455,8 +470,7 @@ class RscInst(SaradInst):
         start_cycle()
         get_config()
         set_config()"""
-
-    def __init__(self, port = None, family = None):
+    def __init__(self, port=None, family=None):
         if family is None:
             family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
@@ -496,7 +510,6 @@ class RscInst(SaradInst):
             self.components += [component_object]
         return len(self.components)
 
-
     # Private helper methods
     def _get_battery_voltage(self):
         battery_bytes = self._get_parameter('battery_bytes')
@@ -504,10 +517,12 @@ class RscInst(SaradInst):
         if not (battery_coeff and battery_bytes):
             return "This instrument type doesn't provide \
             battery voltage information"
+
         reply = self.get_reply([b'\x0d', b''], battery_bytes + 7)
         if reply and (reply[0] == 10):
             try:
-                voltage = battery_coeff * int.from_bytes(reply[1:], byteorder='little', signed=False)
+                voltage = battery_coeff * int.from_bytes(
+                    reply[1:], byteorder='little', signed=False)
                 return round(voltage, 2)
             except ParsingError:
                 logging.error("Error parsing the payload.")
@@ -527,7 +542,6 @@ class RscInst(SaradInst):
                           format(self.id))
             return False
 
-
     # Public methods
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
@@ -544,23 +558,27 @@ class RscInst(SaradInst):
         self._last_sampling_time = datetime.utcnow()
         if reply and (reply[0] == 10):
             try:
-                sample_interval = timedelta(minutes = reply[1])
+                sample_interval = timedelta(minutes=reply[1])
                 device_time_min = reply[2]
                 device_time_h = reply[3]
                 device_time_d = reply[4]
                 device_time_m = reply[5]
                 device_time_y = reply[6]
-                source = []                                          # measurand_source
-                source.append(round(self._bytes_to_float(reply[7:11]), 2))   # 0
-                source.append(reply[11])                                     # 1
-                source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
-                source.append(reply[16])                                     # 3
-                source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
-                source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
-                source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
+                source = []  # measurand_source
+                source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
+                source.append(reply[11])  # 1
+                source.append(round(self._bytes_to_float(reply[12:16]),
+                                    2))  # 2
+                source.append(reply[16])  # 3
+                source.append(round(self._bytes_to_float(reply[17:21]),
+                                    2))  # 4
+                source.append(round(self._bytes_to_float(reply[21:25]),
+                                    2))  # 5
+                source.append(round(self._bytes_to_float(reply[25:29]),
+                                    2))  # 6
                 source.append(int.from_bytes(reply[29:33], \
                                              byteorder='big', signed=False)) # 7
-                source.append(self._get_battery_voltage())                   # 8
+                source.append(self._get_battery_voltage())  # 8
                 device_time = datetime(device_time_y + 2000, device_time_m, \
                                        device_time_d, device_time_h, \
                                        device_time_min)
@@ -576,7 +594,7 @@ class RscInst(SaradInst):
                             measurand.value = source[measurand.source]
                             measurand.time = device_time
                             if measurand.source == 8:  # battery voltage
-                                sensor.interval = timedelta(seconds = 5)
+                                sensor.interval = timedelta(seconds=5)
                         except:
                             logging.error("Can't get value for source " + \
                                           str(measurand.source) + " in " + \
@@ -601,12 +619,10 @@ class RscInst(SaradInst):
 
     def set_real_time_clock(self, datetime):
         """Set the instrument time."""
-        instr_datetime = bytearray([datetime.second,
-                                    datetime.minute,
-                                    datetime.hour,
-                                    datetime.day,
-                                    datetime.month,
-                                    datetime.year - 2000])
+        instr_datetime = bytearray([
+            datetime.second, datetime.minute, datetime.hour, datetime.day,
+            datetime.month, datetime.year - 2000
+        ])
         reply = self.get_reply([b'\x05', instr_datetime], 7)
         if reply and (reply[0] == 10):
             logging.debug("Time on instrument {} set to UTC.".\
@@ -642,7 +658,7 @@ class RscInst(SaradInst):
             logging.debug('Getting configuration from instrument with Id {}'.\
                           format(self.id))
             try:
-                self.__interval = timedelta(minutes = reply[1])
+                self.__interval = timedelta(minutes=reply[1])
                 setup_word = reply[2:3]
                 self._decode_setup_word(setup_word)
                 self.__alarm_level = int.from_bytes(reply[4:8], \
@@ -659,7 +675,7 @@ class RscInst(SaradInst):
 
     def set_config(self):
         setup_word = self._encode_setup_word()
-        interval = int(self.__interval.seconds/60)
+        interval = int(self.__interval.seconds / 60)
         setup_data = (interval).to_bytes(1, byteorder = 'little') + \
                     setup_word + \
                     (self.__alarm_level).to_bytes(4, byteorder = 'little')
@@ -701,7 +717,7 @@ class RscInst(SaradInst):
     def set_long_interval(self):
         reply = self.get_reply([b'\x03', b''], 7)
         if reply and (reply[0] == 10):
-            self.__interval = timedelta(hours = 3)
+            self.__interval = timedelta(hours=3)
             logging.debug('Instrument with id {} set to 3 h interval.'.\
                           format(self.id))
             return True
@@ -713,7 +729,7 @@ class RscInst(SaradInst):
     def set_short_interval(self):
         reply = self.get_reply([b'\x04', b''], 7)
         if reply and (reply[0] == 10):
-            self.__interval = timedelta(hours = 1)
+            self.__interval = timedelta(hours=1)
             logging.debug('Instrument with id {} set to 1 h interval.'.\
                           format(self.id))
             return True
@@ -739,11 +755,12 @@ class RscInst(SaradInst):
 
     def set_wifi_access(self, ssid, password, ip_address, server_port):
         """Set the Wi-Fi access data."""
-        access_data = b''.join(
-            [bytes(ssid, 'utf-8').ljust(33, b'0'),
-             bytes(password, 'utf-8').ljust(64, b'0'),
-             bytes(ip_address, 'utf-8').ljust(24, b'0'),
-             server_port.to_bytes(2, 'big')])
+        access_data = b''.join([
+            bytes(ssid, 'utf-8').ljust(33, b'0'),
+            bytes(password, 'utf-8').ljust(64, b'0'),
+            bytes(ip_address, 'utf-8').ljust(24, b'0'),
+            server_port.to_bytes(2, 'big')
+        ])
         logging.debug(access_data)
         reply = self.get_reply([b'\x17', access_data], 124)
         if reply and (reply[0] == 10):
@@ -754,6 +771,7 @@ class RscInst(SaradInst):
             logging.error("Setting the Wi-Fi access data on instrument with id {} failed.".\
                           format(self.id))
             return False
+
 
 # * DacmInst
 class DacmInst(SaradInst):
@@ -785,8 +803,7 @@ class DacmInst(SaradInst):
         start_cycle()
         get_recent_values()
         get_recent_value(index)"""
-
-    def __init__(self, port = None, family = None):
+    def __init__(self, port=None, family=None):
         if family is None:
             family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
@@ -842,8 +859,8 @@ class DacmInst(SaradInst):
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
                 self._component_count = reply[15]
-                self._bit_ctrl = BitVector(rawbytes = reply[16:20])
-                self._value_ctrl = BitVector(rawbytes = reply[20:24])
+                self._bit_ctrl = BitVector(rawbytes=reply[16:20])
+                self._value_ctrl = BitVector(rawbytes=reply[20:24])
                 self._cycle_blocksize = reply[24]
                 self._cycle_count_limit = reply[25]
                 self._step_count_limit = reply[26]
@@ -869,8 +886,10 @@ class DacmInst(SaradInst):
                                              signed=False)
                 self._date_of_config = datetime(config_year, config_month, \
                                                 config_day)
-                self._module_name = reply[6:39].split(b'\x00')[0].decode("ascii")
-                self._config_name = reply[39:].split(b'\x00')[0].decode("ascii")
+                self._module_name = reply[6:39].split(b'\x00')[0].decode(
+                    "ascii")
+                self._config_name = reply[39:].split(b'\x00')[0].decode(
+                    "ascii")
                 return True
             except:
                 logging.error('Error parsing the payload.')
@@ -893,7 +912,7 @@ class DacmInst(SaradInst):
                 data_record_size = int.from_bytes(reply[6:8], byteorder='big', \
                                                   signed=False)
                 name = reply[8:16].split(b'\x00')[0].decode("ascii")
-                hw_capability = BitVector(rawbytes = reply[16:20])
+                hw_capability = BitVector(rawbytes=reply[16:20])
                 return dict(revision = revision, component_type = component_type, \
                             availability = availability, \
                             ctrl_format = ctrl_format, \
@@ -911,12 +930,10 @@ class DacmInst(SaradInst):
     # Public methods
     def set_real_time_clock(self, datetime):
         """Set the instrument time."""
-        instr_datetime = bytearray([datetime.second,
-                                    datetime.minute,
-                                    datetime.hour,
-                                    datetime.day,
-                                    datetime.month,
-                                    datetime.year - 2000])
+        instr_datetime = bytearray([
+            datetime.second, datetime.minute, datetime.hour, datetime.day,
+            datetime.month, datetime.year - 2000
+        ])
         reply = self.get_reply([b'\x10', instr_datetime], 7)
         if reply and (reply[0] == 10):
             logging.debug("Time on instrument {} set to UTC.".\
@@ -938,8 +955,8 @@ class DacmInst(SaradInst):
                           format(self.id))
             return False
 
-    def start_cycle(self, cycle_index = 0):
-        reply = self.get_reply([b'\x15', bytes([cycle_index])], 9, timeout = 5)
+    def start_cycle(self, cycle_index=0):
+        reply = self.get_reply([b'\x15', bytes([cycle_index])], 9, timeout=5)
         if reply and (reply[0] == 10):
             logging.debug('Cycle {} started at instrument with id {}'.\
                           format(cycle_index, self.id))
@@ -955,14 +972,15 @@ class DacmInst(SaradInst):
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
         list_of_outputs = []
-        sensor_id = 0        # fixed value, reserved for future use
+        sensor_id = 0  # fixed value, reserved for future use
         for component_id in range(34):
             for measurand_id in range(4):
-                output = self.get_recent_value(component_id, sensor_id, measurand_id)
+                output = self.get_recent_value(component_id, sensor_id,
+                                               measurand_id)
                 list_of_outputs.append(output)
         return list_of_outputs
 
-    def get_recent_value(self, component_id, sensor_id = 0, measurand_id = 0):
+    def get_recent_value(self, component_id, sensor_id=0, measurand_id=0):
         """Get a dictionaries with recent measuring values from one sensor.
         component_id: one of the 34 sensor/actor modules of the DACM system
         measurand_id: 0 = recent sampling, 1 = average of last completed interval,
@@ -973,10 +991,13 @@ class DacmInst(SaradInst):
                                 bytes([measurand_id])], 1000)
         if reply and (reply[0] > 0):
             output = dict()
-            output['component_name'] = reply[1:17].split(b'\x00')[0].decode("ascii")
+            output['component_name'] = reply[1:17].split(b'\x00')[0].decode(
+                "ascii")
             output['measurand_id'] = measurand_id
-            output['sensor_name'] = reply[18:34].split(b'\x00')[0].decode("ascii")
-            output['measurand'] = reply[35:51].split(b'\x00')[0].strip().decode("ascii")
+            output['sensor_name'] = reply[18:34].split(b'\x00')[0].decode(
+                "ascii")
+            output['measurand'] = reply[35:51].split(
+                b'\x00')[0].strip().decode("ascii")
             r = self._parse_value_string(output['measurand'])
             output['measurand_operator'] = r['measurand_operator']
             output['value'] = r['measurand_value']
@@ -999,46 +1020,56 @@ class DacmInst(SaradInst):
             logging.error("The instrument doesn't reply.")
             return False
 
-
     def get_address(self):
         return self._address
+
     def set_address(self, address):
         self._address = address
         if (self.port is not None) and (self.address is not None):
             self._initialize()
+
     address = property(get_address, set_address)
 
     def get_date_of_config(self):
         return self._date_of_config
+
     def set_date_of_config(self, date_of_config):
         self._date_of_config = date_of_config
         if (self.port is not None) and (self.date_of_config is not None):
             self._initialize()
+
     date_of_config = property(get_date_of_config, set_date_of_config)
 
     def get_module_name(self):
         return self._module_name
+
     def set_module_name(self, module_name):
         self._module_name = module_name
         if (self.port is not None) and (self.module_name is not None):
             self._initialize()
+
     module_name = property(get_module_name, set_module_name)
 
     def get_config_name(self):
         return self._config_name
+
     def set_config_name(self, config_name):
         self._config_name = config_name
         if (self.port is not None) and (self.config_name is not None):
             self._initialize()
+
     config_name = property(get_config_name, set_config_name)
 
     def get_date_of_manufacture(self):
         return self._date_of_manufacture
+
     date_of_manufacture = property(get_date_of_manufacture)
 
     def get_date_of_update(self):
         return self._date_of_update
+
     date_of_update = property(get_date_of_update)
+
 
 # * SaradCluster
 class SaradCluster(object):
@@ -1092,7 +1123,8 @@ class SaradCluster(object):
             try:
                 instrument.stop_cycle()
             except:
-                logging.error('Not all instruments have been stopped as intended.')
+                logging.error(
+                    'Not all instruments have been stopped as intended.')
                 return False
         self.__start_time = datetime.utcnow()
         for instrument in self.connected_instruments:
@@ -1100,7 +1132,8 @@ class SaradCluster(object):
                 instrument.set_real_time_clock(self.__start_time)
                 instrument.start_cycle()
             except:
-                logging.error('Failed to set time and start cycles on all instruments.')
+                logging.error(
+                    'Failed to set time and start cycles on all instruments.')
                 return False
         return True
 
@@ -1159,7 +1192,8 @@ class SaradCluster(object):
                                     test_instrument.type_id,\
                                     test_instrument.serial_number)
                     test_instrument.set_id(id)
-                    logging.info(family['family_name'] + ' found on port ' + port)
+                    logging.info(family['family_name'] + ' found on port ' +
+                                 port)
                     connected_instruments.append(test_instrument)
                     ports_with_instruments.append(port)
                     if (ports_to_test.index(port) + 1) < len(ports_to_test):
@@ -1176,8 +1210,10 @@ class SaradCluster(object):
 
     def set_native_ports(self, native_ports):
         self.__native_ports = native_ports
+
     def get_native_ports(self):
         return self.__native_ports
+
     native_ports = property(get_native_ports, set_native_ports)
 
     active_ports = property(get_active_ports)
@@ -1185,17 +1221,19 @@ class SaradCluster(object):
 
     def set_start_time(self, start_time):
         self.__start_time = start_time
+
     def get_start_time(self):
         return self.__start_time
+
     start_time = property(get_start_time, set_start_time)
 
     def dump(self, file):
         logging.debug('Pickling mycluster into file.')
         pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
 
+
 class Component(object):
     """Class describing a sensor or actor component built into an instrument"""
-
     def __init__(self, component_id, component_name):
         self.__id = component_id
         self.__name = component_name
@@ -1226,21 +1264,28 @@ class Component(object):
 
     def get_id(self):
         return self.__id
+
     def set_id(self, id):
         self.__id = id
+
     id = property(get_id, set_id)
 
     def get_name(self):
         return self.__name
+
     def set_name(self, name):
         self.__name = name
+
     name = property(get_name, set_name)
 
     def get_sensors(self):
         return self.__sensors
+
     def set_sensors(self, sensors):
         self.__sensors = sensors
+
     sensors = property(get_sensors, set_sensors)
+
 
 class Sensor(object):
     """Class describing a sensor that is part of a component.
@@ -1284,27 +1329,36 @@ class Sensor(object):
 
     def get_id(self):
         return self.__id
+
     def set_id(self, id):
         self.__id = id
+
     id = property(get_id, set_id)
 
     def get_name(self):
         return self.__name
+
     def set_name(self, name):
         self.__name = name
+
     name = property(get_name, set_name)
 
     def get_interval(self):
         return self.__interval
+
     def set_interval(self, interval):
         self.__interval = interval
+
     interval = property(get_interval, set_interval)
 
     def get_measurands(self):
         return self.__measurands
+
     def set_measurands(self, measurands):
         self.__measurands = measurands
+
     measurands = property(get_measurands, set_measurands)
+
 
 class Measurand(object):
     """Class providing a measurand that is delivered by a sensor.
@@ -1348,45 +1402,60 @@ class Measurand(object):
 
     def get_id(self):
         return self.__id
+
     def set_id(self, id):
         self.__id = id
+
     id = property(get_id, set_id)
 
     def get_name(self):
         return self.__name
+
     def set_name(self, name):
         self.__name = name
+
     name = property(get_name, set_name)
 
     def get_unit(self):
         return self.__unit
+
     def set_unit(self, unit):
         self.__unit = unit
+
     unit = property(get_unit, set_unit)
 
     def get_source(self):
         return self.__source
+
     def set_source(self, source):
         self.__source = source
+
     source = property(get_source, set_source)
 
     def get_operator(self):
         return self.__operator
+
     def set_operator(self, operator):
         self.__operator = operator
+
     operator = property(get_operator, set_operator)
 
     def get_value(self):
         return self.__value
+
     def set_value(self, value):
         self.__value = value
+
     value = property(get_value, set_value)
 
     def get_time(self):
         return self.__time
+
     def set_time(self, time):
         self.__time = time
+
     time = property(get_time, set_time)
+
 
 # * Test environment
 if __name__ == '__main__':

@@ -392,6 +392,34 @@ class DosemanInst(SaradInst):
             family = SaradCluster.products[0]
         SaradInst.__init__(self, port, family)
 
+    def _get_description(self):
+        """Set instrument type, software version, and serial number."""
+        id_cmd = self.family['get_id_cmd']
+        length_of_reply = self.family['length_of_reply']
+        reply = self.get_reply(id_cmd, length_of_reply)
+        if reply:
+            if (reply[0] == 0):
+                logging.debug('Get description successful.')
+                try:
+                    self._type_id = reply[1]
+                    self._software_version = reply[2]
+                    self._serial_number = int.from_bytes(reply[3:5], \
+                                                         byteorder='little', \
+                                                         signed=False)
+                    return True
+                except:
+                    logging.error('Error parsing the payload.')
+                    return False
+            if (reply[0] == 1) and (len(reply) == 1):
+                self._type_id = 0
+                self._software_version = 0
+                self._serial_number = 0
+                logging.info('DOSEman with running measurement.')
+                return True
+        else:
+            logging.error('Get description failed.')
+            return False
+
 class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
 

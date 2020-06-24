@@ -15,7 +15,8 @@ import serial
 import serial.tools.list_ports
 
 
-# * SaradInst
+# * SaradInst:
+# ** Definitions:
 class SaradInst():
     """Basic class for the serial communication protocol of SARAD instruments
 
@@ -68,10 +69,15 @@ class SaradInst():
         l = 3
         xl = 4
 
+# ** Protected methods:
+# *** _initialize(self):
+
     def _initialize(self):
         self._get_description()
         self._build_component_list()
         self._last_sampling_time = None
+
+# *** _get_description(self):
 
     def _get_description(self):
         """Set instrument type, software version, and serial number."""
@@ -94,16 +100,23 @@ class SaradInst():
             logging.error('Get description failed.')
             return False
 
+# *** _build_component_list(self):
+
     def _build_component_list(self):
         """Build up a list of components with sensors and measurands. Will be overriden by derived classes."""
+        pass
 
-# ** Helper functions to be used here and in derived classes
+# ** Helper functions to be used here and in derived classes:
+
+# *** _bytes_to_float():
 
     def _bytes_to_float(self, value_bytes):
         """Convert 4 bytes (little endian) from serial interface into floating point nummber according to IEEE 754"""
         byte_array = bytearray(value_bytes)
         byte_array.reverse()
         return struct.unpack('<f', bytes(byte_array))[0]
+
+# *** _parse_value_string():
 
     def _parse_value_string(self, value_string):
         """Take a string containing a physical value with operator, value and unit and decompose it into its parts for further mathematical processing."""
@@ -132,6 +145,8 @@ class SaradInst():
                 output['measurand_unit'] = ''
         return output
 
+# *** _encode_setup_word(self):
+
     def _encode_setup_word(self):
         """Compile the SetupWord for Doseman and RadonScout devices from its components.  All used arguments from self are enum objects."""
         bv_signal = BitVector(intVal=self.signal.value - 1, size=2)
@@ -148,6 +163,8 @@ class SaradInst():
         logging.debug(str(bv))
         return bv.get_bitvector_in_ascii().encode('utf-8')
 
+# *** _decode_setup_word():
+
     def _decode_setup_word(self, setup_word):
         bv = BitVector(rawbytes=setup_word)
         signal_index = bv[6:8].int_val()
@@ -161,6 +178,8 @@ class SaradInst():
         chamber_size_index = bv[1:3].int_val()
         self.chamber_size = list(self.Chamber_size)[chamber_size_index]
 
+# *** _get_parameter():
+
     def _get_parameter(self, parameter_name):
         for inst_type in self.family['types']:
             if inst_type['type_id'] == self.type_id:
@@ -173,7 +192,7 @@ class SaradInst():
         except:
             return False
 
-# ** Private methods
+# ** Private methods:
 
     def __init__(self, port=None, family=None):
         self.__port = port
@@ -305,7 +324,7 @@ class SaradInst():
         output += "SerialNumber: " + str(self.serial_number) + "\n"
         return output
 
-# ** Public methods
+# ** Public methods:
 
     def next(self):
         if self.__i < self.__n:
@@ -366,7 +385,7 @@ to the provided list of 1-byte command and data bytes."""
     def set_components(self, components):
         self.__components = components
 
-# ** Properties
+# ** Properties:
 
     port = property(get_port, set_port)
     id = property(get_id, set_id)
@@ -377,7 +396,7 @@ to the provided list of 1-byte command and data bytes."""
     components = property(get_components, set_components)
 
 
-# * DosemanInst
+# * DosemanInst:
 class DosemanInst(SaradInst):
     """Instrument with Doseman communication protocol
 
@@ -436,7 +455,7 @@ class DosemanInst(SaradInst):
             return False
 
 
-# * RscInst
+# * RscInst:
 class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
 
@@ -772,7 +791,7 @@ class RscInst(SaradInst):
             return False
 
 
-# * DacmInst
+# * DacmInst:
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol
 
@@ -1070,7 +1089,7 @@ class DacmInst(SaradInst):
     date_of_update = property(get_date_of_update)
 
 
-# * SaradCluster
+# * SaradCluster:
 class SaradCluster(object):
     """Class to define a cluster of SARAD instruments connected to one controller
 
@@ -1456,7 +1475,7 @@ class Measurand(object):
     time = property(get_time, set_time)
 
 
-# * Test environment
+# * Test environment:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 

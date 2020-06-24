@@ -68,19 +68,6 @@ class SaradInst():
         l = 3
         xl = 4
 
-    def __init__(self, port=None, family=None):
-        self.__port = port
-        self.__family = family
-        if (port is not None) and (family is not None):
-            self._initialize()
-        self.__components = []
-        self.__i = 0
-        self.__n = len(self.__components)
-        self.__interval = None
-        self._type_id = None
-        self._software_version = None
-        self._serial_number = None
-
     def _initialize(self):
         self._get_description()
         self._build_component_list()
@@ -110,20 +97,8 @@ class SaradInst():
     def _build_component_list(self):
         """Build up a list of components with sensors and measurands. Will be overriden by derived classes."""
 
-    def __iter__(self):
-        return iter(self.__components)
+# ** Helper functions to be used here and in derived classes
 
-    def next(self):
-        if self.__i < self.__n:
-            __i = self.__i
-            self.__i += 1
-            return self.__components[__i]
-        else:
-            self.__i = 0
-            self.__n = len(self.__components)
-            raise StopIteration()
-
-    # Helper functions to be used here and in derived classes
     def _bytes_to_float(self, value_bytes):
         """Convert 4 bytes (little endian) from serial interface into floating point nummber according to IEEE 754"""
         byte_array = bytearray(value_bytes)
@@ -198,7 +173,24 @@ class SaradInst():
         except:
             return False
 
-    # Private methods
+# ** Private methods
+
+    def __init__(self, port=None, family=None):
+        self.__port = port
+        self.__family = family
+        if (port is not None) and (family is not None):
+            self._initialize()
+        self.__components = []
+        self.__i = 0
+        self.__n = len(self.__components)
+        self.__interval = None
+        self._type_id = None
+        self._software_version = None
+        self._serial_number = None
+
+    def __iter__(self):
+        return iter(self.__components)
+
     def __make_command_msg(self, cmd_data):
         # Encode the message to be sent to the SARAD instrument.
         # Arguments are the one byte long command and the data bytes to be sent.
@@ -298,7 +290,33 @@ class SaradInst():
                     number_of_bytes_in_payload=checked_answer[
                         'number_of_bytes_in_payload'])
 
-    # Public methods
+    def __str__(self):
+        output = "Id: " + str(self.id) + "\n"
+        output += "SerialDevice: " + self.port + "\n"
+        output += "Baudrate: " + str(self.family['baudrate']) + "\n"
+        output += "FamilyName: " + str(self.family['family_name']) + "\n"
+        output += "FamilyId: " + str(self.family['family_id']) + "\n"
+        for type_in_family in self.family['types']:
+            if type_in_family['type_id'] == self.type_id:
+                type_name = type_in_family['type_name']
+                output += "TypName: " + type_name + "\n"
+        output += "TypeId: " + str(self.type_id) + "\n"
+        output += "SoftwareVersion: " + str(self.software_version) + "\n"
+        output += "SerialNumber: " + str(self.serial_number) + "\n"
+        return output
+
+# ** Public methods
+
+    def next(self):
+        if self.__i < self.__n:
+            __i = self.__i
+            self.__i += 1
+            return self.__components[__i]
+        else:
+            self.__i = 0
+            self.__n = len(self.__components)
+            raise StopIteration()
+
     def get_reply(self, cmd_data, reply_length=50, timeout=1):
         """Returns a bytestring of the payload of the instruments reply \
 to the provided list of 1-byte command and data bytes."""
@@ -319,15 +337,11 @@ to the provided list of 1-byte command and data bytes."""
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 
-    port = property(get_port, set_port)
-
     def get_id(self):
         return self.__id
 
     def set_id(self, id):
         self.__id = id
-
-    id = property(get_id, set_id)
 
     def get_family(self):
         return self.__family
@@ -337,22 +351,14 @@ to the provided list of 1-byte command and data bytes."""
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 
-    family = property(get_family, set_family)
-
     def get_type_id(self):
         return self._type_id
-
-    type_id = property(get_type_id)
 
     def get_software_version(self):
         return self._software_version
 
-    software_version = property(get_software_version)
-
     def get_serial_number(self):
         return self._serial_number
-
-    serial_number = property(get_serial_number)
 
     def get_components(self):
         return self.__components
@@ -360,22 +366,15 @@ to the provided list of 1-byte command and data bytes."""
     def set_components(self, components):
         self.__components = components
 
-    components = property(get_components, set_components)
+# ** Properties
 
-    def __str__(self):
-        output = "Id: " + str(self.id) + "\n"
-        output += "SerialDevice: " + self.port + "\n"
-        output += "Baudrate: " + str(self.family['baudrate']) + "\n"
-        output += "FamilyName: " + str(self.family['family_name']) + "\n"
-        output += "FamilyId: " + str(self.family['family_id']) + "\n"
-        for type_in_family in self.family['types']:
-            if type_in_family['type_id'] == self.type_id:
-                type_name = type_in_family['type_name']
-                output += "TypName: " + type_name + "\n"
-        output += "TypeId: " + str(self.type_id) + "\n"
-        output += "SoftwareVersion: " + str(self.software_version) + "\n"
-        output += "SerialNumber: " + str(self.serial_number) + "\n"
-        return output
+    port = property(get_port, set_port)
+    id = property(get_id, set_id)
+    family = property(get_family, set_family)
+    type_id = property(get_type_id)
+    software_version = property(get_software_version)
+    serial_number = property(get_serial_number)
+    components = property(get_components, set_components)
 
 
 # * DosemanInst

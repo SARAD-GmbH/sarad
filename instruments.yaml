@@ -12,6 +12,7 @@
   wait_for_reply: 0.1
   write_sleeptime: 0.001
   parity: E
+  ok_byte: 0
   config_parameters:
   - name: interval
     type: integer
@@ -58,6 +59,7 @@
   wait_for_reply: 0
   write_sleeptime: 0
   parity: N
+  ok_byte: 10
   config_parameters:
   - name: lock
     type: enum
@@ -998,6 +1000,7 @@
   length_of_reply: 50
   wait_for_reply: 0
   write_sleeptime: 0
+  ok_byte: 10
   parity: N
   types:
   - type_id: 2

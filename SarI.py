@@ -136,6 +136,7 @@ class SaradInst():
             else:
                 is_control = False
             status_byte = answer[3]
+            logging.debug('Status byte: {}'.format(status_byte))
             payload = answer[3:3 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
@@ -560,12 +561,13 @@ class RscInst(SaradInst):
     def _get_battery_voltage(self):
         battery_bytes = self._get_parameter('battery_bytes')
         battery_coeff = self._get_parameter('battery_coeff')
+        ok_byte = self.family['ok_byte']
         if not (battery_coeff and battery_bytes):
             return "This instrument type doesn't provide \
             battery voltage information"
 
         reply = self.get_reply([b'\x0d', b''], battery_bytes + 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             try:
                 voltage = battery_coeff * int.from_bytes(
                     reply[1:], byteorder='little', signed=False)
@@ -593,7 +595,8 @@ class RscInst(SaradInst):
 
     def _push_button(self):
         reply = self.get_reply([b'\x12', b''], 7)
-        if reply and (reply[0] == 10):
+        ok_byte = self.family['ok_byte']
+        if reply and (reply[0] == ok_byte):
             logging.debug(
                 'Push button simulated at instrument with id {}'.format(
                     self.idd))
@@ -610,6 +613,7 @@ class RscInst(SaradInst):
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
         # Do nothing as long as the previous values are valid.
+        ok_byte = self.family['ok_byte']
         if self._last_sampling_time is None:
             logging.warning(
                 'The gathered values might be invalid. ' +
@@ -622,7 +626,7 @@ class RscInst(SaradInst):
             return True
         reply = self.get_reply([b'\x14', b''], 39)
         self._last_sampling_time = datetime.utcnow()
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             try:
                 sample_interval = timedelta(minutes=reply[1])
                 device_time_min = reply[2]
@@ -703,12 +707,13 @@ class RscInst(SaradInst):
 
     def set_real_time_clock(self, datetime):
         """Set the instrument time."""
+        ok_byte = self.family['ok_byte']
         instr_datetime = bytearray([
             datetime.second, datetime.minute, datetime.hour, datetime.day,
             datetime.month, datetime.year - 2000
         ])
         reply = self.get_reply([b'\x05', instr_datetime], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug("Time on instrument {} set to UTC.".format(
                 self.device_id))
             return True
@@ -721,8 +726,9 @@ class RscInst(SaradInst):
 # *** stop_cycle(self):
 
     def stop_cycle(self):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', b''], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug('Cycle stopped at instrument with Id {}'.format(
                 self.device_id))
             return True
@@ -745,8 +751,9 @@ class RscInst(SaradInst):
 # *** get_config(self):
 
     def get_config(self):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x10', b''], 14)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug(
                 'Getting configuration from instrument with Id {}'.format(
                     self.device_id))
@@ -779,6 +786,7 @@ class RscInst(SaradInst):
 # *** set_config(self):
 
     def set_config(self):
+        ok_byte = self.family['ok_byte']
         setup_word = self._encode_setup_word()
         interval = int(self.__interval.seconds / 60)
         setup_data = (interval).to_bytes(1, byteorder='little') + \
@@ -786,7 +794,7 @@ class RscInst(SaradInst):
             (self.__alarm_level).to_bytes(4, byteorder='little')
         logging.debug(setup_data)
         reply = self.get_reply([b'\x0f', setup_data], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug(
                 'Set configuration successful at instrument with Id {}'.format(
                     self.device_id))
@@ -800,8 +808,9 @@ class RscInst(SaradInst):
 # *** set_lock(self):
 
     def set_lock(self):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x01', b''], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.locked
             logging.debug('Instrument with Id {} locked.'.format(
                 self.device_id))
@@ -814,8 +823,9 @@ class RscInst(SaradInst):
 # *** set_unlock(self):
 
     def set_unlock(self):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x02', b''], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.unlocked
             logging.debug('Instrument with Id {} unlocked.'.format(
                 self.device_id))
@@ -828,8 +838,9 @@ class RscInst(SaradInst):
 # *** set_long_interval(self):
 
     def set_long_interval(self):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x03', b''], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=3)
             logging.debug('Instrument with Id {} set to 3 h interval.'.format(
                 self.device_id))
@@ -843,8 +854,9 @@ class RscInst(SaradInst):
 # *** set_short_interval(self):
 
     def set_short_interval(self):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x04', b''], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=1)
             logging.debug('Instrument with Id {} set to 1 h interval.'.format(
                 self.device_id))
@@ -859,8 +871,9 @@ class RscInst(SaradInst):
 
     def get_wifi_access(self):
         """Get the Wi-Fi access data from instrument."""
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x18', b''], 131)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             try:
                 logging.debug(reply)
                 self.__ssid = reply[0:33].rstrip(b'0')
@@ -892,6 +905,7 @@ class RscInst(SaradInst):
 
     def set_wifi_access(self, ssid, password, ip_address, server_port):
         """Set the Wi-Fi access data."""
+        ok_byte = self.family['ok_byte']
         access_data = b''.join([
             bytes(ssid, 'utf-8').ljust(33, b'0'),
             bytes(password, 'utf-8').ljust(64, b'0'),
@@ -900,7 +914,7 @@ class RscInst(SaradInst):
         ])
         logging.debug(access_data)
         reply = self.get_reply([b'\x17', access_data], 124)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug("Wi-Fi access data on instrument {} set.".format(
                 self.device_id))
             return True
@@ -977,10 +991,11 @@ class DacmInst(SaradInst):
 
     def _get_description(self):
         """Get descriptive data about DACM instrument."""
+        ok_byte = self.family['ok_byte']
         id_cmd = self.family['get_id_cmd']
         length_of_reply = self.family['length_of_reply']
         reply = self.get_reply(id_cmd, length_of_reply)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug('Get description successful.')
             try:
                 self._type_id = reply[1]
@@ -1034,8 +1049,9 @@ class DacmInst(SaradInst):
 
     def _get_module_information(self):
         """Get descriptive data about DACM instrument."""
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x01', b''], 79)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug('Get module information successful.')
             try:
                 self._address = reply[1]
@@ -1073,8 +1089,9 @@ class DacmInst(SaradInst):
 
     def _get_component_information(self, component_index):
         """Get information about one component of a DACM instrument."""
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x03', bytes([component_index])], 27)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug('Get component information successful.')
             try:
                 revision = reply[1]
@@ -1118,12 +1135,13 @@ class DacmInst(SaradInst):
 
     def set_real_time_clock(self, datetime):
         """Set the instrument time."""
+        ok_byte = self.family['ok_byte']
         instr_datetime = bytearray([
             datetime.second, datetime.minute, datetime.hour, datetime.day,
             datetime.month, datetime.year - 2000
         ])
         reply = self.get_reply([b'\x10', instr_datetime], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug("Time on instrument {} set to UTC.".format(
                 self.device_id))
             return True
@@ -1136,8 +1154,9 @@ class DacmInst(SaradInst):
 # *** stop_cycle():
 
     def stop_cycle(self):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x16', b''], 7)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug('Cycle stopped at instrument with id {}'.format(
                 self.device_id))
             return True
@@ -1150,8 +1169,9 @@ class DacmInst(SaradInst):
 # *** start_cycle():
 
     def start_cycle(self, cycle_index=0):
+        ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', bytes([cycle_index])], 9, timeout=5)
-        if reply and (reply[0] == 10):
+        if reply and (reply[0] == ok_byte):
             logging.debug('Cycle {} started at instrument with id {}'.format(
                 cycle_index, self.device_id))
             return True

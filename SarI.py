@@ -64,9 +64,9 @@ class SaradInst():
         po216_po218 = 4
 
     class Chamber_size(Enum):
-        s = 1
-        m = 2
-        l = 3
+        small = 1
+        medium = 2
+        large = 3
         xl = 4
 
 # ** Private methods:
@@ -94,8 +94,9 @@ class SaradInst():
 # *** __make_command_msg():
 
     def __make_command_msg(self, cmd_data):
-        # Encode the message to be sent to the SARAD instrument.
-        # Arguments are the one byte long command and the data bytes to be sent.
+        """Encode the message to be sent to the SARAD instrument.
+        Arguments are the one byte long command
+        and the data bytes to be sent."""
         cmd = cmd_data[0]
         data = cmd_data[1]
         payload = cmd + data
@@ -301,9 +302,9 @@ class SaradInst():
                 output['measurand_value'] = float(r1.split()[0])
                 try:
                     output['measurand_unit'] = r1.split()[1]
-                except:
+                except Exception:
                     output['measurand_unit'] = ''
-            except:
+            except Exception:
                 output['measurand_operator'] = ''
                 output['measurand_value'] = ''
                 output['measurand_unit'] = ''
@@ -349,11 +350,11 @@ class SaradInst():
             if inst_type['type_id'] == self.type_id:
                 try:
                     return inst_type[parameter_name]
-                except:
+                except Exception:
                     pass
         try:
             return self.family[parameter_name]
-        except:
+        except Exception:
             return False
 
 # ** Public methods:
@@ -541,11 +542,11 @@ class RscInst(SaradInst):
                 for measurand in sensor['measurands']:
                     try:
                         unit = measurand['measurand_unit']
-                    except:
+                    except Exception:
                         unit = ''
                     try:
                         source = measurand['measurand_source']
-                    except:
+                    except Exception:
                         source = None
                     measurand_object = Measurand(measurand['measurand_id'],
                                                  measurand['measurand_name'],
@@ -675,7 +676,7 @@ class RscInst(SaradInst):
                             measurand.time = device_time
                             if measurand.source == 8:  # battery voltage
                                 sensor.interval = timedelta(seconds=5)
-                        except:
+                        except Exception:
                             logging.error("Can't get value for source " +
                                           str(measurand.source) + " in " +
                                           component.name + '/' + sensor.name +
@@ -920,7 +921,7 @@ class RscInst(SaradInst):
             return True
         else:
             logging.error(
-                "Setting the Wi-Fi access data on instrument with Id {} failed."
+                "Setting the Wi-Fi access data on instrument {} failed."
                 .format(self.device_id))
             return False
 
@@ -1203,8 +1204,11 @@ class DacmInst(SaradInst):
     def get_recent_value(self, component_id, sensor_id=0, measurand_id=0):
         """Get a dictionaries with recent measuring values from one sensor.
         component_id: one of the 34 sensor/actor modules of the DACM system
-        measurand_id: 0 = recent sampling, 1 = average of last completed interval,
-        2 = minimum of last completed interval, 3 = maximum
+        measurand_id:
+        0 = recent sampling,
+        1 = average of last completed interval,
+        2 = minimum of last completed interval,
+        3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
         reply = self.get_reply([
             b'\x1a',
@@ -1303,7 +1307,8 @@ class DacmInst(SaradInst):
 # * SaradCluster:
 # ** Definitions:
 class SaradCluster(object):
-    """Class to define a cluster of SARAD instruments connected to one controller
+    """Class to define a cluster of SARAD instruments
+    that are all connected to one controller
 
     Class attributes:
         products
@@ -1359,7 +1364,7 @@ class SaradCluster(object):
         for instrument in self.connected_instruments:
             try:
                 instrument.stop_cycle()
-            except:
+            except Exception:
                 logging.error(
                     'Not all instruments have been stopped as intended.')
                 return False
@@ -1368,7 +1373,7 @@ class SaradCluster(object):
             try:
                 instrument.set_real_time_clock(self.__start_time)
                 instrument.start_cycle()
-            except:
+            except Exception:
                 logging.error(
                     'Failed to set time and start cycles on all instruments.')
                 return False
@@ -1380,7 +1385,7 @@ class SaradCluster(object):
         """SARAD instruments can be connected:
         1. by RS232 on a native RS232 interface at the computer
         2. via their built in FT232R USB-serial converter
-        3. via an external USB-serial converter (Prolific, Prolific fake or FTDI)
+        3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
         active_ports = []
         # Get the list of accessible native ports

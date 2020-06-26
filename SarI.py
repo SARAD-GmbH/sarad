@@ -520,6 +520,72 @@ class RscInst(SaradInst):
             family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
 
+# ** Private methods:
+# *** __gather_all_recent_values(self):
+
+    def __gather_all_recent_values(self):
+        ok_byte = self.family['ok_byte']
+        reply = self.get_reply([b'\x14', b''], 39)
+        self._last_sampling_time = datetime.utcnow()
+        if reply and (reply[0] == ok_byte):
+            try:
+                sample_interval = timedelta(minutes=reply[1])
+                device_time_min = reply[2]
+                device_time_h = reply[3]
+                device_time_d = reply[4]
+                device_time_m = reply[5]
+                device_time_y = reply[6]
+                source = []  # measurand_source
+                source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
+                source.append(reply[11])  # 1
+                source.append(round(self._bytes_to_float(reply[12:16]),
+                                    2))  # 2
+                source.append(reply[16])  # 3
+                source.append(round(self._bytes_to_float(reply[17:21]),
+                                    2))  # 4
+                source.append(round(self._bytes_to_float(reply[21:25]),
+                                    2))  # 5
+                source.append(round(self._bytes_to_float(reply[25:29]),
+                                    2))  # 6
+                source.append(
+                    int.from_bytes(reply[29:33], byteorder='big',
+                                   signed=False))  # 7
+                source.append(self._get_battery_voltage())  # 8
+                device_time = datetime(device_time_y + 2000, device_time_m,
+                                       device_time_d, device_time_h,
+                                       device_time_min)
+            except TypeError:
+                logging.error("TypeError when parsing the payload.")
+                return False
+            except ReferenceError:
+                logging.error("ReferenceError when parsing the payload.")
+                return False
+            except LookupError:
+                logging.error("LookupError when parsing the payload.")
+                return False
+            except Exception:
+                logging.error("Unknown error when parsing the payload.")
+                return False
+            self.__interval = sample_interval
+            for component in self.components:
+                for sensor in component.sensors:
+                    sensor.interval = sample_interval
+                    for measurand in sensor.measurands:
+                        try:
+                            measurand.value = source[measurand.source]
+                            measurand.time = device_time
+                            if measurand.source == 8:  # battery voltage
+                                sensor.interval = timedelta(seconds=5)
+                        except Exception:
+                            logging.error("Can't get value for source " +
+                                          str(measurand.source) + " in " +
+                                          component.name + '/' + sensor.name +
+                                          '/' + measurand.name + '.')
+            return True
+        else:
+            logging.error("The instrument {} doesn't reply.".format(
+                self.device_id))
+            return False
 # ** Protected methods overriding methods of SaradInst:
 # *** _build_component_list(self):
 
@@ -614,78 +680,17 @@ class RscInst(SaradInst):
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
         # Do nothing as long as the previous values are valid.
-        ok_byte = self.family['ok_byte']
         if self._last_sampling_time is None:
             logging.warning(
                 'The gathered values might be invalid. ' +
                 'You should use function start_cycle() in your application ' +
                 'for a regular initialization of the measuring cycle.')
+            return self.__gather_all_recent_values(self)
         elif (datetime.utcnow() - self._last_sampling_time) < self.__interval:
             logging.debug(
                 'We do not have new values yet. Sample interval = {}'.format(
                     self.__interval))
             return True
-        reply = self.get_reply([b'\x14', b''], 39)
-        self._last_sampling_time = datetime.utcnow()
-        if reply and (reply[0] == ok_byte):
-            try:
-                sample_interval = timedelta(minutes=reply[1])
-                device_time_min = reply[2]
-                device_time_h = reply[3]
-                device_time_d = reply[4]
-                device_time_m = reply[5]
-                device_time_y = reply[6]
-                source = []  # measurand_source
-                source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
-                source.append(reply[11])  # 1
-                source.append(round(self._bytes_to_float(reply[12:16]),
-                                    2))  # 2
-                source.append(reply[16])  # 3
-                source.append(round(self._bytes_to_float(reply[17:21]),
-                                    2))  # 4
-                source.append(round(self._bytes_to_float(reply[21:25]),
-                                    2))  # 5
-                source.append(round(self._bytes_to_float(reply[25:29]),
-                                    2))  # 6
-                source.append(
-                    int.from_bytes(reply[29:33], byteorder='big',
-                                   signed=False))  # 7
-                source.append(self._get_battery_voltage())  # 8
-                device_time = datetime(device_time_y + 2000, device_time_m,
-                                       device_time_d, device_time_h,
-                                       device_time_min)
-            except TypeError:
-                logging.error("TypeError when parsing the payload.")
-                return False
-            except ReferenceError:
-                logging.error("ReferenceError when parsing the payload.")
-                return False
-            except LookupError:
-                logging.error("LookupError when parsing the payload.")
-                return False
-            except Exception:
-                logging.error("Unknown error when parsing the payload.")
-                return False
-            self.__interval = sample_interval
-            for component in self.components:
-                for sensor in component.sensors:
-                    sensor.interval = sample_interval
-                    for measurand in sensor.measurands:
-                        try:
-                            measurand.value = source[measurand.source]
-                            measurand.time = device_time
-                            if measurand.source == 8:  # battery voltage
-                                sensor.interval = timedelta(seconds=5)
-                        except Exception:
-                            logging.error("Can't get value for source " +
-                                          str(measurand.source) + " in " +
-                                          component.name + '/' + sensor.name +
-                                          '/' + measurand.name + '.')
-            return True
-        else:
-            logging.error("The instrument {} doesn't reply.".format(
-                self.device_id))
-            return False
 
 # *** get_recent_value(self):
 
@@ -921,8 +926,8 @@ class RscInst(SaradInst):
             return True
         else:
             logging.error(
-                "Setting the Wi-Fi access data on instrument {} failed."
-                .format(self.device_id))
+                "Setting the Wi-Fi access data on instrument {} failed.".
+                format(self.device_id))
             return False
 
 

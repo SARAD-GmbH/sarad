@@ -481,6 +481,32 @@ class DosemanInst(SaradInst):
         SaradInst.__init__(self, port, family)
 
 
+# ** Public methods:
+# *** stop_cycle(self):
+
+    def stop_cycle(self):
+        ok_byte = self.family['ok_byte']
+        reply = self.get_reply([b'\x15', b''], 7)
+        if reply and (reply[0] == ok_byte):
+            logging.debug('Cycle stopped at instrument with Id {}'.format(
+                self.device_id))
+            return True
+        else:
+            logging.error(
+                'stop_cycle() failed at instrument with Id {}'.format(
+                    self.device_id))
+            return False
+
+# *** start_cycle(self):
+
+    def start_cycle(self):
+        self.get_config()  # to set self.__interval
+        for component in self.components:
+            for sensor in component.sensors:
+                sensor.interval = self.__interval
+        self._last_sampling_time = datetime.utcnow()
+        return self.stop_cycle() and self._push_button()
+
 # * RscInst:
 # ** Definitions:
 class RscInst(SaradInst):

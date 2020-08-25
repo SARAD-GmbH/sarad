@@ -736,7 +736,7 @@ class RscInst(SaradInst):
                 return measurand.value
         return self.get_all_recent_values()
 
-# *** set_real_time_clock(self):
+# *** set_real_time_clock(datetime):
 
     def set_real_time_clock(self, datetime):
         """Set the instrument time."""
@@ -985,6 +985,7 @@ class DacmInst(SaradInst):
         set_components()
         get_reply()
     Public methods:
+        set_real_time_clock()
         stop_cycle()
         start_cycle()
         get_recent_values()

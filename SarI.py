@@ -989,7 +989,7 @@ class DacmInst(SaradInst):
         set_real_time_clock()
         stop_cycle()
         start_cycle()
-        get_recent_values()
+        get_all_recent_values()
         get_recent_value(index)"""
     def __init__(self, port=None, family=None):
         if family is None:

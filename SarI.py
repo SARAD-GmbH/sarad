@@ -480,11 +480,11 @@ class DosemanInst(SaradInst):
             family = SaradCluster.products[0]
         SaradInst.__init__(self, port, family)
 
-
 # ** Public methods:
 # *** stop_cycle(self):
 
     def stop_cycle(self):
+        """Stop the measuring cycle."""
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', b''], 7)
         if reply and (reply[0] == ok_byte):
@@ -506,6 +506,7 @@ class DosemanInst(SaradInst):
                 sensor.interval = self.__interval
         self._last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
+
 
 # * RscInst:
 # ** Definitions:

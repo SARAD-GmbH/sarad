@@ -547,9 +547,9 @@ class RscInst(SaradInst):
         SaradInst.__init__(self, port, family)
 
 # ** Private methods:
-# *** __gather_all_recent_values(self):
+# *** _gather_all_recent_values(self):
 
-    def __gather_all_recent_values(self):
+    def _gather_all_recent_values(self):
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x14', b''], 39)
         self._last_sampling_time = datetime.utcnow()
@@ -711,14 +711,14 @@ class RscInst(SaradInst):
                 'The gathered values might be invalid. ' +
                 'You should use function start_cycle() in your application ' +
                 'for a regular initialization of the measuring cycle.')
-            return self.__gather_all_recent_values(self)
+            return self._gather_all_recent_values()
         elif (datetime.utcnow() - self._last_sampling_time) < self.__interval:
             logging.debug(
                 'We do not have new values yet. Sample interval = {}'.format(
                     self.__interval))
             return True
 
-# *** get_recent_value(self):
+# *** get_recent_value(component_id, sensor_id, measurand_id):
 
     def get_recent_value(self,
                          component_id=None,
@@ -727,7 +727,8 @@ class RscInst(SaradInst):
         """Fill component objects with recent measuring values.\
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
-        for measurand in self.components[component_id].sensors[sensor_id]:
+        for measurand in self.components[component_id].sensors[
+                sensor_id].measurands:
             logging.debug(measurand)
             if measurand.source == 8:  # battery voltage
                 measurand.value = self._get_battery_voltage()

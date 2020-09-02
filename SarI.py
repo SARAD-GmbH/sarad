@@ -1391,9 +1391,12 @@ if __name__=='__main__':
     mycluster.update_connected_instruments()
     for connected_instrument in mycluster:
         print(connected_instrument)
-    ts = mycluster.next()
-    ts.signal = ts.Signal.off
-    ts.pump_mode = ts.Pump_mode.continuous
-    ts.radon_mode = ts.Radon_mode.fast
-    ts.units = ts.Units.si
-    ts.chamber_size = ts.Chamber_size.xl
+
+    # Example access on first device 
+    if len(mycluster.connected_instruments) > 0:
+        ts = mycluster.next()
+        ts.signal = ts.Signal.off
+        ts.pump_mode = ts.Pump_mode.continuous
+        ts.radon_mode = ts.Radon_mode.fast
+        ts.units = ts.Units.si
+        ts.chamber_size = ts.Chamber_size.xl

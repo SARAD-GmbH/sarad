@@ -1120,9 +1120,10 @@ class SaradCluster(object):
             self.__active_ports.append(port.device)
         return self.__active_ports
 
-    def update_connected_instruments(self):
+    def update_connected_instruments(self, ports_to_test = [] ):
         hid = hashids.Hashids()
-        ports_to_test = self.active_ports
+        if not ports_to_test: 
+            ports_to_test = self.active_ports
         logging.info(str(len(ports_to_test)) + ' ports to test')
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
@@ -1131,6 +1132,9 @@ class SaradCluster(object):
         # length of reply. Since the reply for DACM is longer than that for
         # RadonScout, the test for RadonScout has always to be made before
         # that for DACM.
+        # If ports_to_test is specified it will check that list of ports, 
+        # otherwise it will check all available for testing
+        # (intended for single port scan)
         for family in SaradCluster.products:
             if family['family_id'] == 1:
                 family_class = DosemanInst

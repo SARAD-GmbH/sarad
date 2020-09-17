@@ -13,6 +13,7 @@ import yaml
 from BitVector import BitVector
 import serial
 import serial.tools.list_ports
+import os
 
 class SaradInst(object):
     """Basic class for the serial communication protocol of SARAD instruments
@@ -1057,7 +1058,7 @@ class SaradCluster(object):
         dump(): Save all properties to a Pickle file
     """
 
-    with open('instruments.yaml', 'r') as __f:
+    with open(os.path.dirname(os.path.realpath(__file__))+os.path.sep+'instruments.yaml', 'r') as __f:
         products = yaml.safe_load(__f)
 
     def __init__(self, native_ports=None):

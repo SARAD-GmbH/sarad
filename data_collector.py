@@ -231,7 +231,7 @@ def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
 def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
     """Start a trapper service to transmit all values from an instrument
-    into an IoT cloud."""
+    into an experimental IoT cloud (Vodafone NB-IoT cloud)."""
     # The component_mapping provides a mapping between
     # component/sensor/measurand and items
     component_mapping = [

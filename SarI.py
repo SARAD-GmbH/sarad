@@ -13,6 +13,7 @@ import yaml
 from BitVector import BitVector  # type: ignore
 import serial  # type: ignore
 import serial.tools.list_ports  # type: ignore
+import os
 
 
 # * SaradInst:
@@ -1362,7 +1363,8 @@ class SaradCluster(object):
         dump(): Save all properties to a Pickle file
     """
 
-    with open('instruments.yaml', 'r') as __f:
+    with open(os.path.dirname(os.path.realpath(__file__)) +
+              os.path.sep+'instruments.yaml', 'r') as __f:
         products = yaml.safe_load(__f)
 
     def __init__(self, native_ports=None):
@@ -1436,11 +1438,10 @@ class SaradCluster(object):
             self.__active_ports.append(port.device)
         return self.__active_ports
 
-# *** update_connected_instruments(self):
-
-    def update_connected_instruments(self):
+    def update_connected_instruments(self, ports_to_test=[]):
         hid = hashids.Hashids()
-        ports_to_test = self.active_ports
+        if not ports_to_test:
+            ports_to_test = self.active_ports
         logging.info(str(len(ports_to_test)) + ' ports to test')
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
@@ -1449,6 +1450,9 @@ class SaradCluster(object):
         # length of reply. Since the reply for DACM is longer than that for
         # RadonScout, the test for RadonScout has always to be made before
         # that for DACM.
+        # If ports_to_test is specified, only that list of ports
+        # will be checked for instruments,
+        # otherwise all available ports will be scanned.
         for family in SaradCluster.products:
             if family['family_id'] == 1:
                 family_class = DosemanInst
@@ -1801,9 +1805,12 @@ if __name__ == '__main__':
     mycluster.update_connected_instruments()
     for connected_instrument in mycluster:
         print(connected_instrument)
-    ts = mycluster.next()
-    ts.signal = ts.Signal.off
-    ts.pump_mode = ts.Pump_mode.continuous
-    ts.radon_mode = ts.Radon_mode.fast
-    ts.units = ts.Units.si
-    ts.chamber_size = ts.Chamber_size.xl
+
+    # Example access on first device
+    if len(mycluster.connected_instruments) > 0:
+        ts = mycluster.next()
+        ts.signal = ts.Signal.off
+        ts.pump_mode = ts.Pump_mode.continuous
+        ts.radon_mode = ts.Radon_mode.fast
+        ts.units = ts.Units.si
+        ts.chamber_size = ts.Chamber_size.xl

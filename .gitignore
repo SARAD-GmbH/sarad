@@ -8,3 +8,4 @@
 !/systemd/*.service
 !/bin/install_service
 !README.org
+!.git*

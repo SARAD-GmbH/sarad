@@ -51,7 +51,7 @@ def value(instrument, component, sensor, measurand, path, lock_path):
                 mycluster.update_connected_instruments()
             logging.debug(mycluster.__dict__)
             for my_instrument in mycluster.connected_instruments:
-                if my_instrument.id == instrument:
+                if my_instrument.device_id == instrument:
                     my_instrument.get_recent_value(component, sensor,
                                                    measurand)
                     logging.debug(my_instrument.components[component])
@@ -149,7 +149,7 @@ def start_trapper(instrument, host, server, path, lock_path, once, period):
                 mycluster = SarI.SaradCluster()
                 mycluster.update_connected_instruments()
             for my_instrument in mycluster.connected_instruments:
-                if my_instrument.id == instrument:
+                if my_instrument.device_id == instrument:
                     while not once:
                         send_trap(component_mapping, host, my_instrument, zbx,
                                   mycluster)
@@ -164,7 +164,7 @@ def start_trapper(instrument, host, server, path, lock_path, once, period):
 
 @cli.command()
 @click.option('--instrument', default='j2hRuRDy',
-              help=('Instrument Id.  Run ~data_collector cluster~ to get'
+              help=('Instrument Id.  Run ~data_collector cluster~ to get '
                     'the list of available instruments.'))
 @click.option('--host', default='localhost', type=click.STRING,
               help='Host name as defined in Zabbix')
@@ -260,7 +260,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
                 mycluster = SarI.SaradCluster()
                 mycluster.update_connected_instruments()
             for my_instrument in mycluster.connected_instruments:
-                if my_instrument.id == instrument:
+                if my_instrument.device_id == instrument:
                     while not once:
                         send_iot_trap(component_mapping, my_instrument,
                                       iot_device, mycluster)

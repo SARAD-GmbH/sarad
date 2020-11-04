@@ -11,16 +11,16 @@ import time
 import schedule  # type: ignore
 import logging
 import pickle
-import paho.mqtt.client as mqtt # Add Mqtt Service
-import paho.mqtt.publish as publish # Add Mqtt Service
+import paho.mqtt as mqtt  # type: ignore
 
-### MQTT
+# MQTT configuration
 broker = 'localhost'
-topic ='Messdaten'
+topic = 'Messdaten'
 
-client = mqtt.Client()
-client.connect(broker)
-client.loop_start()
+mqtt_client = mqtt.client.Client()
+mqtt_client.connect(broker)
+mqtt_client.loop_start()
+
 
 @click.group()
 def cli():
@@ -292,7 +292,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
               help='The path and file name of the lock file.')
 @click.option('--target', default='screen',
               help=('Where the values shall go to? '
-                    '(screen, iot, zabbix, display).'))
+                    '(screen, mqtt, zabbix).'))
 def transmit(path, lock_path, target):
     # Define a function to be executed on scheduled times
     def send(target, instrument, component, sensor):
@@ -302,19 +302,15 @@ def transmit(path, lock_path, target):
             m_idx = list(sensor).index(measurand)
         instrument.get_recent_value(c_idx, s_idx, m_idx)
         if target == 'screen':
-            #push to local node red mqtt broker
-            Testtext = ("Testtext")
-            client.publish('Messdaten', Testtext)            
             print(sensor)
+        elif target == 'mqtt':
+            mqtt_client.publish('Messdaten', str(sensor))
         elif target == 'iot':
             pass
         elif target == 'zabbix':
             pass
-        elif target == 'display':
-            pass
         else:
-            logging.error(('Target must be either screen, iot, zabbix '
-                           'or display.'))
+            logging.error(('Target must be either screen, mqtt or zabbix.'))
 
     # Get the list of instruments in the cluster
     try:

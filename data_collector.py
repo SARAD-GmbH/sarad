@@ -11,15 +11,13 @@ import time
 import schedule  # type: ignore
 import logging
 import pickle
-import paho.mqtt as mqtt  # type: ignore
+import paho.mqtt.client as client  # type: ignore
 
 # MQTT configuration
 broker = 'localhost'
 topic = 'Messdaten'
 
-mqtt_client = mqtt.client.Client()
-mqtt_client.connect(broker)
-mqtt_client.loop_start()
+mqtt_client = client.Client()
 
 
 @click.group()
@@ -47,8 +45,7 @@ def cli():
               help='The path and file name of the lock file.')
 def value(instrument, component, sensor, measurand, path, lock_path):
     """Command line application that gives back
-    the most recent value of a SARAD instrument whenever it is called.
-    Made to be a data source for Zabbix agent."""
+    the most recent value of a SARAD instrument whenever it is called."""
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
@@ -305,8 +302,6 @@ def transmit(path, lock_path, target):
             print(sensor)
         elif target == 'mqtt':
             mqtt_client.publish('Messdaten', str(sensor))
-        elif target == 'iot':
-            pass
         elif target == 'zabbix':
             pass
         else:
@@ -319,6 +314,9 @@ def transmit(path, lock_path, target):
     except Exception:
         mycluster = SarI.SaradCluster()
         mycluster.update_connected_instruments()
+    # Connect to MQTT broker
+    mqtt_client.connect(broker)
+    mqtt_client.loop_start()
     # Start measuring cycles at all instruments
     mycluster.synchronize()
     for instrument in mycluster:

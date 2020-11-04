@@ -10,8 +10,11 @@ from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 import time
 import schedule  # type: ignore
 import logging
+import click_log  # type: ignore
 import pickle
 import paho.mqtt.client as client  # type: ignore
+logger = logging.getLogger(__name__)
+click_log.basic_config(logger)
 
 # MQTT configuration
 broker = 'localhost'
@@ -24,9 +27,10 @@ lock_hint = "Another instance of this application currently holds the lock."
 
 
 @click.group()
+@click_log.simple_verbosity_option(logger)
 def cli():
     """Description for the group of commands"""
-    logging.basicConfig(level=logging.DEBUG)
+    pass
 
 
 @cli.command()
@@ -58,13 +62,13 @@ def value(instrument, component, sensor, measurand, path, lock_path):
             except Exception:
                 mycluster = SarI.SaradCluster()
                 mycluster.update_connected_instruments()
-            logging.debug(mycluster.__dict__)
+            logger.debug(mycluster.__dict__)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
                     my_instrument.get_config()
                     my_instrument.get_recent_value(component, sensor,
                                                    measurand)
-                    logging.debug(my_instrument.components[component])
+                    logger.debug(my_instrument.components[component])
                     click.echo(my_instrument.components[component].
                                sensors[sensor].measurands[measurand].value)
             with open(path, 'wb') as f:
@@ -88,7 +92,7 @@ def cluster(path, lock_path):
         with lock.acquire(timeout=10):
             mycluster = SarI.SaradCluster()
             mycluster.update_connected_instruments()
-            logging.debug(mycluster.__dict__)
+            logger.debug(mycluster.__dict__)
             for instrument in mycluster:
                 click.echo(instrument)
             with open(path, 'wb') as f:
@@ -147,7 +151,7 @@ def start_trapper(instrument, host, server, path, lock_path, once, period):
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            logging.debug("Path: " + path)
+            logger.debug("Path: " + path)
             with open('last_session', 'w') as f:
                 f.write(instrument + " " + host + " " + server + " " + path +
                         " " + lock_path + " " + str(period))
@@ -309,7 +313,7 @@ def transmit(path, lock_path, target):
         elif target == 'zabbix':
             pass
         else:
-            logging.error(('Target must be either screen, mqtt or zabbix.'))
+            logger.error(('Target must be either screen, mqtt or zabbix.'))
 
     # Get the list of instruments in the cluster
     try:
@@ -332,7 +336,7 @@ def transmit(path, lock_path, target):
             for sensor in component:
                 schedule.every(sensor.interval.seconds).\
                     seconds.do(send, target, instrument, component, sensor)
-                logging.debug(sensor.interval.seconds)
+                logger.debug(sensor.interval.seconds)
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -344,14 +348,14 @@ def last_session():
     try:
         with open('last_session') as f:
             last_args = f.read().split(" ")
-            logging.debug("Using arguments from last run:" + str(last_args))
+            logger.debug("Using arguments from last run:" + str(last_args))
             # def trapper(instrument -0, host - 1, server -2, path -3,
             # lock_path -4, once, period -5):
             start_trapper(last_args[0], last_args[1], last_args[2],
                           last_args[3], last_args[4], False, int(last_args[5]))
     except IOError:
-        logging.debug(("No last run detected. Using defaults: ['j2hRuRDy', "
-                       "'localhost', '127.0.0.1', 'mycluster.pickle', "
-                       "'mycluster.lock', '60']"))
+        logger.debug(("No last run detected. Using defaults: ['j2hRuRDy', "
+                      "'localhost', '127.0.0.1', 'mycluster.pickle', "
+                      "'mycluster.lock', '60']"))
         start_trapper('j2hRuRDy', 'localhost', '127.0.0.1',
                       'mycluster.pickle', 'mycluster.lock', False, 60)

@@ -1,12 +1,12 @@
-from setuptools import setup
+from setuptools import setup  # type: ignore
 
 setup(
     name='data_collector',
     version='0.1',
     py_modules=['data_collector', 'SarI', 'NbEasy'],
     install_requires=[
-        'Click', 'pyserial', 'filelock', 'hashids', 'pyyaml', 'py-zabbix', \
-        'bitvector', 'schedule'
+        'click', 'click_log', 'pyserial', 'filelock', 'hashids', 'pyyaml',
+        'py-zabbix', 'bitvector', 'schedule'
     ],
     entry_points='''
         [console_scripts]

@@ -591,6 +591,9 @@ class RscInst(SaradInst):
             except LookupError:
                 logging.error("LookupError when parsing the payload.")
                 return False
+            except ValueError:
+                logging.error("ValueError when parsing the payload.")
+                return False
             except Exception:
                 logging.error("Unknown error when parsing the payload.")
                 return False
@@ -694,7 +697,7 @@ class RscInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logging.debug(
                 'Push button simulated at instrument with id {}'.format(
-                    self.idd))
+                    self.device_id))
             return True
         else:
             logging.error("Push button failed at instrument with Id {}".format(

@@ -11,7 +11,16 @@ import time
 import schedule  # type: ignore
 import logging
 import pickle
+import paho.mqtt.client as mqtt # Add Mqtt Service
+import paho.mqtt.publish as publish # Add Mqtt Service
 
+### MQTT
+broker = 'localhost'
+topic ='Messdaten'
+
+client = mqtt.Client()
+client.connect(broker)
+client.loop_start()
 
 @click.group()
 def cli():
@@ -293,6 +302,9 @@ def transmit(path, lock_path, target):
             m_idx = list(sensor).index(measurand)
         instrument.get_recent_value(c_idx, s_idx, m_idx)
         if target == 'screen':
+            #push to local node red mqtt broker
+            Testtext = ("Testtext")
+            client.publish('Messdaten', Testtext)            
             print(sensor)
         elif target == 'iot':
             pass

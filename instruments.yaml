@@ -391,13 +391,6 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_source: 7
-      - sensor_id: 3
-        sensor_name: battery
-        measurands:
-        - measurand_id: 0
-          measurand_name: recent
-          measurand_unit: V
-          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -455,13 +448,6 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_source: 7
-      - sensor_id: 4
-        sensor_name: battery
-        measurands:
-        - measurand_id: 0
-          measurand_name: recent
-          measurand_unit: V
-          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:
@@ -519,13 +505,6 @@
         - measurand_id: 0
           measurand_name: recent
           measurand_source: 7
-      - sensor_id: 4
-        sensor_name: battery
-        measurands:
-        - measurand_id: 0
-          measurand_name: recent
-          measurand_unit: V
-          measurand_source: 8
     - component_id: 1
       component_name: radon
       sensors:

@@ -315,8 +315,9 @@ def transmit(path, lock_path, target):
         mycluster = SarI.SaradCluster()
         mycluster.update_connected_instruments()
     # Connect to MQTT broker
-    mqtt_client.connect(broker)
-    mqtt_client.loop_start()
+    if target == 'mqtt':
+        mqtt_client.connect(broker)
+        mqtt_client.loop_start()
     # Start measuring cycles at all instruments
     mycluster.synchronize()
     for instrument in mycluster:

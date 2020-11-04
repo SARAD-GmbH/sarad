@@ -719,6 +719,8 @@ class RscInst(SaradInst):
                 'We do not have new values yet. Sample interval = {}'.format(
                     self.__interval))
             return True
+        else:
+            return self._gather_all_recent_values()
 
 # *** get_recent_value(component_id, sensor_id, measurand_id):
 

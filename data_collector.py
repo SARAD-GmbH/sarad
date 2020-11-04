@@ -19,6 +19,9 @@ topic = 'Messdaten'
 
 mqtt_client = client.Client()
 
+# Strings
+lock_hint = "Another instance of this application currently holds the lock."
+
 
 @click.group()
 def cli():
@@ -58,15 +61,16 @@ def value(instrument, component, sensor, measurand, path, lock_path):
             logging.debug(mycluster.__dict__)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
+                    my_instrument.get_config()
                     my_instrument.get_recent_value(component, sensor,
                                                    measurand)
                     logging.debug(my_instrument.components[component])
-                    print(my_instrument.components[component].sensors[sensor].
-                          measurands[measurand].value)
+                    click.echo(my_instrument.components[component].
+                               sensors[sensor].measurands[measurand].value)
             with open(path, 'wb') as f:
                 mycluster.dump(f)
     except Timeout:
-        print("Another instance of this application currently holds the lock.")
+        click.echo(lock_hint)
 
 
 @cli.command()
@@ -86,11 +90,11 @@ def cluster(path, lock_path):
             mycluster.update_connected_instruments()
             logging.debug(mycluster.__dict__)
             for instrument in mycluster:
-                print(instrument)
+                click.echo(instrument)
             with open(path, 'wb') as f:
                 mycluster.dump(f)
     except Timeout:
-        print("Another instance of this application currently holds the lock.")
+        click.echo(lock_hint)
 
 
 @cli.command()
@@ -108,11 +112,11 @@ def list_iot_devices(path, lock_path):
         with lock.acquire(timeout=10):
             iotcluster = NbEasy.IoTCluster()
             for device in iotcluster:
-                print(device)
+                click.echo(device)
             with open(path, 'wb') as f:
                 iotcluster.dump(f)
     except Timeout:
-        print("Another instance of this application currently holds the lock.")
+        click.echo(lock_hint)
 
 
 def send_trap(component_mapping, host, instrument, zbx, mycluster):
@@ -165,7 +169,7 @@ def start_trapper(instrument, host, server, path, lock_path, once, period):
                     with open(path, 'wb') as f:
                         mycluster.dump(f)
     except Timeout:
-        print("Another instance of this application currently holds the lock.")
+        click.echo(lock_hint)
 
 
 @cli.command()
@@ -276,7 +280,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
                     with open(path, 'wb') as f:
                         mycluster.dump(f)
     except Timeout:
-        print("Another instance of this application currently holds the lock.")
+        click.echo(lock_hint)
 
 
 @cli.command()
@@ -299,7 +303,7 @@ def transmit(path, lock_path, target):
             m_idx = list(sensor).index(measurand)
         instrument.get_recent_value(c_idx, s_idx, m_idx)
         if target == 'screen':
-            print(sensor)
+            click.echo(sensor)
         elif target == 'mqtt':
             mqtt_client.publish('Messdaten', str(sensor))
         elif target == 'zabbix':

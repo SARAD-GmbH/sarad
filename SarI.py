@@ -24,8 +24,9 @@ class SaradInst():
     Properties:
         port: String containing the serial communication port
         family: Device family of the instrument expected to be at this port
-        id: Identifier for an individual instrument in a cluster
+        device_id: Identifier for an individual instrument in a cluster
         type_id: Together with family, this Id identifys the instrument type.
+        type_name: Identifys the instrument type.
         software_version: The version of the firmware.
         serial_number: Serial number of the connected instrument.
         components: List of sensor or actor components
@@ -84,6 +85,7 @@ class SaradInst():
         self.__n = len(self.__components)
         self.__interval = None
         self._type_id = None
+        self._type_name = None
         self._software_version = None
         self._serial_number = None
 
@@ -212,10 +214,7 @@ class SaradInst():
         output += "Baudrate: " + str(self.family['baudrate']) + "\n"
         output += "FamilyName: " + str(self.family['family_name']) + "\n"
         output += "FamilyId: " + str(self.family['family_id']) + "\n"
-        for type_in_family in self.family['types']:
-            if type_in_family['type_id'] == self.type_id:
-                type_name = type_in_family['type_name']
-                output += "TypName: " + type_name + "\n"
+        output += "TypName: " + self.type_name + "\n"
         output += "TypeId: " + str(self.type_id) + "\n"
         output += "SoftwareVersion: " + str(self.software_version) + "\n"
         output += "SerialNumber: " + str(self.serial_number) + "\n"
@@ -419,6 +418,13 @@ class SaradInst():
     def get_type_id(self):
         return self._type_id
 
+# *** get_type_name():
+
+    def get_type_name(self):
+        for type_in_family in self.family['types']:
+            if type_in_family['type_id'] == self.type_id:
+                return type_in_family['type_name']
+
 # *** get_software_version():
 
     def get_software_version(self):
@@ -443,6 +449,7 @@ class SaradInst():
     device_id = property(get_id, set_id)
     family = property(get_family, set_family)
     type_id = property(get_type_id)
+    type_name = property(get_type_name)
     software_version = property(get_software_version)
     serial_number = property(get_serial_number)
     components = property(get_components, set_components)
@@ -458,6 +465,7 @@ class DosemanInst(SaradInst):
         device_id
         family
         type_id
+        type_name
         software_version
         serial_number
         components: List of sensor or actor components
@@ -519,6 +527,7 @@ class RscInst(SaradInst):
         family: Device family of the instrument expected to be at this port
         device_id: Identifier for an individual instrument in a cluster
         type_id
+        type_name
         software_version
         serial_number
         components: List of sensor or actor components
@@ -1012,10 +1021,7 @@ class DacmInst(SaradInst):
         output += "Baudrate: " + str(self.family['baudrate']) + "\n"
         output += "FamilyName: " + str(self.family['family_name']) + "\n"
         output += "FamilyId: " + str(self.family['family_id']) + "\n"
-        for type_in_family in self.family['types']:
-            if type_in_family['type_id'] == self.type_id:
-                type_name = type_in_family['type_name']
-                output += "TypName: " + type_name + "\n"
+        output += "TypName: " + self.type_name + "\n"
         output += "TypeId: " + str(self.type_id) + "\n"
         output += "SoftwareVersion: " + str(self.software_version) + "\n"
         output += "LastUpdate: " + str(self.date_of_update) + "\n"
@@ -1368,8 +1374,9 @@ class SaradCluster(object):
         dump(): Save all properties to a Pickle file
     """
 
-    with open(os.path.dirname(os.path.realpath(__file__)) +
-              os.path.sep+'instruments.yaml', 'r') as __f:
+    # with open(os.path.dirname(os.path.realpath(__file__)) +
+    with open(os.getcwd() +
+              os.path.sep + 'instruments.yaml', 'r') as __f:
         products = yaml.safe_load(__f)
 
     def __init__(self, native_ports=None):

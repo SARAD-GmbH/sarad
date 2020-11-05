@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
 
 # MQTT configuration
-broker = 'localhost'
-topic = 'Messdaten'
+broker = '192.168.10.219'
+client_id = 'ap-strey'
 
 mqtt_client = client.Client()
 
@@ -305,15 +305,22 @@ def transmit(path, lock_path, target):
             c_idx = list(instrument).index(component)
             s_idx = list(component).index(sensor)
             m_idx = list(sensor).index(measurand)
-        instrument.get_recent_value(c_idx, s_idx, m_idx)
-        if target == 'screen':
-            click.echo(sensor)
-        elif target == 'mqtt':
-            mqtt_client.publish('Messdaten', str(sensor))
-        elif target == 'zabbix':
-            pass
-        else:
-            logger.error(('Target must be either screen, mqtt or zabbix.'))
+            instrument.get_recent_value(c_idx, s_idx, m_idx)
+            if target == 'screen':
+                click.echo(sensor)
+            elif target == 'mqtt':
+                mqtt_client.publish('{}/status/{}/{}/{}'.
+                                    format(client_id, instrument.device_id,
+                                           sensor.name, measurand.name),
+                                    '{' + '"val": {}, "ts": {}'.
+                                    format(measurand.value, measurand.time) +
+                                    '}')
+                logger.debug('MQTT message for {} published.'.
+                             format(sensor.name))
+            elif target == 'zabbix':
+                pass
+            else:
+                logger.error(('Target must be either screen, mqtt or zabbix.'))
 
     # Get the list of instruments in the cluster
     try:

@@ -161,7 +161,7 @@
           measurand_operator: ±
           measurand_source: 3
   - type_id: 4
-    type_name: RTM 1688
+    type_name: RTM 1688-2
     battery_bytes: 2
     battery_coeff: 0.01801
     components:

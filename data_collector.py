@@ -336,7 +336,10 @@ def transmit(path, lock_path, target):
             for sensor in component:
                 schedule.every(sensor.interval.seconds).\
                     seconds.do(send, target, instrument, component, sensor)
-                logger.debug(sensor.interval.seconds)
+                logger.debug(('Poll sensor {} of instrument {} '
+                              'in intervals of {} seconds.').
+                             format(sensor.name, instrument.device_id,
+                                    sensor.interval.seconds))
     while True:
         schedule.run_pending()
         time.sleep(1)

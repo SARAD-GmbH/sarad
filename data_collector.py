@@ -16,16 +16,19 @@ import paho.mqtt.client as client  # type: ignore
 logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
 
-# MQTT configuration
-broker = '192.168.10.219'
+# * MQTT configuration
+broker = 'localhost'
 client_id = 'ap-strey'
 
 mqtt_client = client.Client()
 
-# Strings
+# * Strings
 lock_hint = "Another instance of this application currently holds the lock."
 
+# * Ha
 
+
+# * Main group of commands
 @click.group()
 @click_log.simple_verbosity_option(logger)
 def cli():
@@ -33,6 +36,7 @@ def cli():
     pass
 
 
+# * Single value output
 @cli.command()
 @click.option('--instrument', default='j2hRuRDy',
               help=('Instrument Id.  Run ~data_collector cluster~ to get '
@@ -77,6 +81,7 @@ def value(instrument, component, sensor, measurand, path, lock_path):
         click.echo(lock_hint)
 
 
+# * List SARAD instruments
 @cli.command()
 @click.option('--path', type=click.Path(writable=True),
               default='mycluster.pickle',
@@ -101,6 +106,7 @@ def cluster(path, lock_path):
         click.echo(lock_hint)
 
 
+# * List NB-IoT devices
 @cli.command()
 @click.option('--path', type=click.Path(writable=True),
               default='iotcluster.pickle',
@@ -123,6 +129,7 @@ def list_iot_devices(path, lock_path):
         click.echo(lock_hint)
 
 
+# * Zabbix trapper
 def send_trap(component_mapping, host, instrument, zbx, mycluster):
     metrics = []
     for component_map in component_mapping:
@@ -201,6 +208,7 @@ def trapper(instrument, host, server, path, lock_path, once, period):
     start_trapper(instrument, host, server, path, lock_path, once, period)
 
 
+# * Experimental NB-IoT trapper
 def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
     for component_map in component_mapping:
         if instrument.get_all_recent_values() is True:
@@ -287,6 +295,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
         click.echo(lock_hint)
 
 
+# * Transmit all values to a target
 @cli.command()
 @click.option('--path', type=click.Path(writable=True),
               default='mycluster.pickle',
@@ -352,6 +361,7 @@ def transmit(path, lock_path, target):
         time.sleep(1)
 
 
+# * Re-start last Zabbix trapper session
 @cli.command()
 def last_session():
     """Starts the last trapper session as continuous service"""

@@ -12,6 +12,8 @@ import schedule  # type: ignore
 import logging
 import click_log  # type: ignore
 import pickle
+import signal
+import sys
 import paho.mqtt.client as client  # type: ignore
 logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
@@ -26,8 +28,19 @@ mqtt_client = client.Client()
 lock_hint = "Another instance of this application currently holds the lock."
 
 
+# * Handling of Ctrl+C:
+def signal_handler(sig, frame):
+    for instrument in thiscluster:
+        instrument.stop_cycle()
+    logger.debug('You pressed Ctrl+C!')
+    sys.exit(0)
 
-# * Main group of commands
+
+thiscluster = None
+signal.signal(signal.SIGINT, signal_handler)
+
+
+# * Main group of commands:
 @click.group()
 @click_log.simple_verbosity_option(logger)
 def cli():

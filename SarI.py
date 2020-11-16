@@ -1232,6 +1232,11 @@ class DacmInst(SaradInst):
                         reply[1]))
             return False
 
+# *** set_lock():
+
+    def set_lock(self):
+        return True
+
 # *** get_all_recent_values(self):
 
     def get_all_recent_values(self):

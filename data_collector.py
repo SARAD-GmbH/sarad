@@ -78,6 +78,8 @@ def value(instrument, component, sensor, measurand, path, lock_path):
             except Exception:
                 mycluster = SarI.SaradCluster()
                 mycluster.update_connected_instruments()
+                with open(path, 'wb') as f:
+                    mycluster.dump(f)
             logger.debug(mycluster.__dict__)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
@@ -87,8 +89,6 @@ def value(instrument, component, sensor, measurand, path, lock_path):
                     logger.debug(my_instrument.components[component])
                     click.echo(my_instrument.components[component].
                                sensors[sensor].measurands[measurand].value)
-            with open(path, 'wb') as f:
-                mycluster.dump(f)
     except Timeout:
         click.echo(lock_hint)
 
@@ -114,8 +114,10 @@ def cluster(path, lock_path):
                 click.echo(instrument)
             with open(path, 'wb') as f:
                 mycluster.dump(f)
+            return mycluster
     except Timeout:
         click.echo(lock_hint)
+        return False
 
 
 # * List NB-IoT devices:
@@ -181,6 +183,8 @@ def start_trapper(instrument, host, server, path, lock_path, once, period):
             except Exception:
                 mycluster = SarI.SaradCluster()
                 mycluster.update_connected_instruments()
+                with open(path, 'wb') as f:
+                    mycluster.dump(f)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
                     while not once:
@@ -189,8 +193,6 @@ def start_trapper(instrument, host, server, path, lock_path, once, period):
                         time.sleep(period - time.time() % period)
                     send_trap(component_mapping, host, my_instrument, zbx,
                               mycluster)
-                    with open(path, 'wb') as f:
-                        mycluster.dump(f)
     except Timeout:
         click.echo(lock_hint)
 
@@ -294,6 +296,8 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
             except Exception:
                 mycluster = SarI.SaradCluster()
                 mycluster.update_connected_instruments()
+                with open(path, 'wb') as f:
+                    mycluster.dump(f)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
                     while not once:
@@ -302,8 +306,6 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
                         time.sleep(period - time.time() % period)
                     send_iot_trap(component_mapping, my_instrument, iot_device,
                                   mycluster)
-                    with open(path, 'wb') as f:
-                        mycluster.dump(f)
     except Timeout:
         click.echo(lock_hint)
 
@@ -344,37 +346,48 @@ def transmit(path, lock_path, target):
             else:
                 logger.error(('Target must be either screen, mqtt or zabbix.'))
 
-    # Get the list of instruments in the cluster
+    global thiscluster
+    lock = FileLock(lock_path)
     try:
-        with open(path, 'rb') as f:
-            mycluster = pickle.load(f)
-    except Exception:
-        mycluster = SarI.SaradCluster()
-        mycluster.update_connected_instruments()
-    # Connect to MQTT broker
-    if target == 'mqtt':
-        mqtt_client.connect(broker)
-        mqtt_client.loop_start()
-    # Start measuring cycles at all instruments
-    mycluster.synchronize()
-    for instrument in mycluster:
-        instrument.set_lock()
-    # Build the scheduler
-    for instrument in mycluster:
-        for component in instrument:
-            for sensor in component:
-                schedule.every(sensor.interval.seconds).\
-                    seconds.do(send, target, instrument, component, sensor)
-                logger.debug(('Poll sensor {} of instrument {} '
-                              'in intervals of {} seconds.').
-                             format(sensor.name, instrument.device_id,
-                                    sensor.interval.seconds))
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+        with lock.acquire(timeout=10):
+            logger.debug("Path: " + path)
+        # Get the list of instruments in the cluster
+        try:
+            with open(path, 'rb') as f:
+                mycluster = pickle.load(f)
+        except Exception:
+            mycluster = SarI.SaradCluster()
+            mycluster.update_connected_instruments()
+            with open(path, 'wb') as f:
+                mycluster.dump(f)
+        thiscluster = mycluster
+        # Connect to MQTT broker
+        if target == 'mqtt':
+            mqtt_client.connect(broker)
+            mqtt_client.loop_start()
+        # Start measuring cycles at all instruments
+        mycluster.synchronize()
+        for instrument in mycluster:
+            instrument.set_lock()
+        # Build the scheduler
+        for instrument in mycluster:
+            for component in instrument:
+                for sensor in component:
+                    schedule.every(sensor.interval.seconds).\
+                        seconds.do(send, target, instrument, component, sensor)
+                    logger.debug(('Poll sensor {} of instrument {} '
+                                  'in intervals of {} seconds.').
+                                 format(sensor.name, instrument.device_id,
+                                        sensor.interval.seconds))
+        print('Press Ctrl+C to abort.')
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+    except Timeout:
+        click.echo(lock_hint)
 
 
-# * Re-start last Zabbix trapper session
+# * Re-start last Zabbix trapper session:
 @cli.command()
 def last_session():
     """Starts the last trapper session as continuous service"""

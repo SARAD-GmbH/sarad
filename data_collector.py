@@ -16,16 +16,15 @@ import paho.mqtt.client as client  # type: ignore
 logger = logging.getLogger(__name__)
 click_log.basic_config(logger)
 
-# * MQTT configuration
+# * MQTT configuration:
 broker = 'localhost'
 client_id = 'ap-strey'
 
 mqtt_client = client.Client()
 
-# * Strings
+# * Strings:
 lock_hint = "Another instance of this application currently holds the lock."
 
-# * Ha
 
 
 # * Main group of commands
@@ -36,7 +35,7 @@ def cli():
     pass
 
 
-# * Single value output
+# * Single value output:
 @cli.command()
 @click.option('--instrument', default='j2hRuRDy',
               help=('Instrument Id.  Run ~data_collector cluster~ to get '
@@ -81,7 +80,7 @@ def value(instrument, component, sensor, measurand, path, lock_path):
         click.echo(lock_hint)
 
 
-# * List SARAD instruments
+# * List SARAD instruments:
 @cli.command()
 @click.option('--path', type=click.Path(writable=True),
               default='mycluster.pickle',
@@ -106,7 +105,7 @@ def cluster(path, lock_path):
         click.echo(lock_hint)
 
 
-# * List NB-IoT devices
+# * List NB-IoT devices:
 @cli.command()
 @click.option('--path', type=click.Path(writable=True),
               default='iotcluster.pickle',
@@ -129,7 +128,7 @@ def list_iot_devices(path, lock_path):
         click.echo(lock_hint)
 
 
-# * Zabbix trapper
+# * Zabbix trapper:
 def send_trap(component_mapping, host, instrument, zbx, mycluster):
     metrics = []
     for component_map in component_mapping:
@@ -208,7 +207,7 @@ def trapper(instrument, host, server, path, lock_path, once, period):
     start_trapper(instrument, host, server, path, lock_path, once, period)
 
 
-# * Experimental NB-IoT trapper
+# * Experimental NB-IoT trapper:
 def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
     for component_map in component_mapping:
         if instrument.get_all_recent_values() is True:
@@ -255,7 +254,8 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
     """Start a trapper service to transmit all values from an instrument
     into an experimental IoT cloud (Vodafone NB-IoT cloud)."""
     # The component_mapping provides a mapping between
-    # component/sensor/measurand and items
+    # component/sensor/measurand and items.
+    # Quick and dirty for Thoron Scout only!
     component_mapping = [
         dict(component_id=1, sensor_id=0, measurand_id=0, item='radon'),
         dict(component_id=1, sensor_id=1, measurand_id=0, item='thoron'),
@@ -295,7 +295,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
         click.echo(lock_hint)
 
 
-# * Transmit all values to a target
+# * Transmit all values to a target:
 @cli.command()
 @click.option('--path', type=click.Path(writable=True),
               default='mycluster.pickle',

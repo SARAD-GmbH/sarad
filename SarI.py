@@ -1132,6 +1132,47 @@ class DacmInst(SaradInst):
             logging.error('Get description failed.')
             return False
 
+# *** _read_cycle_start(self):
+
+    def _read_cycle_start(self, cycle_index=0):
+        """Get description of a measuring cycle."""
+        ok_byte = self.family['ok_byte']
+        reply = self.get_reply([b'\x06', bytes([cycle_index])], 34)
+        if reply and (reply[0] == ok_byte) and reply[1]:
+            logging.debug('Get primary cycle information successful.')
+            try:
+                cycle_name = reply[2:19].split(b'\x00')[0].decode("ascii")
+                cycle_interval = int.from_bytes(reply[19:21],
+                                                byteorder='little',
+                                                signed=False)
+                cycle_steps = int.from_bytes(reply[21:24],
+                                             byteorder='big',
+                                             signed=False)
+                cycle_repetitions = int.from_bytes(reply[24:28],
+                                                   byteorder='little',
+                                                   signed=False)
+                return dict(cycle_name=cycle_name,
+                            cycle_interval=cycle_interval,
+                            cycle_steps=cycle_steps,
+                            cycle_repetitions=cycle_repetitions)
+            except TypeError:
+                logging.error("TypeError when parsing the payload.")
+                return False
+            except ReferenceError:
+                logging.error("ReferenceError when parsing the payload.")
+                return False
+            except LookupError:
+                logging.error("LookupError when parsing the payload.")
+                return False
+            except Exception:
+                logging.error("Unknown error when parsing the payload.")
+                return False
+            else:
+                pass
+        else:
+            logging.error('Get primary cycle info failed.')
+            return False
+
 # *** _get_component_information():
 
     def _get_component_information(self, component_index):
@@ -1831,3 +1872,5 @@ if __name__ == '__main__':
         ts.radon_mode = ts.Radon_mode.fast
         ts.units = ts.Units.si
         ts.chamber_size = ts.Chamber_size.xl
+
+#  LocalWords:  instrument

@@ -21,8 +21,21 @@ click_log.basic_config(logger)
 # * MQTT configuration:
 broker = 'localhost'
 client_id = 'ap-strey'
+mqtt_connected = False
+
+
+def on_connect(client, userdata, flags, rc):
+    global mqtt_connected
+    if rc:
+        logger.info('Connection to MQTT broker failed. rc={}'.format(rc))
+        mqtt_connected = False
+    else:
+        logger.info('Connected with MQTT broker.')
+        mqtt_connected = True
+
 
 mqtt_client = client.Client()
+mqtt_client.on_connect = on_connect
 
 # * Strings:
 lock_hint = "Another instance of this application currently holds the lock."
@@ -30,9 +43,14 @@ lock_hint = "Another instance of this application currently holds the lock."
 
 # * Handling of Ctrl+C:
 def signal_handler(sig, frame):
+    logger.info('You pressed Ctrl+C!')
     for instrument in thiscluster:
         instrument.stop_cycle()
-    logger.debug('You pressed Ctrl+C!')
+        logger.info('Instrument {} stopped.'.format(instrument.device_id))
+    if mqtt_connected:
+        mqtt_client.disconnect()
+        mqtt_client.loop_stop()
+        logger.info('Gracefully disconnected from MQTT broker.')
     sys.exit(0)
 
 
@@ -369,6 +387,8 @@ def transmit(path, lock_path, target):
         mycluster.synchronize()
         for instrument in mycluster:
             instrument.set_lock()
+            logger.info('Instrument {} started and locked.'.
+                        format(instrument.device_id))
         # Build the scheduler
         for instrument in mycluster:
             for component in instrument:

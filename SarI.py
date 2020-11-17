@@ -1173,6 +1173,42 @@ class DacmInst(SaradInst):
             logging.error('Get primary cycle info failed.')
             return False
 
+# *** _read_cycle_continue():
+
+    def _read_cycle_continue(self):
+        """Get description of subsequent cycle intervals."""
+        reply = self.get_reply([b'\x07', b''], 22)
+        if reply and not (len(reply) < 16):
+            logging.debug('Get information about cycle interval successful.')
+            try:
+                seconds = int.from_bytes(reply[0:4],
+                                         byteorder='little',
+                                         signed=False)
+                bit_ctrl = BitVector(rawbytes=reply[4:8])
+                value_ctrl = BitVector(rawbytes=reply[8:12])
+                rest = BitVector(rawbytes=reply[12:16])
+                return dict(seconds=seconds,
+                            bit_ctrl=bit_ctrl,
+                            value_ctrl=value_ctrl,
+                            rest=rest)
+            except TypeError:
+                logging.error("TypeError when parsing the payload.")
+                return False
+            except ReferenceError:
+                logging.error("ReferenceError when parsing the payload.")
+                return False
+            except LookupError:
+                logging.error("LookupError when parsing the payload.")
+                return False
+            except Exception:
+                logging.error("Unknown error when parsing the payload.")
+                return False
+            else:
+                pass
+        else:
+            logging.debug('Get info about cycle interval failed.')
+            return False
+
 # *** _get_component_information():
 
     def _get_component_information(self, component_index):

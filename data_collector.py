@@ -329,6 +329,39 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
 
 
 # * Transmit all values to a target:
+def send(target, instrument, component, sensor):
+    '''Define a function to be executed on scheduled times'''
+    for measurand in sensor:
+        c_idx = list(instrument).index(component)
+        s_idx = list(component).index(sensor)
+        m_idx = list(sensor).index(measurand)
+        instrument.get_recent_value(c_idx, s_idx, m_idx)
+        if target == 'screen':
+            click.echo(sensor)
+        elif target == 'mqtt':
+            mqtt_client.publish('{}/status/{}/{}/{}'.
+                                format(client_id, instrument.device_id,
+                                       sensor.name, measurand.name),
+                                '{' + '"val": {}, "ts": {}'.
+                                format(measurand.value, measurand.time) +
+                                '}')
+            logger.debug('MQTT message for {} published.'.
+                         format(sensor.name))
+        elif target == 'zabbix':
+            pass
+        else:
+            logger.error(('Target must be either screen, mqtt or zabbix.'))
+
+
+def set_scheduler(function, target, instrument, component, sensor):
+    schedule.every(sensor.interval.seconds).\
+        seconds.do(send, target, instrument, component, sensor)
+    logger.debug(('Poll sensor {} of instrument {} '
+                  'in intervals of {} seconds.').
+                 format(sensor.name, instrument.device_id,
+                        sensor.interval.seconds))
+
+
 @cli.command()
 @click.option('--path', type=click.Path(writable=True),
               default='mycluster.pickle',
@@ -341,29 +374,6 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
               help=('Where the values shall go to? '
                     '(screen, mqtt, zabbix).'))
 def transmit(path, lock_path, target):
-    # Define a function to be executed on scheduled times
-    def send(target, instrument, component, sensor):
-        for measurand in sensor:
-            c_idx = list(instrument).index(component)
-            s_idx = list(component).index(sensor)
-            m_idx = list(sensor).index(measurand)
-            instrument.get_recent_value(c_idx, s_idx, m_idx)
-            if target == 'screen':
-                click.echo(sensor)
-            elif target == 'mqtt':
-                mqtt_client.publish('{}/status/{}/{}/{}'.
-                                    format(client_id, instrument.device_id,
-                                           sensor.name, measurand.name),
-                                    '{' + '"val": {}, "ts": {}'.
-                                    format(measurand.value, measurand.time) +
-                                    '}')
-                logger.debug('MQTT message for {} published.'.
-                             format(sensor.name))
-            elif target == 'zabbix':
-                pass
-            else:
-                logger.error(('Target must be either screen, mqtt or zabbix.'))
-
     global thiscluster
     lock = FileLock(lock_path)
     try:
@@ -393,12 +403,7 @@ def transmit(path, lock_path, target):
         for instrument in mycluster:
             for component in instrument:
                 for sensor in component:
-                    schedule.every(sensor.interval.seconds).\
-                        seconds.do(send, target, instrument, component, sensor)
-                    logger.debug(('Poll sensor {} of instrument {} '
-                                  'in intervals of {} seconds.').
-                                 format(sensor.name, instrument.device_id,
-                                        sensor.interval.seconds))
+                    set_scheduler(send, target, instrument, component, sensor)
         print('Press Ctrl+C to abort.')
         while True:
             schedule.run_pending()

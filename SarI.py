@@ -866,7 +866,6 @@ class RscInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=3)
             logging.debug(f'Device {self.device_id} set to 3 h interval.')
-                self.device_id))
             return True
         else:
             logging.error(f'Interval setting failed at device {self.device_id}.')

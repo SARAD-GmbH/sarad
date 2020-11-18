@@ -27,7 +27,7 @@ mqtt_connected = False
 def on_connect(client, userdata, flags, rc):
     global mqtt_connected
     if rc:
-        logger.info('Connection to MQTT broker failed. rc={}'.format(rc))
+        logger.info(f'Connection to MQTT broker failed. rc={rc}')
         mqtt_connected = False
     else:
         logger.info('Connected with MQTT broker.')
@@ -46,7 +46,7 @@ def signal_handler(sig, frame):
     logger.info('You pressed Ctrl+C!')
     for instrument in thiscluster:
         instrument.stop_cycle()
-        logger.info('Instrument {} stopped.'.format(instrument.device_id))
+        logger.info(f'Device {instrument.device_id} stopped.')
     if mqtt_connected:
         mqtt_client.disconnect()
         mqtt_client.loop_stop()
@@ -248,9 +248,9 @@ def send_iot_trap(component_mapping, instrument, iot_device, mycluster):
                         sensors[component_map['sensor_id']].\
                         measurands[component_map['measurand_id']]
             value = measurand.value
-            key = '{}/{}/{}'.format(component_map['component_id'],
-                                    component_map['sensor_id'],
-                                    component_map['measurand_id'])
+            key = (f"{component_map['component_id']}/"
+                   f"{component_map['sensor_id']}/"
+                   f"{component_map['measurand_id']}")
             time = measurand.time.isoformat()
             message = key + ';' + str(value) + ';' + time
             iot_device.transmit(message)
@@ -339,14 +339,11 @@ def send(target, instrument, component, sensor):
         if target == 'screen':
             click.echo(sensor)
         elif target == 'mqtt':
-            mqtt_client.publish('{}/status/{}/{}/{}'.
-                                format(client_id, instrument.device_id,
-                                       sensor.name, measurand.name),
-                                '{' + '"val": {}, "ts": {}'.
-                                format(measurand.value, measurand.time) +
-                                '}')
-            logger.debug('MQTT message for {} published.'.
-                         format(sensor.name))
+            mqtt_client.publish(
+                f'{client_id}/status/{instrument.device_id}/{sensor.name}/'
+                f'{measurand.name}',
+                f'{{"val": {measurand.value}, "ts": {measurand.time}}}')
+            logger.debug(f'MQTT message for {sensor.name} published.')
         elif target == 'zabbix':
             pass
         else:
@@ -356,10 +353,9 @@ def send(target, instrument, component, sensor):
 def set_scheduler(function, target, instrument, component, sensor):
     schedule.every(sensor.interval.seconds).\
         seconds.do(send, target, instrument, component, sensor)
-    logger.debug(('Poll sensor {} of instrument {} '
-                  'in intervals of {} seconds.').
-                 format(sensor.name, instrument.device_id,
-                        sensor.interval.seconds))
+    logger.debug(
+        f'Poll sensor {sensor.name} of device {instrument.device_id} '
+        f'in intervals of {sensor.interval.seconds} s.')
 
 
 @cli.command()
@@ -397,8 +393,7 @@ def transmit(path, lock_path, target):
         mycluster.synchronize()
         for instrument in mycluster:
             instrument.set_lock()
-            logger.info('Instrument {} started and locked.'.
-                        format(instrument.device_id))
+            logger.info(f'Device {instrument.device_id} started and locked.')
         # Build the scheduler
         for instrument in mycluster:
             for component in instrument:

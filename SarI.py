@@ -128,7 +128,7 @@ class SaradInst():
         #     payload: Payload of answer
         #     number_of_bytes_in_payload
         logging.debug('Checking answer from serial port:')
-        logging.debug('Raw answer: {}'.format(answer))
+        logging.debug(f'Raw answer: {answer}')
         if answer.startswith(b'B') & answer.endswith(b'E'):
             control_byte = answer[1]
             neg_control_byte = answer[2]
@@ -140,7 +140,7 @@ class SaradInst():
             else:
                 is_control = False
             status_byte = answer[3]
-            logging.debug('Status byte: {}'.format(status_byte))
+            logging.debug(f'Status byte: {status_byte}')
             payload = answer[3:3 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
@@ -159,7 +159,7 @@ class SaradInst():
             is_control = False
             payload = b''
             number_of_bytes_in_payload = 0
-        logging.debug('Payload: {}'.format(payload))
+        logging.debug(f'Payload: {payload}')
         return dict(is_valid=is_valid,
                     is_control=is_control,
                     payload=payload,
@@ -195,7 +195,7 @@ class SaradInst():
         answer = ser.read(expected_length_of_reply)
         time.sleep(0.1)
         while ser.in_waiting:
-            logging.debug('{} bytes waiting'.format(ser.in_waiting))
+            logging.debug(f'{ser.in_waiting} bytes waiting.')
             ser.read(ser.in_waiting)
             time.sleep(0.5)
         ser.close()
@@ -497,13 +497,10 @@ class DosemanInst(SaradInst):
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', b''], 7)
         if reply and (reply[0] == ok_byte):
-            logging.debug('Cycle stopped at instrument with Id {}'.format(
-                self.device_id))
+            logging.debug(f'Cycle stopped at device {self.device_id}.')
             return True
         else:
-            logging.error(
-                'stop_cycle() failed at instrument with Id {}'.format(
-                    self.device_id))
+            logging.error(f'stop_cycle() failed at device {self.device_id}.')
             return False
 
 # *** start_cycle(self):
@@ -617,15 +614,14 @@ class RscInst(SaradInst):
                             if measurand.source == 8:  # battery voltage
                                 sensor.interval = timedelta(seconds=5)
                         except Exception:
-                            logging.error("Can't get value for source " +
-                                          str(measurand.source) + " in " +
-                                          component.name + '/' + sensor.name +
-                                          '/' + measurand.name + '.')
+                            logging.error(
+                                f"Can't get value for source {measurand.source} "
+                                f"in {component.name}/{sensor.name}/{measurand.name}.")
             return True
         else:
-            logging.error("The instrument {} doesn't reply.".format(
-                self.device_id))
+            logging.error(f"Device {self.device_id} doesn't reply.")
             return False
+
 # ** Protected methods overriding methods of SaradInst:
 # *** _build_component_list(self):
 
@@ -694,8 +690,7 @@ class RscInst(SaradInst):
             else:
                 pass
         else:
-            logging.error("The instrument {} doesn't reply.".format(
-                self.device_id))
+            logging.error(f"Device {self.device_id} doesn't reply.")
             return False
 
 # *** _push_button(self):
@@ -704,13 +699,10 @@ class RscInst(SaradInst):
         reply = self.get_reply([b'\x12', b''], 7)
         ok_byte = self.family['ok_byte']
         if reply and (reply[0] == ok_byte):
-            logging.debug(
-                'Push button simulated at instrument with id {}'.format(
-                    self.device_id))
+            logging.debug(f'Push button simulated at device {self.device_id}.')
             return True
         else:
-            logging.error("Push button failed at instrument with Id {}".format(
-                self.device_id))
+            logging.error(f"Push button failed at device {self.device_id}")
             return False
 
 # ** Public methods:
@@ -722,14 +714,13 @@ class RscInst(SaradInst):
         # Do nothing as long as the previous values are valid.
         if self._last_sampling_time is None:
             logging.warning(
-                'The gathered values might be invalid. ' +
-                'You should use function start_cycle() in your application ' +
+                'The gathered values might be invalid. '
+                'You should use function start_cycle() in your application '
                 'for a regular initialization of the measuring cycle.')
             return self._gather_all_recent_values()
         elif (datetime.utcnow() - self._last_sampling_time) < self.__interval:
             logging.debug(
-                'We do not have new values yet. Sample interval = {}'.format(
-                    self.__interval))
+                f'We do not have new values yet. Sample interval = {self.__interval}')
             return True
         else:
             return self._gather_all_recent_values()
@@ -763,13 +754,11 @@ class RscInst(SaradInst):
         ])
         reply = self.get_reply([b'\x05', instr_datetime], 7)
         if reply and (reply[0] == ok_byte):
-            logging.debug("Time on instrument {} set to UTC.".format(
-                self.device_id))
+            logging.debug(f"Time on device {self.device_id} set to UTC.")
             return True
         else:
             logging.error(
-                "Setting the time on instrument with Id {} failed.".format(
-                    self.device_id))
+                f"Setting the time on device {self.device_id} failed.")
             return False
 
 # *** stop_cycle(self):
@@ -778,13 +767,10 @@ class RscInst(SaradInst):
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', b''], 7)
         if reply and (reply[0] == ok_byte):
-            logging.debug('Cycle stopped at instrument with Id {}'.format(
-                self.device_id))
+            logging.debug(f'Cycle stopped at device {self.device_id}.')
             return True
         else:
-            logging.error(
-                'stop_cycle() failed at instrument with Id {}'.format(
-                    self.device_id))
+            logging.error(f'stop_cycle() failed at device {self.device_id}.')
             return False
 
 # *** start_cycle(self):
@@ -803,9 +789,7 @@ class RscInst(SaradInst):
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x10', b''], 14)
         if reply and (reply[0] == ok_byte):
-            logging.debug(
-                'Getting configuration from instrument with Id {}'.format(
-                    self.device_id))
+            logging.debug(f'Getting configuration from device {self.device_id}.')
             try:
                 self.__interval = timedelta(minutes=reply[1])
                 setup_word = reply[2:3]
@@ -827,9 +811,7 @@ class RscInst(SaradInst):
                 return False
             return True
         else:
-            logging.error(
-                "Get configuration failed at instrument with Id {}".format(
-                    self.device_id))
+            logging.error(f"Get configuration failed at device {self.device_id}.")
             return False
 
 # *** set_config(self):
@@ -844,14 +826,10 @@ class RscInst(SaradInst):
         logging.debug(setup_data)
         reply = self.get_reply([b'\x0f', setup_data], 7)
         if reply and (reply[0] == ok_byte):
-            logging.debug(
-                'Set configuration successful at instrument with Id {}'.format(
-                    self.device_id))
+            logging.debug(f'Set configuration successful at device {self.device_id}.')
             return True
         else:
-            logging.error(
-                "Set configuration failed at instrument with Id {}".format(
-                    self.device_id))
+            logging.error(f"Set configuration failed at device {self.device_id}.")
             return False
 
 # *** set_lock(self):
@@ -861,12 +839,10 @@ class RscInst(SaradInst):
         reply = self.get_reply([b'\x01', b''], 7)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.locked
-            logging.debug('Instrument with Id {} locked.'.format(
-                self.device_id))
+            logging.debug(f'Device {self.device_id} locked.')
             return True
         else:
-            logging.error('Locking failed at instrument with Id {}.'.format(
-                self.device_id))
+            logging.error(f'Locking failed at device {self.device_id}.')
             return False
 
 # *** set_unlock(self):
@@ -876,12 +852,10 @@ class RscInst(SaradInst):
         reply = self.get_reply([b'\x02', b''], 7)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.unlocked
-            logging.debug('Instrument with Id {} unlocked.'.format(
-                self.device_id))
+            logging.debug(f'Device {self.device_id} unlocked.')
             return True
         else:
-            logging.error('Unlocking failed at instrument with Id {}.'.format(
-                self.device_id))
+            logging.error(f'Unlocking failed at device {self.device_id}.')
             return False
 
 # *** set_long_interval(self):
@@ -891,13 +865,11 @@ class RscInst(SaradInst):
         reply = self.get_reply([b'\x03', b''], 7)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=3)
-            logging.debug('Instrument with Id {} set to 3 h interval.'.format(
+            logging.debug(f'Device {self.device_id} set to 3 h interval.')
                 self.device_id))
             return True
         else:
-            logging.error(
-                'Interval setting failed at instrument with Id {}.'.format(
-                    self.device_id))
+            logging.error(f'Interval setting failed at device {self.device_id}.')
             return False
 
 # *** set_short_interval(self):
@@ -907,13 +879,10 @@ class RscInst(SaradInst):
         reply = self.get_reply([b'\x04', b''], 7)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=1)
-            logging.debug('Instrument with Id {} set to 1 h interval.'.format(
-                self.device_id))
+            logging.debug(f'Device {self.device_id} set to 1 h interval.')
             return True
         else:
-            logging.error(
-                'Interval setting failed at instrument with Id {}.'.format(
-                    self.device_id))
+            logging.error(f'Interval setting failed at device {self.device_id}.')
             return False
 
 # *** get_wifi_access(self):
@@ -945,9 +914,7 @@ class RscInst(SaradInst):
             else:
                 pass
         else:
-            logging.error(
-                'Cannot get Wi-Fi access data from insturment with Id {}'.
-                format(self.device_id))
+            logging.error(f'Cannot get Wi-Fi access data from device {self.device_id}.')
             return False
 
 # *** set_wifi_access(self):
@@ -964,13 +931,10 @@ class RscInst(SaradInst):
         logging.debug(access_data)
         reply = self.get_reply([b'\x17', access_data], 124)
         if reply and (reply[0] == ok_byte):
-            logging.debug("Wi-Fi access data on instrument {} set.".format(
-                self.device_id))
+            logging.debug(f"Wi-Fi access data on device {self.device_id} set.")
             return True
         else:
-            logging.error(
-                "Setting the Wi-Fi access data on instrument {} failed.".
-                format(self.device_id))
+            logging.error(f"Setting the Wi-Fi access data on device {self.device_id} failed.")
             return False
 
 
@@ -1266,13 +1230,10 @@ class DacmInst(SaradInst):
         ])
         reply = self.get_reply([b'\x10', instr_datetime], 7)
         if reply and (reply[0] == ok_byte):
-            logging.debug("Time on instrument {} set to UTC.".format(
-                self.device_id))
+            logging.debug(f"Time on device {self.device_id} set to UTC.")
             return True
         else:
-            logging.error(
-                "Setting the time on instrument with id {} failed.".format(
-                    self.device_id))
+            logging.error(f"Setting the time on device {self.device_id} failed.")
             return False
 
 # *** stop_cycle():
@@ -1281,13 +1242,10 @@ class DacmInst(SaradInst):
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x16', b''], 7)
         if reply and (reply[0] == ok_byte):
-            logging.debug('Cycle stopped at instrument with id {}'.format(
-                self.device_id))
+            logging.debug(f'Cycle stopped at device {self.device_id}.')
             return True
         else:
-            logging.error(
-                "stop_cycle() failed at instrument with Id {}".format(
-                    self.device_id))
+            logging.error(f"stop_cycle() failed at device {self.device_id}.")
             return False
 
 # *** start_cycle():
@@ -1296,17 +1254,12 @@ class DacmInst(SaradInst):
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', bytes([cycle_index])], 9, timeout=5)
         if reply and (reply[0] == ok_byte):
-            logging.debug('Cycle {} started at instrument with id {}'.format(
-                cycle_index, self.device_id))
+            logging.debug(f'Cycle {cycle_index} started at device {self.device_id}.')
             return True
         else:
-            logging.error(
-                "start_cycle() failed at instrument with Id {}".format(
-                    self.device_id))
+            logging.error(f"start_cycle() failed at device {self.device_id}.")
             if reply[0] == 11:
-                logging.error(
-                    'DACM instrument replied with error code {}'.format(
-                        reply[1]))
+                logging.error(f'DACM instrument replied with error code {reply[1]}.')
             return False
 
 # *** set_lock():
@@ -1561,8 +1514,7 @@ class SaradCluster(object):
             ports_with_instruments = []
             logging.info(ports_to_test)
             for port in ports_to_test:
-                logging.info('Testing port {} for {}.'.format(
-                    port, family['family_name']))
+                logging.info(f"Testing port {port} for {family['family_name']}.")
                 test_instrument.port = port
                 if test_instrument.type_id and \
                    test_instrument.serial_number:

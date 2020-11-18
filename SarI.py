@@ -1095,6 +1095,104 @@ class DacmInst(SaradInst):
             logging.error('Get description failed.')
             return False
 
+# *** _get_component_information():
+
+    def _get_component_information(self, component_index):
+        """Get information about one component of a DACM instrument."""
+        ok_byte = self.family['ok_byte']
+        reply = self.get_reply([b'\x03', bytes([component_index])], 21)
+        if reply and (reply[0] == ok_byte):
+            logging.debug('Get component information successful.')
+            try:
+                revision = reply[1]
+                component_type = reply[2]
+                availability = reply[3]
+                ctrl_format = reply[4]
+                conf_block_size = reply[5]
+                data_record_size = int.from_bytes(reply[6:8],
+                                                  byteorder='big',
+                                                  signed=False)
+                name = reply[8:16].split(b'\x00')[0].decode("ascii")
+                hw_capability = BitVector(rawbytes=reply[16:20])
+                return dict(revision=revision,
+                            component_type=component_type,
+                            availability=availability,
+                            ctrl_format=ctrl_format,
+                            conf_block_size=conf_block_size,
+                            data_record_size=data_record_size,
+                            name=name,
+                            hw_capability=hw_capability)
+            except TypeError:
+                logging.error("TypeError when parsing the payload.")
+                return False
+            except ReferenceError:
+                logging.error("ReferenceError when parsing the payload.")
+                return False
+            except LookupError:
+                logging.error("LookupError when parsing the payload.")
+                return False
+            except Exception:
+                logging.error("Unknown error when parsing the payload.")
+                return False
+            else:
+                pass
+        else:
+            logging.error('Get component information failed.')
+            return False
+
+# *** _get_component_configuration():
+
+    def _get_component_configuration(self, component_index):
+        """Get information about the configuration of a component of a DACM instrument."""
+        ok_byte = self.family['ok_byte']
+        reply = self.get_reply([b'\x04', bytes([component_index])], 73)
+        if reply and (reply[0] == ok_byte):
+            logging.debug('Get component configuration successful.')
+            try:
+                sensor_name = reply[8:16].split(b'\x00')[0].decode("ascii")
+                sensor_value = reply[8:16].split(b'\x00')[0].decode("ascii")
+                sensor_unit = reply[8:16].split(b'\x00')[0].decode("ascii")
+                input_config = int.from_bytes(reply[6:8],
+                                              byteorder='big',
+                                              signed=False)
+                alert_level_lo = int.from_bytes(reply[6:8],
+                                                byteorder='big',
+                                                signed=False)
+                alert_level_hi = int.from_bytes(reply[6:8],
+                                                byteorder='big',
+                                                signed=False)
+                alert_output_lo = int.from_bytes(reply[6:8],
+                                                 byteorder='big',
+                                                 signed=False)
+                alert_output_hi = int.from_bytes(reply[6:8],
+                                                 byteorder='big',
+                                                 signed=False)
+                return dict(sensor_name=sensor_name,
+                            sensor_value=sensor_value,
+                            sensor_unit=sensor_unit,
+                            input_config=input_config,
+                            alert_level_lo=alert_level_lo,
+                            alert_level_hi=alert_level_hi,
+                            alert_output_lo=alert_output_lo,
+                            alert_output_hi=alert_output_hi)
+            except TypeError:
+                logging.error("TypeError when parsing the payload.")
+                return False
+            except ReferenceError:
+                logging.error("ReferenceError when parsing the payload.")
+                return False
+            except LookupError:
+                logging.error("LookupError when parsing the payload.")
+                return False
+            except Exception:
+                logging.error("Unknown error when parsing the payload.")
+                return False
+            else:
+                pass
+        else:
+            logging.error('Get component configuration failed.')
+            return False
+
 # *** _read_cycle_start(self):
 
     def _read_cycle_start(self, cycle_index=0):
@@ -1170,51 +1268,6 @@ class DacmInst(SaradInst):
                 pass
         else:
             logging.debug('Get info about cycle interval failed.')
-            return False
-
-# *** _get_component_information():
-
-    def _get_component_information(self, component_index):
-        """Get information about one component of a DACM instrument."""
-        ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x03', bytes([component_index])], 27)
-        if reply and (reply[0] == ok_byte):
-            logging.debug('Get component information successful.')
-            try:
-                revision = reply[1]
-                component_type = reply[2]
-                availability = reply[3]
-                ctrl_format = reply[4]
-                conf_block_size = reply[5]
-                data_record_size = int.from_bytes(reply[6:8],
-                                                  byteorder='big',
-                                                  signed=False)
-                name = reply[8:16].split(b'\x00')[0].decode("ascii")
-                hw_capability = BitVector(rawbytes=reply[16:20])
-                return dict(revision=revision,
-                            component_type=component_type,
-                            availability=availability,
-                            ctrl_format=ctrl_format,
-                            conf_block_size=conf_block_size,
-                            data_record_size=data_record_size,
-                            name=name,
-                            hw_capability=hw_capability)
-            except TypeError:
-                logging.error("TypeError when parsing the payload.")
-                return False
-            except ReferenceError:
-                logging.error("ReferenceError when parsing the payload.")
-                return False
-            except LookupError:
-                logging.error("LookupError when parsing the payload.")
-                return False
-            except Exception:
-                logging.error("Unknown error when parsing the payload.")
-                return False
-            else:
-                pass
-        else:
-            logging.error('Get description failed.')
             return False
 
 # ** Public methods:

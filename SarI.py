@@ -376,9 +376,9 @@ class SaradInst():
     def get_reply(self, cmd_data, reply_length=50, timeout=1):
         """Returns a bytestring of the payload of the instruments reply
         to the provided list of 1-byte command and data bytes."""
+        length = reply_length + 6
         msg = self.__make_command_msg(cmd_data)
-        checked_payload = self.__get_message_payload(msg, reply_length,
-                                                     timeout)
+        checked_payload = self.__get_message_payload(msg, length, timeout)
         if checked_payload['is_valid']:
             return checked_payload['payload']
         else:
@@ -495,7 +495,7 @@ class DosemanInst(SaradInst):
     def stop_cycle(self):
         """Stop the measuring cycle."""
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x15', b''], 7)
+        reply = self.get_reply([b'\x15', b''], 1)
         if reply and (reply[0] == ok_byte):
             logging.debug(f'Cycle stopped at device {self.device_id}.')
             return True
@@ -559,7 +559,7 @@ class RscInst(SaradInst):
 
     def _gather_all_recent_values(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x14', b''], 39)
+        reply = self.get_reply([b'\x14', b''], 33)
         self._last_sampling_time = datetime.utcnow()
         if reply and (reply[0] == ok_byte):
             try:
@@ -669,7 +669,7 @@ class RscInst(SaradInst):
             return "This instrument type doesn't provide \
             battery voltage information"
 
-        reply = self.get_reply([b'\x0d', b''], battery_bytes + 7)
+        reply = self.get_reply([b'\x0d', b''], battery_bytes + 1)
         if reply and (reply[0] == ok_byte):
             try:
                 voltage = battery_coeff * int.from_bytes(
@@ -696,7 +696,7 @@ class RscInst(SaradInst):
 # *** _push_button(self):
 
     def _push_button(self):
-        reply = self.get_reply([b'\x12', b''], 7)
+        reply = self.get_reply([b'\x12', b''], 1)
         ok_byte = self.family['ok_byte']
         if reply and (reply[0] == ok_byte):
             logging.debug(f'Push button simulated at device {self.device_id}.')
@@ -752,7 +752,7 @@ class RscInst(SaradInst):
             datetime.second, datetime.minute, datetime.hour, datetime.day,
             datetime.month, datetime.year - 2000
         ])
-        reply = self.get_reply([b'\x05', instr_datetime], 7)
+        reply = self.get_reply([b'\x05', instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
             logging.debug(f"Time on device {self.device_id} set to UTC.")
             return True
@@ -765,7 +765,7 @@ class RscInst(SaradInst):
 
     def stop_cycle(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x15', b''], 7)
+        reply = self.get_reply([b'\x15', b''], 1)
         if reply and (reply[0] == ok_byte):
             logging.debug(f'Cycle stopped at device {self.device_id}.')
             return True
@@ -787,7 +787,7 @@ class RscInst(SaradInst):
 
     def get_config(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x10', b''], 14)
+        reply = self.get_reply([b'\x10', b''], 8)
         if reply and (reply[0] == ok_byte):
             logging.debug(f'Getting configuration from device {self.device_id}.')
             try:
@@ -824,7 +824,7 @@ class RscInst(SaradInst):
             setup_word + \
             (self.__alarm_level).to_bytes(4, byteorder='little')
         logging.debug(setup_data)
-        reply = self.get_reply([b'\x0f', setup_data], 7)
+        reply = self.get_reply([b'\x0f', setup_data], 1)
         if reply and (reply[0] == ok_byte):
             logging.debug(f'Set configuration successful at device {self.device_id}.')
             return True
@@ -836,7 +836,7 @@ class RscInst(SaradInst):
 
     def set_lock(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x01', b''], 7)
+        reply = self.get_reply([b'\x01', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.locked
             logging.debug(f'Device {self.device_id} locked.')
@@ -849,7 +849,7 @@ class RscInst(SaradInst):
 
     def set_unlock(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x02', b''], 7)
+        reply = self.get_reply([b'\x02', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.unlocked
             logging.debug(f'Device {self.device_id} unlocked.')
@@ -862,7 +862,7 @@ class RscInst(SaradInst):
 
     def set_long_interval(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x03', b''], 7)
+        reply = self.get_reply([b'\x03', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=3)
             logging.debug(f'Device {self.device_id} set to 3 h interval.')
@@ -876,7 +876,7 @@ class RscInst(SaradInst):
 
     def set_short_interval(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x04', b''], 7)
+        reply = self.get_reply([b'\x04', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=1)
             logging.debug(f'Device {self.device_id} set to 1 h interval.')
@@ -890,7 +890,7 @@ class RscInst(SaradInst):
     def get_wifi_access(self):
         """Get the Wi-Fi access data from instrument."""
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x18', b''], 131)
+        reply = self.get_reply([b'\x18', b''], 125)
         if reply and (reply[0] == ok_byte):
             try:
                 logging.debug(reply)
@@ -929,7 +929,7 @@ class RscInst(SaradInst):
             server_port.to_bytes(2, 'big')
         ])
         logging.debug(access_data)
-        reply = self.get_reply([b'\x17', access_data], 124)
+        reply = self.get_reply([b'\x17', access_data], 118)
         if reply and (reply[0] == ok_byte):
             logging.debug(f"Wi-Fi access data on device {self.device_id} set.")
             return True
@@ -1061,7 +1061,7 @@ class DacmInst(SaradInst):
     def _get_module_information(self):
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x01', b''], 79)
+        reply = self.get_reply([b'\x01', b''], 73)
         if reply and (reply[0] == ok_byte):
             logging.debug('Get module information successful.')
             try:
@@ -1101,7 +1101,7 @@ class DacmInst(SaradInst):
     def _read_cycle_start(self, cycle_index=0):
         """Get description of a measuring cycle."""
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x06', bytes([cycle_index])], 34)
+        reply = self.get_reply([b'\x06', bytes([cycle_index])], 28)
         if reply and (reply[0] == ok_byte) and reply[1]:
             logging.debug('Get primary cycle information successful.')
             try:
@@ -1141,7 +1141,7 @@ class DacmInst(SaradInst):
 
     def _read_cycle_continue(self):
         """Get description of subsequent cycle intervals."""
-        reply = self.get_reply([b'\x07', b''], 22)
+        reply = self.get_reply([b'\x07', b''], 16)
         if reply and not (len(reply) < 16):
             logging.debug('Get information about cycle interval successful.')
             try:
@@ -1228,7 +1228,7 @@ class DacmInst(SaradInst):
             datetime.second, datetime.minute, datetime.hour, datetime.day,
             datetime.month, datetime.year - 2000
         ])
-        reply = self.get_reply([b'\x10', instr_datetime], 7)
+        reply = self.get_reply([b'\x10', instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
             logging.debug(f"Time on device {self.device_id} set to UTC.")
             return True
@@ -1240,7 +1240,7 @@ class DacmInst(SaradInst):
 
     def stop_cycle(self):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x16', b''], 7)
+        reply = self.get_reply([b'\x16', b''], 1)
         if reply and (reply[0] == ok_byte):
             logging.debug(f'Cycle stopped at device {self.device_id}.')
             return True
@@ -1252,7 +1252,7 @@ class DacmInst(SaradInst):
 
     def start_cycle(self, cycle_index=0):
         ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x15', bytes([cycle_index])], 9, timeout=5)
+        reply = self.get_reply([b'\x15', bytes([cycle_index])], 3, timeout=5)
         if reply and (reply[0] == ok_byte):
             logging.debug(f'Cycle {cycle_index} started at device {self.device_id}.')
             return True

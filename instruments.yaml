@@ -8,7 +8,7 @@
   - !!binary |
     QA==
   - !!binary ""
-  length_of_reply: 11
+  length_of_reply: 5
   wait_for_reply: 0.1
   write_sleeptime: 0.001
   parity: E
@@ -55,7 +55,7 @@
     DA==
   - !!binary |
     /wAA
-  length_of_reply: 19
+  length_of_reply: 13
   wait_for_reply: 0
   write_sleeptime: 0
   parity: N
@@ -970,7 +970,7 @@
     DA==
   - !!binary |
     /wAA
-  length_of_reply: 50
+  length_of_reply: 44
   wait_for_reply: 0
   write_sleeptime: 0
   ok_byte: 10

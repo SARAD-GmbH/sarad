@@ -615,8 +615,10 @@ class RscInst(SaradInst):
                                 sensor.interval = timedelta(seconds=5)
                         except Exception:
                             logging.error(
-                                f"Can't get value for source {measurand.source} "
-                                f"in {component.name}/{sensor.name}/{measurand.name}.")
+                                f"Can't get value for source "
+                                f"{measurand.source} in "
+                                f"{component.name}/{sensor.name}/"
+                                f"{measurand.name}."
             return True
         else:
             logging.error(f"Device {self.device_id} doesn't reply.")
@@ -1912,5 +1914,3 @@ if __name__ == '__main__':
         ts.radon_mode = ts.Radon_mode.fast
         ts.units = ts.Units.si
         ts.chamber_size = ts.Chamber_size.xl
-
-#  LocalWords:  instrument

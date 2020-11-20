@@ -15,8 +15,9 @@ import pickle
 import signal
 import sys
 import paho.mqtt.client as client  # type: ignore
-logger = logging.getLogger(__name__)
-click_log.basic_config(logger)
+logger = logging.getLogger()
+FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
+logging.basicConfig(format=FORMAT)
 
 # * MQTT configuration:
 broker = 'localhost'

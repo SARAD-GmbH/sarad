@@ -636,10 +636,9 @@ class RscInst(SaradInst):
                                 sensor.interval = timedelta(seconds=5)
                         except Exception:  # pylint: disable=broad-except
                             logger.error(
-                                f"Can't get value for source "
-                                f"{measurand.source} in "
-                                f"{component.name}/{sensor.name}/"
-                                f"{measurand.name}.")
+                                "Can't get value for source %s in %s/%s/%s.",
+                                measurand.source,
+                                component.name, sensor.name, measurand.name)
             return True
         logger.error("Device %s doesn't reply.", self.device_id)
         return False
@@ -748,10 +747,7 @@ class RscInst(SaradInst):
 
 # *** get_recent_value(component_id, sensor_id, measurand_id):
 
-    def get_recent_value(self,
-                         component_id=None,
-                         sensor_id=None,
-                         measurand_id=None):
+    def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         """Fill component objects with recent measuring values.\
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
@@ -766,13 +762,12 @@ class RscInst(SaradInst):
 
 # *** set_real_time_clock(datetime):
 
-    def set_real_time_clock(self, datetime):
+    def set_real_time_clock(self, date_time):
         """Set the instrument time."""
         ok_byte = self.family['ok_byte']
-        instr_datetime = bytearray([
-            datetime.second, datetime.minute, datetime.hour, datetime.day,
-            datetime.month, datetime.year - 2000
-        ])
+        instr_datetime = bytearray([date_time.second, date_time.minute,
+                                    date_time.hour, date_time.day,
+                                    date_time.month, date_time.year - 2000])
         reply = self.get_reply([b'\x05', instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
             logger.debug("Time on device %s set to UTC.", self.device_id)
@@ -784,6 +779,7 @@ class RscInst(SaradInst):
 # *** stop_cycle(self):
 
     def stop_cycle(self):
+        """Stop a measurement cycle."""
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', b''], 1)
         if reply and (reply[0] == ok_byte):
@@ -861,50 +857,49 @@ class RscInst(SaradInst):
         reply = self.get_reply([b'\x01', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.locked
-            logger.debug(f'Device {self.device_id} locked.')
+            logger.debug('Device %s locked.', self.device_id)
             return True
-        else:
-            logger.error(f'Locking failed at device {self.device_id}.')
-            return False
+        logger.error('Locking failed at device %s.', self.device_id)
+        return False
 
 # *** set_unlock(self):
 
     def set_unlock(self):
+        """Unlock the hardware button or switch at the device."""
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x02', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.unlocked
-            logger.debug(f'Device {self.device_id} unlocked.')
+            logger.debug('Device %s unlocked.', self.device_id)
             return True
-        else:
-            logger.error(f'Unlocking failed at device {self.device_id}.')
-            return False
+        logger.error('Unlocking failed at device %s.', self.device_id)
+        return False
 
 # *** set_long_interval(self):
 
     def set_long_interval(self):
+        """Set the measuring interval to 3 h = 180 min = 10800 s"""
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x03', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=3)
-            logger.debug(f'Device {self.device_id} set to 3 h interval.')
+            logger.debug('Device %s set to 3 h interval.', self.device_id)
             return True
-        else:
-            logger.error(f'Interval setup failed at device {self.device_id}.')
-            return False
+        logger.error('Interval setup failed at device %s.', self.device_id)
+        return False
 
 # *** set_short_interval(self):
 
     def set_short_interval(self):
+        """Set the measuring interval to 1 h = 60 min = 3600 s"""
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x04', b''], 1)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=1)
-            logger.debug(f'Device {self.device_id} set to 1 h interval.')
+            logger.debug('Device %s set to 1 h interval.', self.device_id)
             return True
-        else:
-            logger.error(f'Interval setup failed at device {self.device_id}.')
-            return False
+        logger.error('Interval setup failed at device %s.', self.device_id)
+        return False
 
 # *** get_wifi_access(self):
 
@@ -929,14 +924,14 @@ class RscInst(SaradInst):
             except LookupError:
                 logger.error("LookupError when parsing the payload.")
                 return False
-            except Exception:
+            except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
             else:
                 pass
         else:
-            logger.error(
-                f'Cannot get Wi-Fi access data from device {self.device_id}.')
+            logger.error('Cannot get Wi-Fi access data from device %s.',
+                         self.device_id)
             return False
 
 # *** set_wifi_access(self):
@@ -953,12 +948,11 @@ class RscInst(SaradInst):
         logger.debug(access_data)
         reply = self.get_reply([b'\x17', access_data], 118)
         if reply and (reply[0] == ok_byte):
-            logger.debug(f"WiFi access data on device {self.device_id} set.")
+            logger.debug("WiFi access data on device %s set.", self.device_id)
             return True
-        else:
-            logger.error(
-                f"Setting WiFi access data on device {self.device_id} failed.")
-            return False
+        logger.error("Setting WiFi access data on device %s failed.",
+                     self.device_id)
+        return False
 
 
 # * DacmInst:
@@ -1069,14 +1063,11 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger.error("LookupError when parsing the payload.")
                 return False
-            except Exception:
+            except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-            else:
-                pass
-        else:
-            logger.error('Get description failed.')
-            return False
+        logger.error('Get description failed.')
+        return False
 
 # ** Protected methods:
 # *** _get_module_information(self):
@@ -1110,14 +1101,11 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger.error("LookupError when parsing the payload.")
                 return False
-            except Exception:
+            except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-            else:
-                pass
-        else:
-            logger.error('Get description failed.')
-            return False
+        logger.error('Get description failed.')
+        return False
 
 # *** _get_component_information():
 
@@ -1155,7 +1143,7 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger.error("LookupError when parsing the payload.")
                 return False
-            except Exception:
+            except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
             else:
@@ -1209,7 +1197,7 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger.error("LookupError when parsing the payload.")
                 return False
-            except Exception:
+            except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
             else:
@@ -1250,7 +1238,7 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger.error("LookupError when parsing the payload.")
                 return False
-            except Exception:
+            except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
             else:
@@ -1264,7 +1252,7 @@ class DacmInst(SaradInst):
     def _read_cycle_continue(self):
         """Get description of subsequent cycle intervals."""
         reply = self.get_reply([b'\x07', b''], 16)
-        if reply and not (len(reply) < 16):
+        if reply and not len(reply) < 16:
             logger.debug('Get information about cycle interval successful.')
             try:
                 seconds = int.from_bytes(reply[0:4],
@@ -1286,61 +1274,54 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger.error("LookupError when parsing the payload.")
                 return False
-            except Exception:
+            except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-            else:
-                pass
-        else:
-            logger.debug('Get info about cycle interval failed.')
-            return False
+        logger.debug('Get info about cycle interval failed.')
+        return False
 
 # ** Public methods:
 # *** set_real_time_clock():
 
-    def set_real_time_clock(self, datetime):
+    def set_real_time_clock(self, date_time):
         """Set the instrument time."""
         ok_byte = self.family['ok_byte']
-        instr_datetime = bytearray([
-            datetime.second, datetime.minute, datetime.hour, datetime.day,
-            datetime.month, datetime.year - 2000
-        ])
+        instr_datetime = bytearray([date_time.second, date_time.minute,
+                                    date_time.hour, date_time.day,
+                                    date_time.month, date_time.year - 2000])
         reply = self.get_reply([b'\x10', instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
-            logger.debug(f"Time on device {self.device_id} set to UTC.")
+            logger.debug("Time on device %s set to UTC.", self.device_id)
             return True
-        else:
-            logger.error(
-                f"Setting the time on device {self.device_id} failed.")
-            return False
+        logger.error("Setting the time on device %s failed.", self.device_id)
+        return False
 
 # *** stop_cycle():
 
     def stop_cycle(self):
+        """Stop the measuring cycle."""
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x16', b''], 1)
         if reply and (reply[0] == ok_byte):
-            logger.debug(f'Cycle stopped at device {self.device_id}.')
+            logger.debug('Cycle stopped at device %s.', self.device_id)
             return True
-        else:
-            logger.error(f"stop_cycle() failed at device {self.device_id}.")
-            return False
+        logger.error("stop_cycle() failed at device %s.", self.device_id)
+        return False
 
 # *** start_cycle():
 
     def start_cycle(self, cycle_index=0):
+        """Start a measuring cycle."""
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', bytes([cycle_index])], 3, timeout=5)
         if reply and (reply[0] == ok_byte):
-            logger.debug(
-                f'Cycle {cycle_index} started at device {self.device_id}.')
+            logger.debug('Cycle %s started at device %s.',
+                         cycle_index, self.device_id)
             return True
-        else:
-            logger.error(f"start_cycle() failed at device {self.device_id}.")
-            if reply[0] == 11:
-                logger.error(
-                    f'DACM instrument replied with error code {reply[1]}.')
-            return False
+        logger.error("start_cycle() failed at device %s.", self.device_id)
+        if reply[0] == 11:
+            logger.error('DACM instrument replied with error code %s.', reply[1])
+        return False
 
 # *** set_lock():
 
@@ -1388,16 +1369,16 @@ class DacmInst(SaradInst):
                 "ascii")
             output['measurand'] = reply[35:51].split(
                 b'\x00')[0].strip().decode("ascii")
-            r = self._parse_value_string(output['measurand'])
-            output['measurand_operator'] = r['measurand_operator']
-            output['value'] = r['measurand_value']
-            output['measurand_unit'] = r['measurand_unit']
+            measurand = self._parse_value_string(output['measurand'])
+            output['measurand_operator'] = measurand['measurand_operator']
+            output['value'] = measurand['measurand_value']
+            output['measurand_unit'] = measurand['measurand_unit']
             date = reply[52:68].split(b'\x00')[0].split(b'/')
-            time = reply[69:85].split(b'\x00')[0].split(b':')
+            meas_time = reply[69:85].split(b'\x00')[0].split(b':')
             if date != [b'']:
                 output['datetime'] = datetime(int(date[2]), int(date[0]),
-                                              int(date[1]), int(time[0]),
-                                              int(time[1]), int(time[2]))
+                                              int(date[1]), int(meas_time[0]),
+                                              int(meas_time[1]), int(meas_time[2]))
             else:
                 output['datetime'] = None
             output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
@@ -1804,9 +1785,9 @@ class Sensor():
         """Return the Id of this sensor."""
         return self.__id
 
-    def set_id(self, id):
+    def set_id(self, sensor_id):
         """Set the Id of this sensor."""
-        self.__id = id
+        self.__id = sensor_id
 
 # *** get/set_name():
 
@@ -1900,9 +1881,9 @@ class Measurand():
         """Return the Id of this measurand."""
         return self.__id
 
-    def set_id(self, id):
+    def set_id(self, measurand_id):
         """Set the Id of this measurand."""
-        self.__id = id
+        self.__id = measurand_id
 
 # *** get/set_name:
 

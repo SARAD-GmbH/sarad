@@ -266,11 +266,8 @@ class SaradInst():
             except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-            else:
-                pass
-        else:
-            logger.error('Get description failed.')
-            return False
+        logger.debug('Get description failed.')
+        return False
 
 # *** _build_component_list(self):
 
@@ -1066,7 +1063,7 @@ class DacmInst(SaradInst):
             except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-        logger.error('Get description failed.')
+        logger.debug('Get description failed.')
         return False
 
 # ** Protected methods:
@@ -1104,7 +1101,7 @@ class DacmInst(SaradInst):
             except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-        logger.error('Get description failed.')
+        logger.debug('Get module information failed.')
         return False
 
 # *** _get_component_information():
@@ -1146,11 +1143,8 @@ class DacmInst(SaradInst):
             except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-            else:
-                pass
-        else:
-            logger.error('Get component information failed.')
-            return False
+        logger.debug('Get component information failed.')
+        return False
 
 # *** _get_component_configuration():
 
@@ -1200,11 +1194,8 @@ class DacmInst(SaradInst):
             except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-            else:
-                pass
-        else:
-            logger.error('Get component configuration failed.')
-            return False
+        logger.debug('Get component configuration failed.')
+        return False
 
 # *** _read_cycle_start(self):
 
@@ -1241,11 +1232,8 @@ class DacmInst(SaradInst):
             except Exception:   # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-            else:
-                pass
-        else:
-            logger.error('Get primary cycle info failed.')
-            return False
+        logger.debug('Get primary cycle info failed.')
+        return False
 
 # *** _read_cycle_continue():
 

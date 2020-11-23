@@ -47,6 +47,7 @@ class SaradInst():
         get_reply()"""
 
     version = '0.1'
+
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
         unlocked = 1
@@ -100,6 +101,12 @@ class SaradInst():
         self._type_name = None
         self._software_version = None
         self._serial_number = None
+        self.signal = None
+        self.radon_mode = None
+        self.pump_mode = None
+        self.units = None
+        self.chamber_size = None
+        self.__id = None
 
 # *** __iter__():
 
@@ -510,6 +517,7 @@ class DosemanInst(SaradInst):
         if family is None:
             family = SaradCluster.products[0]
         SaradInst.__init__(self, port, family)
+        self._last_sampling_time = None
 
 # ** Public methods:
 # *** stop_cycle(self):
@@ -578,6 +586,13 @@ class RscInst(SaradInst):
         if family is None:
             family = SaradCluster.products[1]
         SaradInst.__init__(self, port, family)
+        self._last_sampling_time = None
+        self.__alarm_level = None
+        self.lock = None
+        self.__ssid = None
+        self.__password = None
+        self.__server_port = None
+        self.__ip_address = None
 
 # ** Private methods:
 # *** _gather_all_recent_values(self):
@@ -751,7 +766,8 @@ class RscInst(SaradInst):
 
 # *** get_recent_value(component_id, sensor_id, measurand_id):
 
-    def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
+    def get_recent_value(self, component_id=None, sensor_id=None,
+                         measurand_id=None):
         """Fill component objects with recent measuring values.\
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
@@ -998,6 +1014,21 @@ class DacmInst(SaradInst):
         if family is None:
             family = SaradCluster.products[2]
         SaradInst.__init__(self, port, family)
+        self._date_of_manufacture = None
+        self._date_of_update = None
+        self._module_blocksize = None
+        self._component_blocksize = None
+        self._component_count = None
+        self._bit_ctrl = None
+        self._value_ctrl = None
+        self._cycle_blocksize = None
+        self._cycle_count_limit = None
+        self._step_count_limit = None
+        self._language = None
+        self._address = None
+        self._date_of_config = None
+        self._module_name = None
+        self._config_name = None
 
 # ** Private methods:
 
@@ -1318,7 +1349,8 @@ class DacmInst(SaradInst):
             return True
         logger.error("start_cycle() failed at device %s.", self.device_id)
         if reply[0] == 11:
-            logger.error('DACM instrument replied with error code %s.', reply[1])
+            logger.error('DACM instrument replied with error code %s.',
+                         reply[1])
         return False
 
 # *** set_lock():
@@ -1376,7 +1408,8 @@ class DacmInst(SaradInst):
             if date != [b'']:
                 output['datetime'] = datetime(int(date[2]), int(date[0]),
                                               int(date[1]), int(meas_time[0]),
-                                              int(meas_time[1]), int(meas_time[2]))
+                                              int(meas_time[1]),
+                                              int(meas_time[2]))
             else:
                 output['datetime'] = None
             output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
@@ -1495,6 +1528,7 @@ class SaradCluster():
         self.__n = 0
         self.__start_time = 0
         self.__connected_instruments = []
+        self.__active_ports = None
 
 # ** Private methods:
 

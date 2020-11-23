@@ -45,6 +45,8 @@ class SaradInst():
         get_components()
         set_components()
         get_reply()"""
+
+    version = '0.1'
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
         unlocked = 1
@@ -501,6 +503,8 @@ class DosemanInst(SaradInst):
         set_components()
         get_reply()"""
 
+    version = '0.1'
+
     # ** Private methods:
     def __init__(self, port=None, family=None):
         if family is None:
@@ -567,6 +571,9 @@ class RscInst(SaradInst):
         start_cycle()
         get_config()
         set_config()"""
+
+    version = '0.1'
+
     def __init__(self, port=None, family=None):
         if family is None:
             family = SaradCluster.products[1]
@@ -984,6 +991,9 @@ class DacmInst(SaradInst):
         start_cycle()
         get_all_recent_values()
         get_recent_value(index)"""
+
+    version = '0.1'
+
     def __init__(self, port=None, family=None):
         if family is None:
             family = SaradCluster.products[2]
@@ -1468,8 +1478,9 @@ class SaradCluster():
         update_connected_instruments()
         next()
         synchronize(): Stop all instruments, set time, start all measurings
-        dump(): Save all properties to a Pickle file
-    """
+        dump(): Save all properties to a Pickle file"""
+
+    version = '0.1'
 
     # with open(os.path.dirname(os.path.realpath(__file__)) +
     with open(os.getcwd() +
@@ -1648,6 +1659,9 @@ class SaradCluster():
 # ** Definitions:
 class Component():
     """Class describing a sensor or actor component built into an instrument"""
+
+    version = '0.1'
+
     def __init__(self, component_id, component_name):
         self.__id = component_id
         self.__name = component_name
@@ -1730,8 +1744,10 @@ class Sensor():
         name
         interval: Measuring interval in seconds
     Public methods:
-        get_measurands()
-    """
+        get_measurands()"""
+
+    version = '0.1'
+
     def __init__(self, sensor_id, sensor_name):
         self.__id = sensor_id
         self.__name = sensor_name
@@ -1827,8 +1843,10 @@ class Measurand():
         value
         unit
         source
-        time
-    """
+        time"""
+
+    version = '0.1'
+
     def __init__(self,
                  measurand_id,
                  measurand_name,

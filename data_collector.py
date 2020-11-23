@@ -13,8 +13,8 @@ from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 import schedule  # type: ignore
 import click_log  # type: ignore
 import paho.mqtt.client as client  # type: ignore
-import SarI
-import NbEasy
+import sari
+import nb_easy
 logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
@@ -100,7 +100,7 @@ def value(instrument, component, sensor, measurand, path, lock_path):
                 with open(path, 'rb') as cluster_file:
                     mycluster = pickle.load(cluster_file)
             except Exception:   # pylint: disable=broad-except
-                mycluster = SarI.SaradCluster()
+                mycluster = sari.SaradCluster()
                 mycluster.update_connected_instruments()
                 with open(path, 'wb') as cluster_file:
                     mycluster.dump(cluster_file)
@@ -131,7 +131,7 @@ def cluster(path, lock_path):
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            mycluster = SarI.SaradCluster()
+            mycluster = sari.SaradCluster()
             mycluster.update_connected_instruments()
             logger.debug(mycluster.__dict__)
             for instrument in mycluster:
@@ -158,7 +158,7 @@ def list_iot_devices(lock_path):
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            iotcluster = NbEasy.IoTCluster()
+            iotcluster = nb_easy.IoTCluster()
             for device in iotcluster:
                 click.echo(device)
     except Timeout:
@@ -175,7 +175,7 @@ def send_trap(component_mapping, host, instrument, zbx):
 
     host -- Zabbix server
 
-    instrument -- SARAD instrument as defined in SarI.py
+    instrument -- SARAD instrument as defined in sari.py
 
     zbx -- ZabbixSender object"""
     metrics = []
@@ -235,7 +235,7 @@ def trapper(instrument, host, server, path, lock_path, once, period):
                 with open(path, 'rb') as cluster_file:
                     mycluster = pickle.load(cluster_file)
             except Exception:   # pylint: disable=broad-except
-                mycluster = SarI.SaradCluster()
+                mycluster = sari.SaradCluster()
                 mycluster.update_connected_instruments()
                 with open(path, 'wb') as cluster_file:
                     mycluster.dump(cluster_file)
@@ -308,7 +308,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
         dict(component_id=0, sensor_id=3, measurand_id=0, item='tilt'),
         dict(component_id=0, sensor_id=4, measurand_id=0, item='battery'),
     ]
-    iotcluster = NbEasy.IoTCluster()
+    iotcluster = nb_easy.IoTCluster()
     for iot_device in iotcluster:
         if iot_device.imei == imei:
             break
@@ -322,7 +322,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
                 with open(path, 'rb') as cluster_file:
                     mycluster = pickle.load(cluster_file)
             except Exception:   # pylint: disable=broad-except
-                mycluster = SarI.SaradCluster()
+                mycluster = sari.SaradCluster()
                 mycluster.update_connected_instruments()
                 with open(path, 'wb') as cluster_file:
                     mycluster.dump(cluster_file)
@@ -393,7 +393,7 @@ def transmit(path, lock_path, target):
             with open(path, 'rb') as cluster_file:
                 mycluster = pickle.load(cluster_file)
         except Exception:       # pylint: disable=broad-except
-            mycluster = SarI.SaradCluster()
+            mycluster = sari.SaradCluster()
             mycluster.update_connected_instruments()
             with open(path, 'wb') as cluster_file:
                 mycluster.dump(cluster_file)

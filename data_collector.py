@@ -153,7 +153,7 @@ def cluster(path, lock_path):
 @click.option('--lock_path', type=click.Path(writable=True),
               default='iotcluster.lock',
               help='The path and file name of the lock file.')
-def list_iot_devices(path, lock_path):
+def list_iot_devices(lock_path):
     """Show list of connected NB-IoT devices."""
     lock = FileLock(lock_path)
     try:
@@ -161,8 +161,6 @@ def list_iot_devices(path, lock_path):
             iotcluster = NbEasy.IoTCluster()
             for device in iotcluster:
                 click.echo(device)
-            with open(path, 'wb') as iot_cluster_file:
-                iotcluster.dump(iot_cluster_file)
     except Timeout:
         click.echo(LOCK_HINT)
 

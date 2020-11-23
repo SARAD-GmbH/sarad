@@ -12,7 +12,7 @@ from filelock import Timeout, FileLock  # type: ignore
 from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 import schedule  # type: ignore
 import click_log  # type: ignore
-import paho.mqtt.client as client  # type: ignore
+import paho.mqtt.client as mqtt  # type: ignore
 import sari
 import nb_easy
 logger = logging.getLogger()
@@ -32,14 +32,17 @@ def on_connect(client, userdata, flags, rc):
     else:
         logger.info('Connected with MQTT broker.')
 
+
 def on_disconnect(client, userdata, rc):
-    """Will be carried out when the client disconnected from the MQTT broker."""
+    """Will be carried out when the client disconnected
+    from the MQTT broker."""
     if rc:
         logger.info('Disconnection from MQTT broker failed. rc=%s', rc)
     else:
         logger.info('Gracefully disconnected from MQTT broker.')
 
-mqtt_client = client.Client()
+
+mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_disconnect = on_disconnect
 
@@ -228,8 +231,8 @@ def trapper(instrument, host, server, path, lock_path, once, period):
         with lock.acquire(timeout=10):
             logger.debug("Path: %s", path)
             with open('last_session', 'w') as cluster_file:
-                cluster_file.write(instrument + " " + host + " " + server + " " + path +
-                        " " + lock_path + " " + str(period))
+                cluster_file.write(f'{instrument} {host} {server} {path} '
+                                   f'{lock_path} {period}')
 
             try:
                 with open(path, 'rb') as cluster_file:

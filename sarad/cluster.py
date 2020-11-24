@@ -208,12 +208,14 @@ class SaradCluster():
     connected_instruments = property(get_connected_instruments)
     start_time = property(get_start_time, set_start_time)
 
+# * Initialize mycluster as a singleton
+mycluster = SaradCluster()
+mycluster.update_connected_instruments()
+logger.debug(mycluster.__dict__)
 
 # * Test environment:
 if __name__ == '__main__':
 
-    mycluster = SaradCluster()
-    mycluster.update_connected_instruments()
     for connected_instrument in mycluster:
         print(connected_instrument)
 

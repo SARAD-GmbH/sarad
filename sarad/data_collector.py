@@ -4,7 +4,6 @@ Made to be a data source for Zabbix agent."""
 
 import time
 import logging
-import pickle
 import signal
 import sys
 import click
@@ -13,9 +12,8 @@ from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 import schedule  # type: ignore
 import click_log  # type: ignore
 import paho.mqtt.client as mqtt  # type: ignore
-import sarad.sari as sari
 import sarad.nb_easy as nb_easy
-from sarad.cluster import SaradCluster
+from sarad.cluster import mycluster
 logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
@@ -26,19 +24,19 @@ BROKER = 'localhost'
 CLIENT_ID = 'ap-strey'
 
 
-def on_connect(client, userdata, flags, rc):
+def on_connect(client, userdata, flags, result_code):
     """Will be carried out when the client connected to the MQTT broker."""
-    if rc:
-        logger.info('Connection to MQTT broker failed. rc=%s', rc)
+    if result_code:
+        logger.info('Connection to MQTT broker failed. rc=%s', result_code)
     else:
         logger.info('Connected with MQTT broker.')
 
 
-def on_disconnect(client, userdata, rc):
+def on_disconnect(client, userdata, result_code):
     """Will be carried out when the client disconnected
     from the MQTT broker."""
-    if rc:
-        logger.info('Disconnection from MQTT broker failed. rc=%s', rc)
+    if result_code:
+        logger.info('Disconnection from MQTT broker failed. rc=%s', result_code)
     else:
         logger.info('Gracefully disconnected from MQTT broker.')
 
@@ -57,7 +55,7 @@ def signal_handler(sig, frame):
     - stop all cycles
     - disconnect from MQTT broker"""
     logger.info('You pressed Ctrl+C!')
-    for instrument in thiscluster:
+    for instrument in mycluster:
         instrument.stop_cycle()
         logger.info('Device %s stopped.', instrument.device_id)
     mqtt_client.disconnect()
@@ -65,7 +63,6 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
-thiscluster = None
 signal.signal(signal.SIGINT, signal_handler)
 
 
@@ -87,28 +84,15 @@ def cli():
               help='The Id of the sensor of the component.')
 @click.option('--measurand', default=0, type=click.IntRange(0, 3),
               help='The Id of the measurand of the sensor.')
-@click.option('--path', type=click.Path(writable=True),
-              default='mycluster.pickle',
-              help=('The path and file name to cache the cluster properties '
-                    'in a PICKLE file.'))
 @click.option('--lock_path', type=click.Path(writable=True),
               default='mycluster.lock',
               help='The path and file name of the lock file.')
-def value(instrument, component, sensor, measurand, path, lock_path):
+def value(instrument, component, sensor, measurand, lock_path):
     """Command line application that gives back
     the most recent value of a SARAD instrument whenever it is called."""
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            try:
-                with open(path, 'rb') as cluster_file:
-                    mycluster = pickle.load(cluster_file)
-            except Exception:   # pylint: disable=broad-except
-                mycluster = cluster.SaradCluster()
-                mycluster.update_connected_instruments()
-                with open(path, 'wb') as cluster_file:
-                    mycluster.dump(cluster_file)
-            logger.debug(mycluster.__dict__)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
                     my_instrument.get_config()
@@ -123,25 +107,16 @@ def value(instrument, component, sensor, measurand, path, lock_path):
 
 # * List SARAD instruments:
 @cli.command()
-@click.option('--path', type=click.Path(writable=True),
-              default='mycluster.pickle',
-              help=('The path and file name to cache the cluster properties '
-                    'in a PICKLE file.'))
 @click.option('--lock_path', type=click.Path(writable=True),
               default='mycluster.lock',
               help='The path and file name of the lock file.')
-def cluster(path, lock_path):
+def cluster(lock_path):
     """Show list of connected SARAD instruments."""
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            mycluster = SaradCluster()
-            mycluster.update_connected_instruments()
-            logger.debug(mycluster.__dict__)
             for instrument in mycluster:
                 click.echo(instrument)
-            with open(path, 'wb') as cluster_file:
-                mycluster.dump(cluster_file)
             return mycluster
     except Timeout:
         click.echo(LOCK_HINT)
@@ -150,10 +125,6 @@ def cluster(path, lock_path):
 
 # * List NB-IoT devices:
 @cli.command()
-@click.option('--path', type=click.Path(writable=True),
-              default='iotcluster.pickle',
-              help=('The path and file name to cache the list of available '
-                    'IoT devices in a PICKLE file.'))
 @click.option('--lock_path', type=click.Path(writable=True),
               default='iotcluster.lock',
               help='The path and file name of the lock file.')
@@ -201,10 +172,6 @@ def send_trap(component_mapping, host, instrument, zbx):
               help='Host name as defined in Zabbix')
 @click.option('--server', default='127.0.0.1', type=click.STRING,
               help='Server IP address or name')
-@click.option('--path', type=click.Path(writable=True),
-              default='mycluster.pickle',
-              help=('The path and file name to cache the cluster properties '
-                    'in a PICKLE file.'))
 @click.option('--lock_path', default='mycluster.lock',
               type=click.Path(writable=True),
               help='The path and file name of the lock file.')
@@ -212,7 +179,7 @@ def send_trap(component_mapping, host, instrument, zbx):
               help=('Time interval in seconds for the periodic '
                     'retrieval of values.  Use CTRL+C to stop the program.'))
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
-def trapper(instrument, host, server, path, lock_path, once, period):
+def trapper(instrument, host, server, lock_path, once, period):
     """Start a Zabbix trapper service to provide
     all values from an instrument."""
     # The component_mapping provides a mapping between
@@ -230,19 +197,9 @@ def trapper(instrument, host, server, path, lock_path, once, period):
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            logger.debug("Path: %s", path)
             with open('last_session', 'w') as cluster_file:
-                cluster_file.write(f'{instrument} {host} {server} {path} '
+                cluster_file.write(f'{instrument} {host} {server} '
                                    f'{lock_path} {period}')
-
-            try:
-                with open(path, 'rb') as cluster_file:
-                    mycluster = pickle.load(cluster_file)
-            except Exception:   # pylint: disable=broad-except
-                mycluster = SaradCluster()
-                mycluster.update_connected_instruments()
-                with open(path, 'wb') as cluster_file:
-                    mycluster.dump(cluster_file)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
                     while not once:
@@ -283,10 +240,6 @@ def send_iot_trap(component_mapping, instrument, iot_device):
               help='IP address of cloud server')
 @click.option('--udp_port', default='9876', type=click.STRING,
               help='UDP port of cloud server')
-@click.option('--path', type=click.Path(writable=True),
-              default='mycluster.pickle',
-              help=('The path and file name to cache '
-                    'the cluster properties in a PICKLE file.'))
 @click.option('--lock_path', default='mycluster.lock',
               type=click.Path(writable=True),
               help='The path and file name of the lock file.')
@@ -297,7 +250,7 @@ def send_iot_trap(component_mapping, instrument, iot_device):
                     'gained from the instrument. '
                     'Use CTRL+C to stop the program.'))
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
-def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
+def iot(instrument, imei, ip_address, udp_port, lock_path, once, period):
     """Start a trapper service to transmit all values from an instrument
     into an experimental IoT cloud (Vodafone NB-IoT cloud)."""
     # The component_mapping provides a mapping between
@@ -322,14 +275,6 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            try:
-                with open(path, 'rb') as cluster_file:
-                    mycluster = pickle.load(cluster_file)
-            except Exception:   # pylint: disable=broad-except
-                mycluster = SaradCluster()
-                mycluster.update_connected_instruments()
-                with open(path, 'wb') as cluster_file:
-                    mycluster.dump(cluster_file)
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
                     while not once:
@@ -372,54 +317,38 @@ def set_send_scheduler(target, instrument, component, sensor):
 
 
 @cli.command()
-@click.option('--path', type=click.Path(writable=True),
-              default='mycluster.pickle',
-              help=('The path and file name to cache the cluster properties '
-                    'in a PICKLE file.'))
 @click.option('--lock_path', default='mycluster.lock',
               type=click.Path(writable=True),
               help='The path and file name of the lock file.')
 @click.option('--target', default='screen',
               help=('Where the values shall go to? '
                     '(screen, mqtt, zabbix).'))
-def transmit(path, lock_path, target):
+def transmit(lock_path, target):
     """General function to transmit all values gathered from the instruments
     in our cluster to a target.
     Target can be the output of the command on the command line (screen),
     an MQTT broker or a Zabbix server."""
-    global thiscluster
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            logger.debug("Path: %s", path)
-        # Get the list of instruments in the cluster
-        try:
-            with open(path, 'rb') as cluster_file:
-                mycluster = pickle.load(cluster_file)
-        except Exception:       # pylint: disable=broad-except
-            mycluster = SaradCluster()
-            mycluster.update_connected_instruments()
-            with open(path, 'wb') as cluster_file:
-                mycluster.dump(cluster_file)
-        thiscluster = mycluster
-        # Connect to MQTT broker
-        if target == 'mqtt':
-            mqtt_client.connect(BROKER)
-            mqtt_client.loop_start()
-        # Start measuring cycles at all instruments
-        mycluster.synchronize()
-        for instrument in mycluster:
-            instrument.set_lock()
-            logger.info('Device %s started and locked.', instrument.device_id)
-        # Build the scheduler
-        for instrument in mycluster:
-            for component in instrument:
-                for sensor in component:
-                    set_send_scheduler(target, instrument, component, sensor)
-        print('Press Ctrl+C to abort.')
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
+            # Connect to MQTT broker
+            if target == 'mqtt':
+                mqtt_client.connect(BROKER)
+                mqtt_client.loop_start()
+            # Start measuring cycles at all instruments
+            mycluster.synchronize()
+            for instrument in mycluster:
+                instrument.set_lock()
+                logger.info('Device %s started and locked.', instrument.device_id)
+            # Build the scheduler
+            for instrument in mycluster:
+                for component in instrument:
+                    for sensor in component:
+                        set_send_scheduler(target, instrument, component, sensor)
+            print('Press Ctrl+C to abort.')
+            while True:
+                schedule.run_pending()
+                time.sleep(1)
     except Timeout:
         click.echo(LOCK_HINT)
 
@@ -432,13 +361,13 @@ def last_session():
         with open('last_session') as session_file:
             last_args = session_file.read().split(" ")
             logger.debug("Using arguments from last run: %s", last_args)
-            # def trapper(instrument -0, host - 1, server -2, path -3,
-            # lock_path -4, once, period -5):
+            # def trapper(instrument -0, host - 1, server -2, lock_path -3,
+            # once, period -4):
             trapper(last_args[0], last_args[1], last_args[2],
-                    last_args[3], last_args[4], False, int(last_args[5]))
+                    last_args[3], False, int(last_args[4]))
     except IOError:
         logger.debug(("No last run detected. Using defaults: ['j2hRuRDy', "
-                      "'localhost', '127.0.0.1', 'mycluster.pickle', "
+                      "'localhost', '127.0.0.1', "
                       "'mycluster.lock', '60']"))
         trapper('j2hRuRDy', 'localhost', '127.0.0.1',
-                'mycluster.pickle', 'mycluster.lock', False, 60)
+                'mycluster.lock', False, 60)

@@ -1515,8 +1515,8 @@ class SaradCluster():
 
     version = '0.1'
 
-    # with open(os.path.dirname(os.path.realpath(__file__)) +
-    with open(os.getcwd() +
+    # with open(os.getcwd() +
+    with open(os.path.dirname(os.path.realpath(__file__)) +
               os.path.sep + 'instruments.yaml', 'r') as __f:
         products = yaml.safe_load(__f)
 

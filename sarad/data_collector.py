@@ -13,8 +13,8 @@ from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 import schedule  # type: ignore
 import click_log  # type: ignore
 import paho.mqtt.client as mqtt  # type: ignore
-import sari
-import nb_easy
+import sarad.sari as sari
+import sarad.nb_easy as nb_easy
 logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)

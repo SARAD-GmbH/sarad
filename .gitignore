@@ -1,7 +1,6 @@
 *
 !*/
 !/*.py
-!/*.yaml
 !doc/**/*
 !LICENSE
 !.gitignore
@@ -9,3 +8,5 @@
 !/bin/install_service
 !README.org
 !.git*
+!sarad/*.py
+!sarad/*.yaml

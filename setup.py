@@ -1,15 +1,34 @@
-from setuptools import setup  # type: ignore
+import setuptools               # type: ignore
 
-setup(
+with open("README.org", "r") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
     name='data_collector',
-    version='0.1',
-    py_modules=['data_collector', 'sari', 'nb_easy'],
+    version='0.2',
+    author="Michael Strey",
+    author_email="strey@sarad.de",
+    description=("Libraries and sample application to collect data from SARAD"
+                 " instruments."),
+    long_description=long_description,
+    long_description_content_type="text/x-org",
+    url="https://github.com/SARAD-GmbH/data_collector",
+    packages=setuptools.find_packages(),
     install_requires=[
         'click', 'click_log', 'pyserial', 'filelock', 'hashids', 'pyyaml',
         'py-zabbix', 'bitvector', 'schedule'
     ],
     entry_points='''
         [console_scripts]
-        data_collector=data_collector:cli
+        data_collector=sarad.data_collector:cli
     ''',
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        ("License :: OSI Approved :: GNU Lesser General Public License v3 "
+         "(LGPLv3)"),
+        "Operating System :: OS Independent",
+        "Development Status :: 3 - Alpha",
+        "Environment :: Console",
+    ],
+    python_requires='>=3.6'
 )

@@ -15,6 +15,7 @@ import click_log  # type: ignore
 import paho.mqtt.client as mqtt  # type: ignore
 import sarad.sari as sari
 import sarad.nb_easy as nb_easy
+from sarad.cluster import SaradCluster
 logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
@@ -103,7 +104,7 @@ def value(instrument, component, sensor, measurand, path, lock_path):
                 with open(path, 'rb') as cluster_file:
                     mycluster = pickle.load(cluster_file)
             except Exception:   # pylint: disable=broad-except
-                mycluster = sari.SaradCluster()
+                mycluster = cluster.SaradCluster()
                 mycluster.update_connected_instruments()
                 with open(path, 'wb') as cluster_file:
                     mycluster.dump(cluster_file)
@@ -134,7 +135,7 @@ def cluster(path, lock_path):
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            mycluster = sari.SaradCluster()
+            mycluster = SaradCluster()
             mycluster.update_connected_instruments()
             logger.debug(mycluster.__dict__)
             for instrument in mycluster:
@@ -238,7 +239,7 @@ def trapper(instrument, host, server, path, lock_path, once, period):
                 with open(path, 'rb') as cluster_file:
                     mycluster = pickle.load(cluster_file)
             except Exception:   # pylint: disable=broad-except
-                mycluster = sari.SaradCluster()
+                mycluster = SaradCluster()
                 mycluster.update_connected_instruments()
                 with open(path, 'wb') as cluster_file:
                     mycluster.dump(cluster_file)
@@ -325,7 +326,7 @@ def iot(instrument, imei, ip_address, udp_port, path, lock_path, once, period):
                 with open(path, 'rb') as cluster_file:
                     mycluster = pickle.load(cluster_file)
             except Exception:   # pylint: disable=broad-except
-                mycluster = sari.SaradCluster()
+                mycluster = SaradCluster()
                 mycluster.update_connected_instruments()
                 with open(path, 'wb') as cluster_file:
                     mycluster.dump(cluster_file)
@@ -396,7 +397,7 @@ def transmit(path, lock_path, target):
             with open(path, 'rb') as cluster_file:
                 mycluster = pickle.load(cluster_file)
         except Exception:       # pylint: disable=broad-except
-            mycluster = sari.SaradCluster()
+            mycluster = SaradCluster()
             mycluster.update_connected_instruments()
             with open(path, 'wb') as cluster_file:
                 mycluster.dump(cluster_file)

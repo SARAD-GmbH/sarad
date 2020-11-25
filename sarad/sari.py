@@ -99,7 +99,6 @@ class SaradInst():
         if (port is not None) and (family is not None):
             self._initialize()
         self.__components = []
-        self.__i = 0
         self.__interval = None
         self._type_id = None
         self._type_name = None
@@ -377,17 +376,6 @@ class SaradInst():
             return False
 
 # ** Public methods:
-
-# *** next(self):
-
-    def next(self):
-        """Return the next component of this instrument."""
-        if self.__i < len(self.__components):
-            self.__i += 1
-            return self.__components[self.__i - 1]
-        self.__i = 0
-        raise StopIteration()
-
 # *** get_reply():
 
     def get_reply(self, cmd_data, reply_length=50, timeout=1):
@@ -495,7 +483,6 @@ class Component():
         self.__id = component_id
         self.__name = component_name
         self.__sensors = []
-        self.__i = 0
 
 # ** Private methods:
 
@@ -511,16 +498,6 @@ class Component():
         return output
 
 # ** Public methods:
-# *** next(self):
-
-    def next(self):
-        """Iterate to the next sensor of this component."""
-        if self.__i < len(self.__sensors):
-            self.__i += 1
-            return self.__sensors[self.__i - 1]
-        self.__i = 0
-        raise StopIteration()
-
 # *** get/set_id:
 
     def get_id(self):
@@ -579,7 +556,6 @@ class Sensor():
         self.__name = sensor_name
         self.__interval = None
         self.__measurands = []
-        self.__i = 0
 
 # ** Private methods:
 
@@ -596,16 +572,6 @@ class Sensor():
         return output
 
 # ** Public methods:
-# *** next(self):
-
-    def next(self):
-        """Iterate to the next measurand of this sensor."""
-        if self.__i < len(self.__measurands):
-            self.__i += 1
-            return self.__measurands[self.__i - 1]
-        self.__i = 0
-        raise StopIteration()
-
 # *** get/set_id():
 
     def get_id(self):

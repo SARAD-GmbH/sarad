@@ -34,7 +34,6 @@ class SaradCluster():
         get_active_ports()
         get_connected_instruments()
         update_connected_instruments()
-        next()
         synchronize(): Stop all instruments, set time, start all measurings
         dump(): Save all properties to a Pickle file"""
 
@@ -44,7 +43,6 @@ class SaradCluster():
         if native_ports is None:
             native_ports = []
         self.__native_ports = native_ports
-        self.__i = 0
         self.__start_time = 0
         self.__connected_instruments = []
         self.__active_ports = None
@@ -55,16 +53,6 @@ class SaradCluster():
         return iter(self.__connected_instruments)
 
 # ** Public methods:
-# *** next(self):
-
-    def next(self):
-        """Iterate to next connected instrument."""
-        if self.__i < len(self.__connected_instruments):
-            self.__i += 1
-            return self.__connected_instruments[self.__i - 1]
-        self.__i = 0
-        raise StopIteration()
-
 # *** synchronize(self):
 
     def synchronize(self):
@@ -216,9 +204,4 @@ if __name__ == '__main__':
 
     # Example access on first device
     if len(mycluster.connected_instruments) > 0:
-        ts = mycluster.next()
-        ts.signal = ts.Signal.off
-        ts.pump_mode = ts.Pump_mode.continuous
-        ts.radon_mode = ts.Radon_mode.fast
-        ts.units = ts.Units.si
-        ts.chamber_size = ts.Chamber_size.xl
+        inst = mycluster.connected_instruments[0]

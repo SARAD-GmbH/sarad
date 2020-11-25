@@ -6,6 +6,7 @@ import time
 import logging
 import signal
 import sys
+import pickle
 import click
 from filelock import Timeout, FileLock  # type: ignore
 from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
@@ -25,18 +26,22 @@ CLIENT_ID = 'ap-strey'
 
 
 def on_connect(client, userdata, flags, result_code):
+    # pylint: disable=unused-argument
     """Will be carried out when the client connected to the MQTT broker."""
     if result_code:
-        logger.info('Connection to MQTT broker failed. rc=%s', result_code)
+        logger.info('Connection to MQTT broker failed. result_code=%s',
+                    result_code)
     else:
         logger.info('Connected with MQTT broker.')
 
 
 def on_disconnect(client, userdata, result_code):
+    # pylint: disable=unused-argument
     """Will be carried out when the client disconnected
     from the MQTT broker."""
     if result_code:
-        logger.info('Disconnection from MQTT broker failed. rc=%s', result_code)
+        logger.info('Disconnection from MQTT broker failed. result_code=%s',
+                    result_code)
     else:
         logger.info('Gracefully disconnected from MQTT broker.')
 
@@ -50,7 +55,7 @@ LOCK_HINT = "Another instance of this application currently holds the lock."
 
 
 # * Handling of Ctrl+C:
-def signal_handler(sig, frame):
+def signal_handler(sig, frame):   # pylint: disable=unused-argument
     """On Ctrl+C:
     - stop all cycles
     - disconnect from MQTT broker"""
@@ -164,8 +169,43 @@ def send_trap(component_mapping, host, instrument, zbx):
     zbx.send(metrics)
 
 
+def unwrapped_trapper(**kwargs):
+    """Start a Zabbix trapper service to provide
+    all values from an instrument."""
+    # The component_mapping provides a mapping between
+    # component/sensor/measurand and Zabbix items
+    instrument = kwargs['instrument']
+    host = kwargs['host']
+    server = kwargs['server']
+    lock_path = kwargs['lock_path']
+    period = kwargs['period']
+    component_mapping = [
+        {'component_id': 1, 'sensor_id': 0, 'measurand_id': 0, 'item': 'radon'},
+        {'component_id': 1, 'sensor_id': 1, 'measurand_id': 0, 'item': 'thoron'},
+        {'component_id': 0, 'sensor_id': 0, 'measurand_id': 0, 'item': 'temperature'},
+        {'component_id': 0, 'sensor_id': 1, 'measurand_id': 0, 'item': 'humidity'},
+        {'component_id': 0, 'sensor_id': 2, 'measurand_id': 0, 'item': 'pressure'},
+        {'component_id': 0, 'sensor_id': 3, 'measurand_id': 0, 'item': 'tilt'},
+        {'component_id': 0, 'sensor_id': 4, 'measurand_id': 0, 'item': 'battery'},
+    ]
+    zbx = ZabbixSender(server)
+    lock = FileLock(lock_path)
+    try:
+        with lock.acquire(timeout=10):
+            with open('last_session', 'w+b') as session_file:
+                pickle.dump(kwargs, session_file)
+            for my_instrument in mycluster.connected_instruments:
+                if my_instrument.device_id == instrument:
+                    while not kwargs['once']:
+                        send_trap(component_mapping, host, my_instrument, zbx)
+                        time.sleep(period - time.time() % period)
+                    send_trap(component_mapping, host, my_instrument, zbx)
+    except Timeout:
+        click.echo(LOCK_HINT)
+
+
 @cli.command()
-@click.option('--instrument', default='j2hRuRDy',
+@click.option('--instrument', default='j2hRuRDy', type=click.STRING,
               help=('Instrument Id.  Run ~data_collector cluster~ to get '
                     'the list of available instruments.'))
 @click.option('--host', default='localhost', type=click.STRING,
@@ -179,35 +219,10 @@ def send_trap(component_mapping, host, instrument, zbx):
               help=('Time interval in seconds for the periodic '
                     'retrieval of values.  Use CTRL+C to stop the program.'))
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
-def trapper(instrument, host, server, lock_path, once, period):
+def trapper (**kwargs):
     """Start a Zabbix trapper service to provide
     all values from an instrument."""
-    # The component_mapping provides a mapping between
-    # component/sensor/measurand and Zabbix items
-    component_mapping = [
-        dict(component_id=1, sensor_id=0, measurand_id=0, item='radon'),
-        dict(component_id=1, sensor_id=1, measurand_id=0, item='thoron'),
-        dict(component_id=0, sensor_id=0, measurand_id=0, item='temperature'),
-        dict(component_id=0, sensor_id=1, measurand_id=0, item='humidity'),
-        dict(component_id=0, sensor_id=2, measurand_id=0, item='pressure'),
-        dict(component_id=0, sensor_id=3, measurand_id=0, item='tilt'),
-        dict(component_id=0, sensor_id=4, measurand_id=0, item='battery'),
-    ]
-    zbx = ZabbixSender(server)
-    lock = FileLock(lock_path)
-    try:
-        with lock.acquire(timeout=10):
-            with open('last_session', 'w') as cluster_file:
-                cluster_file.write(f'{instrument} {host} {server} '
-                                   f'{lock_path} {period}')
-            for my_instrument in mycluster.connected_instruments:
-                if my_instrument.device_id == instrument:
-                    while not once:
-                        send_trap(component_mapping, host, my_instrument, zbx)
-                        time.sleep(period - time.time() % period)
-                    send_trap(component_mapping, host, my_instrument, zbx)
-    except Timeout:
-        click.echo(LOCK_HINT)
+    unwrapped_trapper(**kwargs)
 
 
 # * Experimental NB-IoT trapper:
@@ -250,9 +265,16 @@ def send_iot_trap(component_mapping, instrument, iot_device):
                     'gained from the instrument. '
                     'Use CTRL+C to stop the program.'))
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
-def iot(instrument, imei, ip_address, udp_port, lock_path, once, period):
+def iot(**kwargs):
     """Start a trapper service to transmit all values from an instrument
     into an experimental IoT cloud (Vodafone NB-IoT cloud)."""
+    instrument = kwargs['instrument']
+    imei = kwargs['imei']
+    ip_address = kwargs['ip_address']
+    udp_port = kwargs['udp_port']
+    lock_path = kwargs['lock_path']
+    once = kwargs['once']
+    period = kwargs['period']
     # The component_mapping provides a mapping between
     # component/sensor/measurand and items.
     # Quick and dirty for Thoron Scout only!
@@ -266,24 +288,33 @@ def iot(instrument, imei, ip_address, udp_port, lock_path, once, period):
         dict(component_id=0, sensor_id=4, measurand_id=0, item='battery'),
     ]
     iotcluster = nb_easy.IoTCluster()
+    proceed = False
     for iot_device in iotcluster:
         if iot_device.imei == imei:
-            break
-    iot_device.attach()
-    iot_device.ip_address = ip_address
-    iot_device.udp_port = udp_port
-    lock = FileLock(lock_path)
-    try:
-        with lock.acquire(timeout=10):
-            for my_instrument in mycluster.connected_instruments:
-                if my_instrument.device_id == instrument:
-                    while not once:
+            proceed = True
+            my_iot_device = iot_device
+        else:
+            click.echo('There is no NB-IoT with the given IMEI connected.')
+            return False
+    if proceed:
+        my_iot_device.attach()
+        my_iot_device.ip_address = ip_address
+        my_iot_device.udp_port = udp_port
+        lock = FileLock(lock_path)
+        try:
+            with lock.acquire(timeout=10):
+                for my_instrument in mycluster.connected_instruments:
+                    if my_instrument.device_id == instrument:
+                        while not once:
+                            send_iot_trap(component_mapping, my_instrument,
+                                          my_iot_device)
+                            time.sleep(period - time.time() % period)
                         send_iot_trap(component_mapping, my_instrument,
-                                      iot_device)
-                        time.sleep(period - time.time() % period)
-                    send_iot_trap(component_mapping, my_instrument, iot_device)
-    except Timeout:
-        click.echo(LOCK_HINT)
+                                      my_iot_device)
+        except Timeout:
+            click.echo(LOCK_HINT)
+            return False
+    return True
 
 
 # * Transmit all values to a target:
@@ -358,16 +389,18 @@ def transmit(lock_path, target):
 def last_session():
     """Starts the last trapper session as continuous service"""
     try:
-        with open('last_session') as session_file:
-            last_args = session_file.read().split(" ")
-            logger.debug("Using arguments from last run: %s", last_args)
-            # def trapper(instrument -0, host - 1, server -2, lock_path -3,
-            # once, period -4):
-            trapper(last_args[0], last_args[1], last_args[2],
-                    last_args[3], False, int(last_args[4]))
+        with open('last_session', 'r+b') as session_file:
+            kwargs = pickle.load(session_file)
+        logger.debug("Using arguments from last run: %s", kwargs)
+        # def trapper(instrument -0, host - 1, server -2, lock_path -3,
+        # once, period -4):
+        unwrapped_trapper(**kwargs)
     except IOError:
-        logger.debug(("No last run detected. Using defaults: ['j2hRuRDy', "
-                      "'localhost', '127.0.0.1', "
-                      "'mycluster.lock', '60']"))
-        trapper('j2hRuRDy', 'localhost', '127.0.0.1',
-                'mycluster.lock', False, 60)
+        kwargs = {'instrument': 'j2hRuRDy', 'host': 'localhost',
+                  'server': '127.0.0.1', 'lock_path': 'mycluster.lock',
+                  'period': 60, 'once': False}
+        logger.debug("No last run detected. Using defaults: %s", kwargs)
+        unwrapped_trapper(**kwargs)
+
+if __name__ == '__main__':
+    cli()

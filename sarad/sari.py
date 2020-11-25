@@ -100,7 +100,6 @@ class SaradInst():
             self._initialize()
         self.__components = []
         self.__i = 0
-        self.__n = len(self.__components)
         self.__interval = None
         self._type_id = None
         self._type_name = None
@@ -383,12 +382,10 @@ class SaradInst():
 
     def next(self):
         """Return the next component of this instrument."""
-        if self.__i < self.__n:
-            __i = self.__i
+        if self.__i < len(self.__components):
             self.__i += 1
-            return self.__components[__i]
+            return self.__components[self.__i - 1]
         self.__i = 0
-        self.__n = len(self.__components)
         raise StopIteration()
 
 # *** get_reply():
@@ -499,7 +496,6 @@ class Component():
         self.__name = component_name
         self.__sensors = []
         self.__i = 0
-        self.__n = len(self.__sensors)
 
 # ** Private methods:
 
@@ -519,12 +515,10 @@ class Component():
 
     def next(self):
         """Iterate to the next sensor of this component."""
-        if self.__i < self.__n:
-            __i = self.__i
+        if self.__i < len(self.__sensors):
             self.__i += 1
-            return self.__sensors[__i]
+            return self.__sensors[self.__i - 1]
         self.__i = 0
-        self.__n = len(self.__sensors)
         raise StopIteration()
 
 # *** get/set_id:
@@ -586,7 +580,6 @@ class Sensor():
         self.__interval = None
         self.__measurands = []
         self.__i = 0
-        self.__n = len(self.__measurands)
 
 # ** Private methods:
 
@@ -607,12 +600,10 @@ class Sensor():
 
     def next(self):
         """Iterate to the next measurand of this sensor."""
-        if self.__i < self.__n:
-            __i = self.__i
+        if self.__i < len(self.__measurands):
             self.__i += 1
-            return self.__measurands[__i]
+            return self.__measurands[self.__i - 1]
         self.__i = 0
-        self.__n = len(self.__measurands)
         raise StopIteration()
 
 # *** get/set_id():

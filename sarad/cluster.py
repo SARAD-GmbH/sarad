@@ -45,7 +45,6 @@ class SaradCluster():
             native_ports = []
         self.__native_ports = native_ports
         self.__i = 0
-        self.__n = 0
         self.__start_time = 0
         self.__connected_instruments = []
         self.__active_ports = None
@@ -60,12 +59,10 @@ class SaradCluster():
 
     def next(self):
         """Iterate to next connected instrument."""
-        if self.__i < self.__n:
-            __i = self.__i
+        if self.__i < len(self.__connected_instruments):
             self.__i += 1
-            return self.__connected_instruments[__i]
+            return self.__connected_instruments[self.__i - 1]
         self.__i = 0
-        self.__n = len(self.__connected_instruments)
         raise StopIteration()
 
 # *** synchronize(self):
@@ -164,7 +161,6 @@ class SaradCluster():
             for port in ports_with_instruments:
                 ports_to_test.remove(port)
         self.__connected_instruments = connected_instruments
-        self.__n = len(connected_instruments)
         return connected_instruments
 
 # *** get_connected_instruments(self):

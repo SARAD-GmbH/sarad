@@ -1,15 +1,14 @@
 """Collection of classes to communicate with NB-IoT modules from
 Exelonix/Vodafone"""
 
-import serial
-import serial.tools.list_ports
-import time
-from datetime import datetime
-from datetime import timedelta
 import logging
+import serial                   # type: ignore
+import serial.tools.list_ports  # type: ignore
 
-class Device(object):
-    """Basic class for the EASY serial communication protocol for NB-IoT devices
+
+class Device():
+    """Basic class for the EASY serial communication protocol
+    for NB-IoT devices
 
     Properties:
         port: String containing the serial communication port
@@ -27,16 +26,19 @@ class Device(object):
         transmit()
     """
 
-    def __init__(self, port = None, ip_address = '213.136.85.114', \
-                 udp_port = '9876'):
+    def __init__(self, port=None, ip_address='213.136.85.114',
+                 udp_port='9876'):
         if port is not None:
             self.__port = port
             self.__get_imei()
         self.__ip_address = ip_address
         self.__udp_port = udp_port
+        self.__imei = None
+        self.__device_type = None
 
     # Private methods
-    def __make_request(self, operation_id, payload=None):
+    @staticmethod
+    def __make_request(operation_id, payload=None):
         # Encode the message to be sent to the NB-IoT device.
         if payload is not None:
             payload = ':' + payload
@@ -46,9 +48,8 @@ class Device(object):
         return output
 
     def __get_imei(self):
-        reply = self.get_response('Device', no_of_response_lines = 1)
+        reply = self.get_response('Device', no_of_response_lines=1)
         response = reply['response'][0]
-        confirm = reply['confirm']
         device_descr = response.split(':')[1].split(',')
         self.__device_type = device_descr[0]
         self.__hardware_revision = device_descr[1]
@@ -57,22 +58,27 @@ class Device(object):
         self.__imei = device_descr[4]
 
     # Public methods
-    def get_response(self, operation_id, payload = None, no_of_response_lines = 30):
-        """Returns a list of response lines to operation message. 'operation_id' and payload are string variables."""
+    def get_response(self, operation_id, payload=None,
+                     no_of_response_lines=30):
+        """Returns a list of response lines to operation message.
+        'operation_id' and payload are string variables."""
         request = self.__make_request(operation_id, payload)
         with serial.Serial(self.port, 115200, timeout=5) as ser:
             ser.write(request.encode('utf-8'))
             response = []
-            for x in range(no_of_response_lines + 1):
-                received_line = ser.readline().decode('utf-8')[:-2]  # remove \r\n
+            for _ in range(no_of_response_lines + 1):
+                # remove \r\n
+                received_line = ser.readline().decode('utf-8')[:-2]
                 logging.info(received_line)
                 if 'EASY#' in received_line:
                     confirm = received_line.split(':')[1]
-                    return dict(response = response, confirm = confirm)
-                elif 'EASY-' in received_line:
+                    return dict(response=response, confirm=confirm)
+                if 'EASY-' in received_line:
                     response.append(received_line)
+        return False
 
-    def attach(self, plmn = 0):
+    def attach(self, plmn=0):
+        """Attach the modem."""
         if self.get_response('ModemStatus')['response'][0] == \
            'EASY-ModemStatus:Attached':
             return 'NothingToDo'
@@ -85,6 +91,7 @@ class Device(object):
         return confirm
 
     def detach(self):
+        """Detach the modem."""
         if self.get_response('ModemStatus')['response'][0] == \
            'EASY-ModemStatus:Detached':
             return 'NothingToDo'
@@ -97,6 +104,7 @@ class Device(object):
         return confirm
 
     def transmit(self, message):
+        """Send a message to the cloud."""
         data = '{}?b=[s="{}"]'.format(self.imei, message)
         logging.debug(data)
         data_length = len(data)
@@ -112,51 +120,52 @@ class Device(object):
         return confirm
 
     def get_port(self):
+        """Returns the serial port the NB-IoT module is connected to."""
         return self.__port
+
     def set_port(self, port):
+        """Set the serial port the NB-IoT module is connected to."""
         self.__port = port
         self.__get_imei()
     port = property(get_port, set_port)
 
     def get_imei(self):
+        """Return the identifier of the NB-IoT module."""
         return self.__imei
-    def set_imei(self, imei):
-        self.__imei = imei
-    imei = property(get_imei, set_imei)
+    imei = property(get_imei)
 
     def get_device_type(self):
+        """Return the device type of the NB-IoT module."""
         return self.__device_type
-    def set_device_type(self, device_type):
-        self.__device_type = device_type
-    device_type = property(get_device_type, set_device_type)
+    device_type = property(get_device_type)
 
     def get_hardware_revision(self):
+        """Return the hardware revision of the NB-IoT module."""
         return self.__hardware_revision
-    def set_hardware_revision(self, hardware_revision):
-        self.__hardware_revision = hardware_revision
-    hardware_revision = property(get_hardware_revision, set_hardware_revision)
 
     def get_firmware_version(self):
+        """Return the firmware version of the NB-IoT module."""
         return self.__firmware_version
-    def set_firmware_version(self, firmware_version):
-        self.__firmware_version = firmware_version
-    firmware_version = property(get_firmware_version, set_firmware_version)
 
     def get_easy_if_version(self):
+        """Return the EASY version of the NB-IoT module."""
         return self.__easy_if_version
-    def set_easy_if_version(self, easy_if_version):
-        self.__easy_if_version = easy_if_version
-    easy_if_version = property(get_easy_if_version, set_easy_if_version)
 
     def get_ip_address(self):
+        """Return the IP address of the NB-IoT module."""
         return self.__ip_address
+
     def set_ip_address(self, ip_address):
+        """Set the IP address of the NB-IoT module."""
         self.__ip_address = ip_address
     ip_address = property(get_ip_address, set_ip_address)
 
     def get_udp_port(self):
+        """Return the UDP port of the NB-IoT module."""
         return self.__udp_port
+
     def set_udp_port(self, udp_port):
+        """Set the UDP port of the NB-IoT module."""
         self.__udp_port = udp_port
     udp_port = property(get_udp_port, set_udp_port)
 
@@ -169,7 +178,8 @@ class Device(object):
         output += "EasyIfVersion: " + str(self.__easy_if_version) + "\n"
         return output
 
-class IoTCluster(object):
+
+class IoTCluster():
     """Class to define a cluster of IoT devices connected to one controller.  \
     The devices may be connected via USB, UART, or RS232 respectively.
     Properties:
@@ -192,24 +202,27 @@ class IoTCluster(object):
         self.__connected_devices = self.update_connected_devices()
         self.__i = 0
         self.__n = len(self.__connected_devices)
+        self.__active_ports = []
 
     def __iter__(self):
         return iter(self.__connected_devices)
 
     def next(self):
+        """Iterate to next module."""
         if self.__i < self.__n:
             __i = self.__i
             self.__i += 1
             return self.__connected_devices[__i]
-        else:
-            self.__i = 0
-            self.__n = len(self.__connected_devices)
-            raise StopIteration()
+        self.__i = 0
+        self.__n = len(self.__connected_devices)
+        raise StopIteration()
 
     def set_native_ports(self, native_ports):
+        """Set a list of native (RS-232) serial ports."""
         self.__native_ports = native_ports
 
     def get_native_ports(self):
+        """Return a list of native (RS-232) serial ports."""
         return self.__native_ports
 
     def get_active_ports(self):
@@ -230,29 +243,33 @@ class IoTCluster(object):
         return self.__active_ports
 
     def update_connected_devices(self):
+        """Update the list of connected NB-IoT modules."""
         ports_to_test = self.active_ports
-        logging.info(str(len(ports_to_test)) + ' ports to test')
+        logging.info('%d ports to test', len(ports_to_test))
         # We check every active port and try for a connected IoT device.
         connected_devices = []  # a list of device objects
         test_device = Device()
         logging.info(ports_to_test)
         for port in ports_to_test:
-            logging.info('Testing port ' + port)
+            logging.info('Testing port %s.', port)
             test_device.port = port
             if test_device.get_imei():
-                logging.info('IoT device with IMEI' + test_device.imei + ' found on port ' + port)
+                logging.info('IoT device with IMEI %s found on port %s.',
+                             test_device.imei, port)
                 connected_devices.append(test_device)
         return connected_devices
 
     def get_connected_devices(self):
+        """Return a list of connected NB-IoT modules."""
         return self.__connected_devices
 
     native_ports = property(get_native_ports, set_native_ports)
     active_ports = property(get_active_ports)
     connected_devices = property(get_connected_devices)
 
-# Test environment
-if __name__=='__main__':
+
+# * Test environment:
+if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     mycluster = IoTCluster()

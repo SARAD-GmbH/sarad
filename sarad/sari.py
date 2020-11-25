@@ -230,15 +230,15 @@ class SaradInst():
 # *** __str__(self):
 
     def __str__(self):
-        output = "Id: " + str(self.device_id) + "\n"
-        output += "SerialDevice: " + self.port + "\n"
-        output += "Baudrate: " + str(self.family['baudrate']) + "\n"
-        output += "FamilyName: " + str(self.family['family_name']) + "\n"
-        output += "FamilyId: " + str(self.family['family_id']) + "\n"
-        output += "TypName: " + str(self.type_name) + "\n"
-        output += "TypeId: " + str(self.type_id) + "\n"
-        output += "SoftwareVersion: " + str(self.software_version) + "\n"
-        output += "SerialNumber: " + str(self.serial_number) + "\n"
+        output = (f"Id: {self.device_id}\n"
+                  f"SerialDevice: {self.port}\n"
+                  f"Baudrate: {self.family['baudrate']}\n"
+                  f"FamilyName: {self.family['family_name']}\n"
+                  f"FamilyId: {self.family['family_id']}\n"
+                  f"TypName: {self.type_name}\n"
+                  f"TypeId: {self.type_id}\n"
+                  f"SoftwareVersion: {self.software_version}\n"
+                  f"SerialNumber: {self.serial_number}\n")
         return output
 
 # ** Protected methods:

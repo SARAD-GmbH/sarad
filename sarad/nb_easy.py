@@ -33,8 +33,9 @@ class Device():
             self.__get_imei()
         self.__ip_address = ip_address
         self.__udp_port = udp_port
-        self.__imei = None
-        self.__device_type = None
+        self.__module_descr = {
+            'device_type': None, 'hardware_revision': None, 'firmware_version': None,
+            'easy_if_version': None, 'imei': None}
 
     # Private methods
     @staticmethod
@@ -51,11 +52,11 @@ class Device():
         reply = self.get_response('Device', no_of_response_lines=1)
         response = reply['response'][0]
         device_descr = response.split(':')[1].split(',')
-        self.__device_type = device_descr[0]
-        self.__hardware_revision = device_descr[1]
-        self.__firmware_version = device_descr[2]
-        self.__easy_if_version = device_descr[3]
-        self.__imei = device_descr[4]
+        self.__module_descr['device_type'] = device_descr[0]
+        self.__module_descr['hardware_revision'] = device_descr[1]
+        self.__module_descr['firmware_version'] = device_descr[2]
+        self.__module_descr['easy_if_version'] = device_descr[3]
+        self.__module_descr['imei'] = device_descr[4]
 
     # Public methods
     def get_response(self, operation_id, payload=None,
@@ -131,25 +132,25 @@ class Device():
 
     def get_imei(self):
         """Return the identifier of the NB-IoT module."""
-        return self.__imei
+        return self.__module_descr['imei']
     imei = property(get_imei)
 
     def get_device_type(self):
         """Return the device type of the NB-IoT module."""
-        return self.__device_type
+        return self.__module_descr['device_type']
     device_type = property(get_device_type)
 
     def get_hardware_revision(self):
         """Return the hardware revision of the NB-IoT module."""
-        return self.__hardware_revision
+        return self.__module_descr['hardware_revision']
 
     def get_firmware_version(self):
         """Return the firmware version of the NB-IoT module."""
-        return self.__firmware_version
+        return self.__module_descr['firmware_version']
 
     def get_easy_if_version(self):
         """Return the EASY version of the NB-IoT module."""
-        return self.__easy_if_version
+        return self.__module_descr['easy_if_version']
 
     def get_ip_address(self):
         """Return the IP address of the NB-IoT module."""
@@ -170,12 +171,12 @@ class Device():
     udp_port = property(get_udp_port, set_udp_port)
 
     def __str__(self):
-        output = "IMEI: " + str(self.__imei) + "\n"
-        output += "SerialDevice: " + self.port + "\n"
-        output += "DeviceType: " + self.__device_type + "\n"
-        output += "HardwareRevision: " + str(self.__hardware_revision) + "\n"
-        output += "FirmwareVersion: " + str(self.__firmware_version) + "\n"
-        output += "EasyIfVersion: " + str(self.__easy_if_version) + "\n"
+        output = (
+            f"IMEI: {self.imei} \nSerialDevice: {self.port}\n"
+            f"DeviceType: {self.device_type}\n"
+            f"HardwareRevision: {self.__module_descr['hardware_revision']}\n"
+            f"FirmwareVersion: {self.__module_descr['firmware_version']}\n"
+            f"EasyIfVersion: {self.__module_descr['easy_if_version']}\n")
         return output
 
 
@@ -192,7 +193,6 @@ class IoTCluster():
         get_active_ports()
         get_connected_devices()
         update_connected_devices()
-        next()
     """
 
     def __init__(self, native_ports=None):
@@ -200,22 +200,10 @@ class IoTCluster():
             native_ports = []
         self.__native_ports = native_ports
         self.__connected_devices = self.update_connected_devices()
-        self.__i = 0
-        self.__n = len(self.__connected_devices)
         self.__active_ports = []
 
     def __iter__(self):
         return iter(self.__connected_devices)
-
-    def next(self):
-        """Iterate to next module."""
-        if self.__i < self.__n:
-            __i = self.__i
-            self.__i += 1
-            return self.__connected_devices[__i]
-        self.__i = 0
-        self.__n = len(self.__connected_devices)
-        raise StopIteration()
 
     def set_native_ports(self, native_ports):
         """Set a list of native (RS-232) serial ports."""

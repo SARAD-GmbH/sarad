@@ -235,7 +235,7 @@ class SaradInst():
         output += "Baudrate: " + str(self.family['baudrate']) + "\n"
         output += "FamilyName: " + str(self.family['family_name']) + "\n"
         output += "FamilyId: " + str(self.family['family_id']) + "\n"
-        output += "TypName: " + self.type_name + "\n"
+        output += "TypName: " + str(self.type_name) + "\n"
         output += "TypeId: " + str(self.type_id) + "\n"
         output += "SoftwareVersion: " + str(self.software_version) + "\n"
         output += "SerialNumber: " + str(self.serial_number) + "\n"
@@ -436,7 +436,7 @@ class SaradInst():
         for type_in_family in self.family['types']:
             if type_in_family['type_id'] == self.type_id:
                 return type_in_family['type_name']
-            return None
+        return None
 
 # *** get_software_version():
 

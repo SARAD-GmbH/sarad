@@ -350,7 +350,8 @@ class DacmInst(SaradInst):
         ok_byte = self.family['ok_byte']
         instr_datetime = bytearray([date_time.second, date_time.minute,
                                     date_time.hour, date_time.day,
-                                    date_time.month, date_time.year - 2000])
+                                    date_time.month])
+        instr_datetime.extend((date_time.year).to_bytes(2, byteorder='big'))
         reply = self.get_reply([b'\x10', instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
             logger.debug("Time on device %s set to UTC.", self.device_id)

@@ -8,6 +8,7 @@ import signal
 import sys
 import pickle
 import click
+import yaml
 from filelock import Timeout, FileLock  # type: ignore
 from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 import schedule  # type: ignore
@@ -20,9 +21,11 @@ FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
 
 # * MQTT configuration:
-# BROKER = '192.168.10.166'
-BROKER = 'localhost'
-CLIENT_ID = 'ap-strey'
+with open("config.yaml", "r") as ymlfile:
+    cfg = yaml.safe_load(ymlfile)
+
+BROKER = cfg['mqtt']['broker']
+CLIENT_ID = cfg['mqtt']['client_id']
 
 
 def on_connect(client, userdata, flags, result_code):
@@ -76,6 +79,7 @@ signal.signal(signal.SIGINT, signal_handler)
 @click_log.simple_verbosity_option(logger)
 def cli():
     """Description for the group of commands"""
+    logger.debug("broker = %s, client_id = %s", BROKER, CLIENT_ID)
 
 
 # * Single value output:

@@ -1,6 +1,7 @@
 *
 !*/
 !/*.py
+!/*.yaml
 !doc/**/*
 !LICENSE
 !.gitignore

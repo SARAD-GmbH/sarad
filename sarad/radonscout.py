@@ -230,8 +230,7 @@ class RscInst(SaradInst):
 
 # *** get_recent_value(component_id, sensor_id, measurand_id):
 
-    def get_recent_value(self, component_id=None, sensor_id=None,
-                         measurand_id=None):
+    def get_recent_value(self, component_id=None, sensor_id=None, _=None):
         """Fill component objects with recent measuring values.\
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
@@ -272,9 +271,9 @@ class RscInst(SaradInst):
         logger.error('stop_cycle() failed at device %s.', self.device_id)
         return False
 
-# *** start_cycle(self):
+# *** start_cycle(self, cycle_index):
 
-    def start_cycle(self):
+    def start_cycle(self, _):
         """Start a measurement cycle."""
         self.get_config()  # to set self.__interval
         for component in self.components:

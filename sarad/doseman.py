@@ -57,9 +57,9 @@ class DosemanInst(SaradInst):
         logger.error('stop_cycle() failed at device %s.', self.device_id)
         return False
 
-# *** start_cycle(self):
+# *** start_cycle(self, cycle_index):
 
-    def start_cycle(self):
+    def start_cycle(self, _):
         """Start a measuring cycle."""
         self.get_config()  # to set self.__interval
         for component in self.components:

@@ -1,3 +1,6 @@
 mqtt:
   broker: localhost
   client_id: ap-strey
+
+cycles:
+  28tkhn4V: 5

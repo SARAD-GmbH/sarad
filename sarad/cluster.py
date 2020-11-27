@@ -53,12 +53,13 @@ class SaradCluster():
         return iter(self.__connected_instruments)
 
 # ** Public methods:
-# *** synchronize(self):
+# *** synchronize(self, cycles_dict):
 
-    def synchronize(self):
+    def synchronize(self, cycles_dict):
         """Stop measuring cycles of all connected instruments.
         Set instrument time to UTC on all instruments.
-        Start measuring cycle on all instruments."""
+        Start measuring cycle on all instruments according to dictionary
+        in cycles_dict."""
         for instrument in self.connected_instruments:
             try:
                 instrument.stop_cycle()
@@ -70,7 +71,17 @@ class SaradCluster():
         for instrument in self.connected_instruments:
             try:
                 instrument.set_real_time_clock(self.__start_time)
-                instrument.start_cycle()
+                logger.debug("Clock set to UTC on device %s", instrument.device_id)
+                logger.debug("Cycles_dict = %s", cycles_dict)
+                if instrument.device_id in cycles_dict:
+                    cycle_index = cycles_dict[instrument.device_id]
+                    logger.debug("Cycle_index for device %s is %d",
+                                 instrument.device_id, cycle_index)
+                else:
+                    cycle_index = 0
+                instrument.start_cycle(cycle_index)
+                logger.debug("Device %s started with cycle_index %d",
+                             instrument.device_id, cycle_index)
             except Exception:   # pylint: disable=broad-except
                 logger.error(
                     'Failed to set time and start cycles on all instruments.')

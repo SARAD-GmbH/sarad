@@ -371,7 +371,7 @@ def transmit(lock_path, target):
                 mqtt_client.connect(BROKER)
                 mqtt_client.loop_start()
             # Start measuring cycles at all instruments
-            mycluster.synchronize()
+            mycluster.synchronize(cfg['cycles'])
             for instrument in mycluster:
                 instrument.set_lock()
                 logger.info('Device %s started and locked.', instrument.device_id)

@@ -490,11 +490,10 @@ class Component():
         return iter(self.__sensors)
 
     def __str__(self):
-        output = "ComponentId: " + str(self.id) + "\n"
-        output += "ComponentName: " + self.name + "\n"
-        output += "Sensors:\n"
         for sensor in self.sensors:
-            output += str(sensor)
+            sensors += f"{sensor}\n"
+        output = (f"ComponentId: {self.id}\nComponentName: {self.name}\n"
+                  f"Sensors: {sensors}")
         return output
 
 # ** Public methods:
@@ -563,12 +562,11 @@ class Sensor():
         return iter(self.__measurands)
 
     def __str__(self):
-        output = "SensorId: " + str(self.id) + "\n"
-        output += "SensorName: " + self.name + "\n"
-        output += "SensorInterval: " + str(self.interval) + "\n"
-        output += "Measurands:\n"
         for measurand in self.measurands:
-            output += str(measurand)
+            measurands += f"{measurand}\n"
+        output = (f"SensorId: {self.id}\nSensorName: {self.name}\n"
+                  f"SensorInterval: {self.interval}\n"
+                  f"Measurands: {measurands}")
         return output
 
 # ** Public methods:
@@ -658,15 +656,13 @@ class Measurand():
 # ** Private methods:
 
     def __str__(self):
-        output = "MeasurandId: " + str(self.id) + "\n"
-        output += "MeasurandName: " + self.name + "\n"
+        output = f"MeasurandId: {self.id}\nMeasurandName: {self.name}\n"
         if self.value is not None:
-            output += "Value: " + self.operator + str(self.value) + ' ' + \
-                      self.unit + "\n"
-            output += "Time: " + str(self.time) + "\n"
+            output += f"Value: {self.operator} {self.value} {self.unit}\n"
+            output += f"Time: {self.time}\n"
         else:
-            output += "MeasurandUnit: " + self.unit + "\n"
-            output += "MeasurandSource: " + str(self.source) + "\n"
+            output += f"MeasurandUnit: {self.unit}\n"
+            output += f"MeasurandSource: {self.source}\n"
         return output
 
 # ** Public methods:

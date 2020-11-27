@@ -68,21 +68,21 @@ class DacmInst(SaradInst):
 # *** __str__(self):
 
     def __str__(self):
-        output = "Id: " + str(self.device_id) + "\n"
-        output += "SerialDevice: " + self.port + "\n"
-        output += "Baudrate: " + str(self.family['baudrate']) + "\n"
-        output += "FamilyName: " + str(self.family['family_name']) + "\n"
-        output += "FamilyId: " + str(self.family['family_id']) + "\n"
-        output += "TypName: " + self.type_name + "\n"
-        output += "TypeId: " + str(self.type_id) + "\n"
-        output += "SoftwareVersion: " + str(self.software_version) + "\n"
-        output += "LastUpdate: " + str(self.date_of_update) + "\n"
-        output += "SerialNumber: " + str(self.serial_number) + "\n"
-        output += "DateOfManufacture: " + str(self.date_of_manufacture) + "\n"
-        output += "Address: " + str(self.address) + "\n"
-        output += "LastConfig: " + str(self.date_of_config) + "\n"
-        output += "ModuleName: " + str(self.module_name) + "\n"
-        output += "ConfigName: " + str(self.config_name) + "\n"
+        output = (f"Id: {self.device_id}\n"
+                  f"SerialDevice: {self.port}\n"
+                  f"Baudrate: {self.family['baudrate']}\n"
+                  f"FamilyName: {self.family['family_name']}\n"
+                  f"FamilyId: {self.family['family_id']}\n"
+                  f"TypName: {self.type_name}\n"
+                  f"TypeId: {self.type_id}\n"
+                  f"SoftwareVersion: {self.software_version}\n"
+                  f"LastUpdate: {self.date_of_update}\n"
+                  f"SerialNumber: {self.serial_number}\n"
+                  f"DateOfManufacture: {self.date_of_manufacture}\n"
+                  f"Address: {self.address}\n"
+                  f"LastConfig: {self.date_of_config}\n"
+                  f"ModuleName: {self.module_name}\n"
+                  f"ConfigName: {self.config_name}\n")
         return output
 
 # ** Protected methods overriding methods of SaradInst:

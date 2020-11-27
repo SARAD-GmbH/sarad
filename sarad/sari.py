@@ -490,10 +490,10 @@ class Component():
         return iter(self.__sensors)
 
     def __str__(self):
+        output = (f"ComponentId: {self.id}\n"
+                  f"ComponentName: {self.name}\nSensors:\n")
         for sensor in self.sensors:
-            sensors += f"{sensor}\n"
-        output = (f"ComponentId: {self.id}\nComponentName: {self.name}\n"
-                  f"Sensors: {sensors}")
+            output += f"{sensor}\n"
         return output
 
 # ** Public methods:
@@ -562,11 +562,10 @@ class Sensor():
         return iter(self.__measurands)
 
     def __str__(self):
-        for measurand in self.measurands:
-            measurands += f"{measurand}\n"
         output = (f"SensorId: {self.id}\nSensorName: {self.name}\n"
-                  f"SensorInterval: {self.interval}\n"
-                  f"Measurands: {measurands}")
+                  f"SensorInterval: {self.interval}\nMeasurands:\n")
+        for measurand in self.measurands:
+            output += f"{measurand}\n"
         return output
 
 # ** Public methods:

@@ -26,13 +26,16 @@ logging.basicConfig(format=FORMAT)
 # * Configuration file and default MQTT config:
 config = {}
 dirs = AppDirs("data_collector")
-for loc in os.curdir, os.path.expanduser("~"), dirs.user_config_dir, \
-    dirs.site_config_dir:
+for loc in [os.curdir, os.path.expanduser("~"), dirs.user_config_dir,
+            dirs.site_config_dir]:
     try:
         with open(os.path.join(loc, "data_collector.conf"), "r") as ymlfile:
             config = yaml.safe_load(ymlfile)
     except IOError:
-        logger.error("There seems to be no configuration file.")
+        pass
+
+if config == {}:
+    logger.debug("There seems to be no configuration file. Using defaults.")
 
 try:
     BROKER = config['mqtt']['broker']
@@ -239,7 +242,7 @@ def unwrapped_trapper(**kwargs):
               help=('Time interval in seconds for the periodic '
                     'retrieval of values.  Use CTRL+C to stop the program.'))
 @click.option('--once', is_flag=True, help='Retrieve only one set of data.')
-def trapper (**kwargs):
+def trapper(**kwargs):
     """Start a Zabbix trapper service to provide
     all values from an instrument."""
     unwrapped_trapper(**kwargs)
@@ -394,12 +397,14 @@ def transmit(lock_path, target):
             mycluster.synchronize(config_dict)
             for instrument in mycluster:
                 instrument.set_lock()
-                logger.info('Device %s started and locked.', instrument.device_id)
+                logger.info(
+                    'Device %s started and locked.', instrument.device_id)
             # Build the scheduler
             for instrument in mycluster:
                 for component in instrument:
                     for sensor in component:
-                        set_send_scheduler(target, instrument, component, sensor)
+                        set_send_scheduler(target, instrument, component,
+                                           sensor)
             print('Press Ctrl+C to abort.')
             while True:
                 schedule.run_pending()
@@ -425,6 +430,7 @@ def last_session():
                   'period': 60, 'once': False}
         logger.debug("No last run detected. Using defaults: %s", kwargs)
         unwrapped_trapper(**kwargs)
+
 
 if __name__ == '__main__':
     cli()

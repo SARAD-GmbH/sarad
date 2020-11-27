@@ -20,12 +20,13 @@ logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
 
-# * MQTT configuration:
+# * Configuration file and default MQTT config:
+config = None
 with open("config.yaml", "r") as ymlfile:
-    cfg = yaml.safe_load(ymlfile)
+    config = yaml.safe_load(ymlfile)
 
-BROKER = cfg['mqtt']['broker']
-CLIENT_ID = cfg['mqtt']['client_id']
+BROKER = config['mqtt']['broker']
+CLIENT_ID = config['mqtt']['client_id']
 
 
 def on_connect(client, userdata, flags, result_code):
@@ -371,7 +372,11 @@ def transmit(lock_path, target):
                 mqtt_client.connect(BROKER)
                 mqtt_client.loop_start()
             # Start measuring cycles at all instruments
-            mycluster.synchronize(cfg['cycles'])
+            if 'cycles' in config:
+                config_dict = config['cycles']
+            else:
+                config_dict = {}
+            mycluster.synchronize(config_dict)
             for instrument in mycluster:
                 instrument.set_lock()
                 logger.info('Device %s started and locked.', instrument.device_id)

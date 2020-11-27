@@ -6,7 +6,10 @@ import time
 import logging
 import signal
 import sys
+import os
+import socket
 import pickle
+from appdirs import AppDirs     # type: ignore
 import click
 import yaml
 from filelock import Timeout, FileLock  # type: ignore
@@ -21,12 +24,24 @@ FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
 
 # * Configuration file and default MQTT config:
-config = None
-with open("config.yaml", "r") as ymlfile:
-    config = yaml.safe_load(ymlfile)
+config = {}
+dirs = AppDirs("data_collector")
+for loc in os.curdir, os.path.expanduser("~"), dirs.user_config_dir, \
+    dirs.site_config_dir:
+    try:
+        with open(os.path.join(loc, "data_collector.conf"), "r") as ymlfile:
+            config = yaml.safe_load(ymlfile)
+    except IOError:
+        logger.error("There seems to be no configuration file.")
 
-BROKER = config['mqtt']['broker']
-CLIENT_ID = config['mqtt']['client_id']
+try:
+    BROKER = config['mqtt']['broker']
+except KeyError:
+    BROKER = 'localhost'
+try:
+    CLIENT_ID = config['mqtt']['client_id']
+except KeyError:
+    CLIENT_ID = socket.gethostname()
 
 
 def on_connect(client, userdata, flags, result_code):

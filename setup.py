@@ -16,7 +16,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         'click', 'click_log', 'pyserial', 'filelock', 'hashids', 'pyyaml',
-        'py-zabbix', 'bitvector', 'schedule'
+        'py-zabbix', 'bitvector', 'schedule', 'appdirs'
     ],
     entry_points='''
         [console_scripts]

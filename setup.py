@@ -22,6 +22,8 @@ setuptools.setup(
         [console_scripts]
         data_collector=sarad.data_collector:cli
     ''',
+    scripts=['sarad/data_collector.py'],
+    data_files=[('config', ['data_collector.conf', 'sarad/instruments.yaml'])],
     classifiers=[
         "Programming Language :: Python :: 3",
         ("License :: OSI Approved :: GNU Lesser General Public License v3 "

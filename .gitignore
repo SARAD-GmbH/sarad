@@ -4,6 +4,7 @@
 !/*.conf
 !doc/**/*
 !LICENSE
+!MANIFEST.in
 !.gitignore
 !/systemd/*.service
 !/bin/install_service

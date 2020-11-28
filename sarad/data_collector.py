@@ -1,3 +1,4 @@
+#! python
 """Command line application that gives back the most recent value of a SARAD
 instrument whenever it is called.
 Made to be a data source for Zabbix agent."""

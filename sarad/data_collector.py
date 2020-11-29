@@ -85,6 +85,7 @@ except KeyError:
 # Create Zabbix sender object
 zbx = ZabbixSender(SERVER)
 
+
 # * Strings:
 LOCK_HINT = "Another instance of this application currently holds the lock."
 
@@ -160,115 +161,6 @@ def cluster(lock_path):
     except Timeout:
         click.echo(LOCK_HINT)
         return False
-
-
-# * List NB-IoT devices:
-@cli.command()
-@click.option('--lock_path', type=click.Path(writable=True),
-              default='iotcluster.lock',
-              help='The path and file name of the lock file.')
-def list_iot_devices(lock_path):
-    """Show list of connected NB-IoT devices."""
-    lock = FileLock(lock_path)
-    try:
-        with lock.acquire(timeout=10):
-            iotcluster = nb_easy.IoTCluster()
-            for device in iotcluster:
-                click.echo(device)
-    except Timeout:
-        click.echo(LOCK_HINT)
-
-
-# * Experimental NB-IoT trapper:
-def send_iot_trap(component_mapping, instrument, iot_device):
-    """Send a message via the NB-IoT module
-    into the experimental Vodafone cloud."""
-    for component_map in component_mapping:
-        if instrument.get_all_recent_values() is True:
-            measurand = instrument.components[component_map['component_id']].\
-                        sensors[component_map['sensor_id']].\
-                        measurands[component_map['measurand_id']]
-            meas_value = measurand.value
-            meas_key = (f"{component_map['component_id']}/"
-                        f"{component_map['sensor_id']}/"
-                        f"{component_map['measurand_id']}")
-            meas_time = measurand.time.isoformat()
-            iot_device.transmit(f'{meas_key};{meas_value};{meas_time}')
-
-
-@cli.command()
-@click.option('--instrument', default='j2hRuRDy',
-              help=('Instrument Id.  Run ~data_collector cluster~ to get '
-                    'the list of available instruments.'))
-@click.option('--imei', default='357518080146079',
-              help=('International Mobile Equipment Identity '
-                    'of the NB-IoT device to be used. '
-                    'Run ~data_collector list_iot_devices~ '
-                    'to get the list of available devices.'))
-@click.option('--ip_address', default='213.136.85.114', type=click.STRING,
-              help='IP address of cloud server')
-@click.option('--udp_port', default='9876', type=click.STRING,
-              help='UDP port of cloud server')
-@click.option('--lock_path', default='mycluster.lock',
-              type=click.Path(writable=True),
-              help='The path and file name of the lock file.')
-@click.option('--period', default='auto',
-              help=('Time interval in seconds for the periodic retrieval '
-                    'of values.  If this value is not provided, '
-                    'it will be set to the interval '
-                    'gained from the instrument. '
-                    'Use CTRL+C to stop the program.'))
-@click.option('--once', is_flag=True, help='Retrieve only one set of data.')
-def iot(**kwargs):
-    """Start a trapper service to transmit all values from an instrument
-    into an experimental IoT cloud (Vodafone NB-IoT cloud)."""
-    instrument = kwargs['instrument']
-    imei = kwargs['imei']
-    ip_address = kwargs['ip_address']
-    udp_port = kwargs['udp_port']
-    lock_path = kwargs['lock_path']
-    once = kwargs['once']
-    period = kwargs['period']
-    # The component_mapping provides a mapping between
-    # component/sensor/measurand and items.
-    # Quick and dirty for Thoron Scout only!
-    component_mapping = [
-        dict(component_id=1, sensor_id=0, measurand_id=0, item='radon'),
-        dict(component_id=1, sensor_id=1, measurand_id=0, item='thoron'),
-        dict(component_id=0, sensor_id=0, measurand_id=0, item='temperature'),
-        dict(component_id=0, sensor_id=1, measurand_id=0, item='humidity'),
-        dict(component_id=0, sensor_id=2, measurand_id=0, item='pressure'),
-        dict(component_id=0, sensor_id=3, measurand_id=0, item='tilt'),
-        dict(component_id=0, sensor_id=4, measurand_id=0, item='battery'),
-    ]
-    iotcluster = nb_easy.IoTCluster()
-    proceed = False
-    for iot_device in iotcluster:
-        if iot_device.imei == imei:
-            proceed = True
-            my_iot_device = iot_device
-        else:
-            click.echo('There is no NB-IoT with the given IMEI connected.')
-            return False
-    if proceed:
-        my_iot_device.attach()
-        my_iot_device.ip_address = ip_address
-        my_iot_device.udp_port = udp_port
-        lock = FileLock(lock_path)
-        try:
-            with lock.acquire(timeout=10):
-                for my_instrument in mycluster.connected_instruments:
-                    if my_instrument.device_id == instrument:
-                        while not once:
-                            send_iot_trap(component_mapping, my_instrument,
-                                          my_iot_device)
-                            time.sleep(period - time.time() % period)
-                        send_iot_trap(component_mapping, my_instrument,
-                                      my_iot_device)
-        except Timeout:
-            click.echo(LOCK_HINT)
-            return False
-    return True
 
 
 # * Transmit all values to a target:

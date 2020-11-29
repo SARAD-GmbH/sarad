@@ -34,8 +34,8 @@ class Device():
         self.__ip_address = ip_address
         self.__udp_port = udp_port
         self.__module_descr = {
-            'device_type': None, 'hardware_revision': None, 'firmware_version': None,
-            'easy_if_version': None, 'imei': None}
+            'device_type': None, 'hardware_revision': None,
+            'firmware_version': None, 'easy_if_version': None, 'imei': None}
 
     # Private methods
     @staticmethod
@@ -73,7 +73,7 @@ class Device():
                 logging.info(received_line)
                 if 'EASY#' in received_line:
                     confirm = received_line.split(':')[1]
-                    return dict(response=response, confirm=confirm)
+                    return {"response": response, "confirm": confirm}
                 if 'EASY-' in received_line:
                     response.append(received_line)
         return False

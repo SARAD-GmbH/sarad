@@ -233,14 +233,14 @@ class DacmInst(SaradInst):
                                                   signed=False)
                 name = reply[8:16].split(b'\x00')[0].decode("ascii")
                 hw_capability = BitVector(rawbytes=reply[16:20])
-                return dict(revision=revision,
-                            component_type=component_type,
-                            availability=availability,
-                            ctrl_format=ctrl_format,
-                            conf_block_size=conf_block_size,
-                            data_record_size=data_record_size,
-                            name=name,
-                            hw_capability=hw_capability)
+                return {"revision": revision,
+                        "component_type": component_type,
+                        "availability": availability,
+                        "ctrl_format": ctrl_format,
+                        "conf_block_size": conf_block_size,
+                        "data_record_size": data_record_size,
+                        "name": name,
+                        "hw_capability": hw_capability}
             except TypeError:
                 logger.error("TypeError when parsing the payload.")
                 return False
@@ -284,14 +284,14 @@ class DacmInst(SaradInst):
                 alert_output_hi = int.from_bytes(reply[6:8],
                                                  byteorder='big',
                                                  signed=False)
-                return dict(sensor_name=sensor_name,
-                            sensor_value=sensor_value,
-                            sensor_unit=sensor_unit,
-                            input_config=input_config,
-                            alert_level_lo=alert_level_lo,
-                            alert_level_hi=alert_level_hi,
-                            alert_output_lo=alert_output_lo,
-                            alert_output_hi=alert_output_hi)
+                return {"sensor_name": sensor_name,
+                        "sensor_value": sensor_value,
+                        "sensor_unit": sensor_unit,
+                        "input_config": input_config,
+                        "alert_level_lo": alert_level_lo,
+                        "alert_level_hi": alert_level_hi,
+                        "alert_output_lo": alert_output_lo,
+                        "alert_output_hi": alert_output_hi}
             except TypeError:
                 logger.error("TypeError when parsing the payload.")
                 return False
@@ -327,10 +327,10 @@ class DacmInst(SaradInst):
                 cycle_repetitions = int.from_bytes(reply[24:28],
                                                    byteorder='little',
                                                    signed=False)
-                return dict(cycle_name=cycle_name,
-                            cycle_interval=cycle_interval,
-                            cycle_steps=cycle_steps,
-                            cycle_repetitions=cycle_repetitions)
+                return {"cycle_name": cycle_name,
+                        "cycle_interval": cycle_interval,
+                        "cycle_steps": cycle_steps,
+                        "cycle_repetitions": cycle_repetitions}
             except TypeError:
                 logger.error("TypeError when parsing the payload.")
                 return False
@@ -360,10 +360,10 @@ class DacmInst(SaradInst):
                 bit_ctrl = BitVector(rawbytes=reply[4:8])
                 value_ctrl = BitVector(rawbytes=reply[8:12])
                 rest = BitVector(rawbytes=reply[12:16])
-                return dict(seconds=seconds,
-                            bit_ctrl=bit_ctrl,
-                            value_ctrl=value_ctrl,
-                            rest=rest)
+                return {"seconds": seconds,
+                        "bit_ctrl": bit_ctrl,
+                        "value_ctrl": value_ctrl,
+                        "rest": rest}
             except TypeError:
                 logger.error("TypeError when parsing the payload.")
                 return False
@@ -470,7 +470,7 @@ class DacmInst(SaradInst):
             bytes([component_id]) + bytes([sensor_id]) + bytes([measurand_id])
         ], 1000)
         if reply and (reply[0] > 0):
-            output = dict()
+            output = {}
             output['component_name'] = reply[1:17].split(b'\x00')[0].decode(
                 "ascii")
             output['measurand_id'] = measurand_id

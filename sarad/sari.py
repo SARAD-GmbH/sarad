@@ -181,10 +181,10 @@ class SaradInst():
             payload = b''
             number_of_bytes_in_payload = 0
         logger.debug('Payload: %s', payload)
-        return dict(is_valid=is_valid,
-                    is_control=is_control,
-                    payload=payload,
-                    number_of_bytes_in_payload=number_of_bytes_in_payload)
+        return {"is_valid": is_valid,
+                "is_control": is_control,
+                "payload": payload,
+                "number_of_bytes_in_payload": number_of_bytes_in_payload}
 
 # *** __get_message_payload():
 
@@ -221,11 +221,11 @@ class SaradInst():
             time.sleep(0.5)
         ser.close()
         checked_answer = self.__check_answer(answer)
-        return dict(is_valid=checked_answer['is_valid'],
-                    is_control=checked_answer['is_control'],
-                    payload=checked_answer['payload'],
-                    number_of_bytes_in_payload=checked_answer[
-                        'number_of_bytes_in_payload'])
+        return {"is_valid": checked_answer['is_valid'],
+                "is_control": checked_answer['is_control'],
+                "payload": checked_answer['payload'],
+                "number_of_bytes_in_payload": checked_answer[
+                    'number_of_bytes_in_payload']}
 
 # *** __str__(self):
 
@@ -304,7 +304,7 @@ class SaradInst():
         """Take a string containing a physical value with operator,
         value and unit and decompose it into its parts
         for further mathematical processing."""
-        output = dict()
+        output = {}
         if value_string == 'No valid data!':
             output['measurand_operator'] = ''
             output['measurand_value'] = ''

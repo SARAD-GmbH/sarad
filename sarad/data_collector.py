@@ -24,7 +24,7 @@ logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
 
-# * Configuration file and default MQTT config:
+# * Configuration file:
 config = {}
 dirs = AppDirs("data_collector")
 for loc in [os.curdir, os.path.expanduser("~"), dirs.user_config_dir,
@@ -38,6 +38,7 @@ for loc in [os.curdir, os.path.expanduser("~"), dirs.user_config_dir,
 if config == {}:
     logger.debug("There seems to be no configuration file. Using defaults.")
 
+# ** MQTT config:
 try:
     BROKER = config['mqtt']['broker']
 except KeyError:
@@ -46,7 +47,6 @@ try:
     CLIENT_ID = config['mqtt']['client_id']
 except KeyError:
     CLIENT_ID = socket.gethostname()
-
 
 def on_connect(client, userdata, flags, result_code):
     # pylint: disable=unused-argument
@@ -72,6 +72,18 @@ def on_disconnect(client, userdata, result_code):
 mqtt_client = mqtt.Client()
 mqtt_client.on_connect = on_connect
 mqtt_client.on_disconnect = on_disconnect
+
+# ** Zabbix config:
+try:
+    SERVER = config['zabbix']['server']
+except KeyError:
+    SERVER = 'localhost'
+try:
+    HOST = config['zabbix']['host']
+except KeyError:
+    HOST = socket.gethostname()
+# Create Zabbix sender object
+zbx = ZabbixSender(SERVER)
 
 # * Strings:
 LOCK_HINT = "Another instance of this application currently holds the lock."
@@ -358,7 +370,10 @@ def send(target, instrument, component, sensor):
                 f'{{"val": {measurand.value}, "ts": {measurand.time}}}')
             logger.debug('MQTT message for %s published.', sensor.name)
         elif target == 'zabbix':
-            pass
+            zbx_value = measurand.value
+            zbx_key = f"{sensor.name}-{measurand.name}"
+            metrics = [ZabbixMetric(HOST, zbx_key, zbx_value)]
+            zbx.send(metrics)
         else:
             logger.error(('Target must be either screen, mqtt or zabbix.'))
 
@@ -371,21 +386,18 @@ def set_send_scheduler(target, instrument, component, sensor):
                  sensor.name, instrument.device_id, sensor.interval.seconds)
 
 
-@cli.command()
-@click.option('--lock_path', default='mycluster.lock',
-              type=click.Path(writable=True),
-              help='The path and file name of the lock file.')
-@click.option('--target', default='screen',
-              help=('Where the values shall go to? '
-                    '(screen, mqtt, zabbix).'))
-def transmit(lock_path, target):
+def unwrapped_transmit(**kwargs):
     """General function to transmit all values gathered from the instruments
     in our cluster to a target.
     Target can be the output of the command on the command line (screen),
     an MQTT broker or a Zabbix server."""
+    lock_path = kwargs['lock_path']
+    target = kwargs['target']
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
+            with open('last_session', 'w+b') as session_file:
+                pickle.dump(kwargs, session_file)
             # Connect to MQTT broker
             if target == 'mqtt':
                 mqtt_client.connect(BROKER)
@@ -413,8 +425,21 @@ def transmit(lock_path, target):
     except Timeout:
         click.echo(LOCK_HINT)
 
+@cli.command()
+@click.option('--lock_path', default='mycluster.lock',
+              type=click.Path(writable=True),
+              help='The path and file name of the lock file.')
+@click.option('--target', default='screen',
+              help=('Where the values shall go to? '
+                    '(screen, mqtt, zabbix).'))
+def transmit(**kwargs):
+    """General function to transmit all values gathered from the instruments
+    in our cluster to a target.
+    Target can be the output of the command on the command line (screen),
+    an MQTT broker or a Zabbix server."""
+    unwrapped_transmit(**kwargs)
 
-# * Re-start last Zabbix trapper session:
+# * Re-start last transmit session:
 @cli.command()
 def last_session():
     """Starts the last trapper session as continuous service"""
@@ -422,15 +447,11 @@ def last_session():
         with open('last_session', 'r+b') as session_file:
             kwargs = pickle.load(session_file)
         logger.debug("Using arguments from last run: %s", kwargs)
-        # def trapper(instrument -0, host - 1, server -2, lock_path -3,
-        # once, period -4):
-        unwrapped_trapper(**kwargs)
+        unwrapped_transmit(**kwargs)
     except IOError:
-        kwargs = {'instrument': 'j2hRuRDy', 'host': 'localhost',
-                  'server': '127.0.0.1', 'lock_path': 'mycluster.lock',
-                  'period': 60, 'once': False}
+        kwargs = {'lock_path': 'mycluster.lock', 'target': 'screen'}
         logger.debug("No last run detected. Using defaults: %s", kwargs)
-        unwrapped_trapper(**kwargs)
+        unwrapped_transmit(**kwargs)
 
 
 if __name__ == '__main__':

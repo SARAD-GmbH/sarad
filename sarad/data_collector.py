@@ -18,7 +18,6 @@ from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 import schedule  # type: ignore
 import click_log  # type: ignore
 import paho.mqtt.client as mqtt  # type: ignore
-import sarad.nb_easy as nb_easy
 from sarad.cluster import mycluster
 logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"

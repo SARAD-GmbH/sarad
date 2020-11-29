@@ -665,6 +665,12 @@ class Measurand():
         return output
 
 # ** Public methods:
+# *** get_config():
+
+    def get_config(self):
+        """Get configuration from device."""
+        pass
+
 # *** get/set_id:
 
     def get_id(self):

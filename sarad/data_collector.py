@@ -124,12 +124,10 @@ def value(instrument, component, sensor, measurand, lock_path):
         with lock.acquire(timeout=10):
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
-                    my_instrument.get_config()
                     my_instrument.get_recent_value(component, sensor,
                                                    measurand)
-                    logger.debug(my_instrument.components[component])
                     click.echo(my_instrument.components[component].
-                               sensors[sensor].measurands[measurand].value)
+                               sensors[sensor].measurands[measurand])
     except Timeout:
         click.echo(LOCK_HINT)
 
@@ -348,9 +346,11 @@ def send(target, instrument, component, sensor):
         c_idx = list(instrument).index(component)
         s_idx = list(component).index(sensor)
         m_idx = list(sensor).index(measurand)
+        logger.debug("Trying to get value for c_idx=%d, s_idx=%d, m_idx=%d",
+                     c_idx, s_idx, m_idx)
         instrument.get_recent_value(c_idx, s_idx, m_idx)
         if target == 'screen':
-            click.echo(sensor)
+            click.echo(measurand)
         elif target == 'mqtt':
             mqtt_client.publish(
                 f'{CLIENT_ID}/status/{instrument.device_id}/{sensor.name}/'

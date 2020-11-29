@@ -1,9 +1,10 @@
 """Module for the communication with instruments of the DACM family."""
 
 from datetime import datetime
+from datetime import timedelta
 import logging
 from BitVector import BitVector  # type: ignore
-from sarad.sari import SaradInst
+from sarad.sari import SaradInst, Component, Sensor, Measurand
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,41 @@ class DacmInst(SaradInst):
         return output
 
 # ** Protected methods overriding methods of SaradInst:
+# *** _build_component_list(self):
+
+    def _build_component_list(self):
+        logger.debug('Building component list for Radon Scout instrument.')
+        for component_object in self.components:
+            del component_object
+        self.components = []
+        component_dict = self._get_parameter('components')
+        if not component_dict:
+            return False
+        for component in component_dict:
+            component_object = Component(component['component_id'],
+                                         component['component_name'])
+            # build sensor list
+            for sensor in component['sensors']:
+                sensor_object = Sensor(sensor['sensor_id'],
+                                       sensor['sensor_name'])
+                # build measurand list
+                for measurand in sensor['measurands']:
+                    try:
+                        unit = measurand['measurand_unit']
+                    except Exception:  # pylint: disable=broad-except
+                        unit = ''
+                    try:
+                        source = measurand['measurand_source']
+                    except Exception:  # pylint: disable=broad-except
+                        source = None
+                    measurand_object = Measurand(measurand['measurand_id'],
+                                                 measurand['measurand_name'],
+                                                 unit, source)
+                    sensor_object.measurands += [measurand_object]
+                component_object.sensors += [sensor_object]
+            self.components += [component_object]
+        return len(self.components)
+
 # *** _get_description(self):
 
     def _get_description(self):
@@ -281,9 +317,10 @@ class DacmInst(SaradInst):
             logger.debug('Get primary cycle information successful.')
             try:
                 cycle_name = reply[2:19].split(b'\x00')[0].decode("ascii")
-                cycle_interval = int.from_bytes(reply[19:21],
-                                                byteorder='little',
-                                                signed=False)
+                cycle_interval = timedelta(
+                    seconds=int.from_bytes(reply[19:21],
+                                           byteorder='little',
+                                           signed=False))
                 cycle_steps = int.from_bytes(reply[21:24],
                                              byteorder='big',
                                              signed=False)
@@ -375,6 +412,10 @@ class DacmInst(SaradInst):
 
     def start_cycle(self, cycle_index=0):
         """Start a measuring cycle."""
+        self.__interval = self._read_cycle_start(cycle_index)['cycle_interval']
+        for component in self.components:
+            for sensor in component.sensors:
+                sensor.interval = self.__interval
         ok_byte = self.family['ok_byte']
         reply = self.get_reply([b'\x15', bytes([cycle_index])], 3, timeout=5)
         if reply and (reply[0] == ok_byte):
@@ -411,7 +452,7 @@ class DacmInst(SaradInst):
 
 # *** get_recent_value():
 
-    def get_recent_value(self, component_id, sensor_id=0, measurand_id=0):
+    def get_recent_value(self, component, sensor=0, measurand=0):
         """Get a dictionaries with recent measuring values from one sensor.
         component_id: one of the 34 sensor/actor modules of the DACM system
         measurand_id:
@@ -420,6 +461,10 @@ class DacmInst(SaradInst):
         2 = minimum of last completed interval,
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
+        component_id = self.components[component].id
+        sensor_id = self.components[component].sensors[sensor].id
+        measurand_id = self.components[component].sensors[sensor].measurands[
+            measurand].id
         reply = self.get_reply([
             b'\x1a',
             bytes([component_id]) + bytes([sensor_id]) + bytes([measurand_id])
@@ -433,10 +478,10 @@ class DacmInst(SaradInst):
                 "ascii")
             output['measurand'] = reply[35:51].split(
                 b'\x00')[0].strip().decode("ascii")
-            measurand = self._parse_value_string(output['measurand'])
-            output['measurand_operator'] = measurand['measurand_operator']
-            output['value'] = measurand['measurand_value']
-            output['measurand_unit'] = measurand['measurand_unit']
+            measurand_dict = self._parse_value_string(output['measurand'])
+            output['measurand_operator'] = measurand_dict['measurand_operator']
+            output['value'] = measurand_dict['measurand_value']
+            output['measurand_unit'] = measurand_dict['measurand_unit']
             date = reply[52:68].split(b'\x00')[0].split(b'/')
             meas_time = reply[69:85].split(b'\x00')[0].split(b':')
             if date != [b'']:
@@ -446,7 +491,16 @@ class DacmInst(SaradInst):
                                               int(meas_time[2]))
             else:
                 output['datetime'] = None
-            output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
+            try:
+                output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
+            except UnicodeDecodeError:
+                output['gps'] = False
+            this_measurand = self.components[component].sensors[
+                sensor].measurands[measurand]
+            this_measurand.operator = measurand_dict['measurand_operator']
+            this_measurand.value = measurand_dict['measurand_value']
+            this_measurand.unit = measurand_dict['measurand_unit']
+            this_measurand.time = output['datetime']
             return output
         if reply[0] == 0:
             logger.error("Measurand not available.")

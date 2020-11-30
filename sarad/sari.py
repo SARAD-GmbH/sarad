@@ -629,7 +629,8 @@ class Measurand():
         value
         unit
         source
-        time"""
+        time
+        gps"""
 
     version = '0.1'
 
@@ -651,6 +652,7 @@ class Measurand():
         self.__value = None
         self.__time = None
         self.__operator = ''
+        self.__gps = ''
 
 # ** Private methods:
 
@@ -659,18 +661,13 @@ class Measurand():
         if self.value is not None:
             output += f"Value: {self.operator} {self.value} {self.unit}\n"
             output += f"Time: {self.time}\n"
+            output += f"GPS: {self.gps}\n"
         else:
             output += f"MeasurandUnit: {self.unit}\n"
             output += f"MeasurandSource: {self.source}\n"
         return output
 
 # ** Public methods:
-# *** get_config():
-
-    def get_config(self):
-        """Get configuration from device."""
-        pass
-
 # *** get/set_id:
 
     def get_id(self):
@@ -746,6 +743,17 @@ class Measurand():
         """Set the aquisition time (timestamp) of the measurand."""
         self.__time = time_stamp
 
+# *** get/set_gps:
+
+    def get_gps(self):
+        """Return the GPS string of the measurand."""
+        return self.__gps
+
+    def set_gps(self, gps):
+        """Set the GPS string of the measurand."""
+        self.__gps = gps
+
+
 # ** Properties:
 
     id = property(get_id, set_id)
@@ -755,3 +763,4 @@ class Measurand():
     operator = property(get_operator, set_operator)
     value = property(get_value, set_value)
     time = property(get_time, set_time)
+    gps = property(get_gps, set_gps)

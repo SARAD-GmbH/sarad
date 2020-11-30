@@ -1,5 +1,6 @@
 """Module for the communication with instruments of the DACM family."""
 
+import re
 from datetime import datetime
 from datetime import timedelta
 import logging
@@ -492,15 +493,24 @@ class DacmInst(SaradInst):
             else:
                 output['datetime'] = None
             try:
-                output['gps'] = reply[86:].split(b'\x00')[0].decode("ascii")
-            except UnicodeDecodeError:
-                output['gps'] = False
+                gps_list = re.split('[ ]+ |ø|M[ ]*', reply[86:].decode('latin_1'))
+                gps_dict = {
+                    'valid': True,
+                    'latitude': float(gps_list[0]) if gps_list[1]=='N' else -float(gps_list[0]),
+                    'longitude': float(gps_list[2]) if gps_list[3]=='E' else -float(gps_list[2]),
+                    'altitude': float(gps_list[4]),
+                    'deviation': float(gps_list[5])}
+                output['gps'] = gps_dict
+            except Exception:
+                gps_dict = {'valid': False, 'latitude': None, 'longitude': None,
+                       'altitude': None, 'deviation': None}
             this_measurand = self.components[component].sensors[
                 sensor].measurands[measurand]
             this_measurand.operator = measurand_dict['measurand_operator']
             this_measurand.value = measurand_dict['measurand_value']
             this_measurand.unit = measurand_dict['measurand_unit']
             this_measurand.time = output['datetime']
+            this_measurand.gps = gps_dict
             return output
         if reply[0] == 0:
             logger.error("Measurand not available.")

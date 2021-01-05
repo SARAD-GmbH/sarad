@@ -24,17 +24,6 @@ class DacmInst(SaradInst):
         serial_number
         components: List of sensor or actor components
     Inherited methods from SaradInst:
-        get_family(),
-        set_family(),
-        get_id(),
-        set_id(),
-        get_port(),
-        set_port(),
-        get_type_id()
-        get_software_version()
-        get_serial_number()
-        get_components()
-        set_components()
         get_reply()
     Public methods:
         set_real_time_clock()
@@ -90,14 +79,14 @@ class DacmInst(SaradInst):
 # ** Protected methods overriding methods of SaradInst:
 # *** _build_component_list(self):
 
-    def _build_component_list(self):
+    def _build_component_list(self) -> int:
         logger.debug('Building component list for Radon Scout instrument.')
         for component_object in self.components:
             del component_object
         self.components = []
         component_dict = self._get_parameter('components')
         if not component_dict:
-            return False
+            return 0
         for component in component_dict:
             component_object = Component(component['component_id'],
                                          component['component_name'])

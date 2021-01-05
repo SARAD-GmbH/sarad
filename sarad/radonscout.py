@@ -23,17 +23,6 @@ class RscInst(SaradInst):
         serial_number
         components: List of sensor or actor components
     Inherited methods from SaradInst:
-        get_family(),
-        set_family(),
-        get_id(),
-        set_id(),
-        get_port(),
-        set_port(),
-        get_type_id()
-        get_software_version()
-        get_serial_number()
-        get_components()
-        set_components()
         get_reply()
     Public methods:
         get_all_recent_values()
@@ -129,14 +118,14 @@ class RscInst(SaradInst):
 # ** Protected methods overriding methods of SaradInst:
 # *** _build_component_list(self):
 
-    def _build_component_list(self):
+    def _build_component_list(self) -> int:
         logger.debug('Building component list for Radon Scout instrument.')
         for component_object in self.components:
             del component_object
         self.components = []
         component_dict = self._get_parameter('components')
         if not component_dict:
-            return False
+            return 0
         for component in component_dict:
             component_object = Component(component['component_id'],
                                          component['component_name'])
@@ -243,14 +232,14 @@ class RscInst(SaradInst):
                 return measurand.value
         return self.get_all_recent_values()
 
-# *** set_real_time_clock(datetime):
+# *** set_real_time_clock(rtc_datetime):
 
-    def set_real_time_clock(self, date_time):
+    def set_real_time_clock(self, rtc_datetime: datetime) -> bool:
         """Set the instrument time."""
         ok_byte = self.family['ok_byte']
-        instr_datetime = bytearray([date_time.second, date_time.minute,
-                                    date_time.hour, date_time.day,
-                                    date_time.month, date_time.year - 2000])
+        instr_datetime = bytearray([rtc_datetime.second, rtc_datetime.minute,
+                                    rtc_datetime.hour, rtc_datetime.day,
+                                    rtc_datetime.month, rtc_datetime.year - 2000])
         reply = self.get_reply([b'\x05', instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
             logger.debug("Time on device %s set to UTC.", self.device_id)

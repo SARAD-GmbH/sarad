@@ -13,6 +13,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/x-org",
     url="https://github.com/SARAD-GmbH/data_collector",
+    package_data={"sarad": ["py.typed"]},
     packages=setuptools.find_packages(),
     install_requires=[
         'click', 'click_log', 'pyserial', 'filelock', 'hashids', 'pyyaml',

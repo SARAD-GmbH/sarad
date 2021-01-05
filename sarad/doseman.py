@@ -22,17 +22,6 @@ class DosemanInst(SaradInst):
         serial_number
         components: List of sensor or actor components
     Inherited Public methods:
-        get_family()
-        set_family()
-        get_id()
-        set_id()
-        get_port()
-        set_port()
-        get_type_id()
-        get_software_version()
-        get_serial_number()
-        get_components()
-        set_components()
         get_reply()"""
 
     version = '0.1'

@@ -47,6 +47,7 @@ try:
 except KeyError:
     CLIENT_ID = socket.gethostname()
 
+
 def on_connect(client, userdata, flags, result_code):
     # pylint: disable=unused-argument
     """Will be carried out when the client connected to the MQTT broker."""
@@ -236,6 +237,7 @@ def unwrapped_transmit(**kwargs):
     except Timeout:
         click.echo(LOCK_HINT)
 
+
 @cli.command()
 @click.option('--lock_path', default='mycluster.lock',
               type=click.Path(writable=True),
@@ -249,6 +251,7 @@ def transmit(**kwargs):
     Target can be the output of the command on the command line (screen),
     an MQTT broker or a Zabbix server."""
     unwrapped_transmit(**kwargs)
+
 
 # * Re-start last transmit session:
 @cli.command()

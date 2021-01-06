@@ -91,6 +91,7 @@ class SaradCluster(Generic[SI]):
         return True
 
 # *** update_connected_instruments(self):
+
     def update_connected_instruments(self) -> List[SI]:
         """Update the list of connected instruments
         in self.__connected_instruments and return this list."""
@@ -148,9 +149,9 @@ class SaradCluster(Generic[SI]):
         logger.debug('Pickling mycluster into file.')
         pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
 
-
 # ** Properties:
 # *** active_ports:
+
     @property
     def active_ports(self) -> List[int]:
         """SARAD instruments can be connected:
@@ -174,31 +175,37 @@ class SaradCluster(Generic[SI]):
         return self.__active_ports
 
 # *** connected_instruments:
+
     @property
     def connected_instruments(self) -> List[SI]:
         """Return list of connected instruments."""
         return self.__connected_instruments
 
 # *** native_ports:
+
     @property
     def native_ports(self) -> List[int]:
         """Return the list of all native serial ports (RS-232 ports)
         available at the instrument controller."""
         return self.__native_ports
+
     @native_ports.setter
     def native_ports(self, native_ports: List[int]) -> None:
         """Set the list of native serial ports that shall be used."""
         self.__native_ports = native_ports
 
 # *** start_time:
+
     @property
     def start_time(self) -> datetime:
         """Get a pre-defined start time for all instruments in this cluster."""
         return self.__start_time
+
     @start_time.setter
     def start_time(self, start_time: datetime) -> None:
         """Set a start time for all instruments in this cluster."""
         self.__start_time = start_time
+
 
 # * Initialize mycluster as a singleton
 mycluster: SaradCluster = SaradCluster()

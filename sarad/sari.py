@@ -3,22 +3,22 @@
 SaradInst comprises all attributes and methods
 that all SARAD instruments have in common."""
 
-import time
-from datetime import timedelta, datetime
-import struct
-import os
-from enum import Enum
 import logging
-from typing import List, TypeVar, Generic, Dict, Any
-from typing import TypedDict, Optional
+import os
+import struct
+import time
 from collections.abc import Collection, Iterator
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, Generic, List, Optional, TypedDict, TypeVar
+
+import serial  # type: ignore
 import yaml
 from BitVector import BitVector  # type: ignore
-import serial  # type: ignore
 
 logger = logging.getLogger(__name__)
 
-SI = TypeVar('SI', bound='SaradInst')
+SI = TypeVar("SI", bound="SaradInst")
 
 
 class MeasurandDict(TypedDict):
@@ -61,9 +61,10 @@ class CheckedAnswerDict(TypedDict):
     payload: bytes
     number_of_bytes_in_payload: int
 
+
 # * Measurand:
 # ** Definitions:
-class Measurand():
+class Measurand:
     """Class providing a measurand that is delivered by a sensor.
 
     Properties:
@@ -76,29 +77,31 @@ class Measurand():
         time
         gps"""
 
-    version: str = '0.1'
+    version: str = "0.1"
 
-    def __init__(self,
-                 measurand_id: int,
-                 measurand_name: str,
-                 measurand_unit=None,
-                 measurand_source=None) -> None:
+    def __init__(
+        self,
+        measurand_id: int,
+        measurand_name: str,
+        measurand_unit=None,
+        measurand_source=None,
+    ) -> None:
         self.__id: int = measurand_id
         self.__name: str = measurand_name
         if measurand_unit is not None:
             self.__unit: str = measurand_unit
         else:
-            self.__unit = ''
+            self.__unit = ""
         if measurand_source is not None:
             self.__source: int = measurand_source
         else:
             self.__source = 0
         self.__value: Optional[float] = None
         self.__time: datetime = datetime.min
-        self.__operator: str = ''
-        self.__gps: str = ''
+        self.__operator: str = ""
+        self.__gps: str = ""
 
-# ** Private methods:
+    # ** Private methods:
 
     def __str__(self) -> str:
         output = f"MeasurandId: {self.measurand_id}\nMeasurandName: {self.name}\n"
@@ -111,8 +114,8 @@ class Measurand():
             output += f"MeasurandSource: {self.source}\n"
         return output
 
-# ** Properties:
-# *** measurand_id:
+    # ** Properties:
+    # *** measurand_id:
 
     @property
     def measurand_id(self) -> int:
@@ -124,7 +127,7 @@ class Measurand():
         """Set the Id of this measurand."""
         self.__id = measurand_id
 
-# *** name:
+    # *** name:
 
     @property
     def name(self) -> str:
@@ -136,7 +139,7 @@ class Measurand():
         """Set the name of this measurand."""
         self.__name = name
 
-# *** unit:
+    # *** unit:
 
     @property
     def unit(self) -> str:
@@ -148,7 +151,7 @@ class Measurand():
         """Set the physical unit of this measurand."""
         self.__unit = unit
 
-# *** source:
+    # *** source:
 
     @property
     def source(self) -> int:
@@ -164,7 +167,7 @@ class Measurand():
         """Set the source index."""
         self.__source = source
 
-# *** operator:
+    # *** operator:
 
     @property
     def operator(self) -> str:
@@ -177,7 +180,7 @@ class Measurand():
         """Set the operator of this measurand."""
         self.__operator = operator
 
-# *** value:
+    # *** value:
 
     @property
     def value(self) -> Optional[float]:
@@ -189,7 +192,7 @@ class Measurand():
         """Set the value of the measurand."""
         self.__value = value
 
-# *** time:
+    # *** time:
 
     @property
     def time(self) -> datetime:
@@ -201,8 +204,7 @@ class Measurand():
         """Set the aquisition time (timestamp) of the measurand."""
         self.__time = time_stamp
 
-
-# *** gps:
+    # *** gps:
 
     @property
     def gps(self) -> str:
@@ -214,9 +216,10 @@ class Measurand():
         """Set the GPS string of the measurand."""
         self.__gps = gps
 
+
 # * Sensor:
 # ** Definitions:
-class Sensor():
+class Sensor:
     """Class describing a sensor that is part of a component.
 
     Properties:
@@ -226,7 +229,7 @@ class Sensor():
     Public methods:
         get_measurands()"""
 
-    version: str = '0.1'
+    version: str = "0.1"
 
     def __init__(self, sensor_id: int, sensor_name: str) -> None:
         self.__id: int = sensor_id
@@ -234,20 +237,22 @@ class Sensor():
         self.__interval: timedelta = timedelta(0)
         self.__measurands: List[Measurand] = []
 
-# ** Private methods:
+    # ** Private methods:
 
     def __iter__(self) -> Iterator[Measurand]:
         return iter(self.__measurands)
 
     def __str__(self) -> str:
-        output = (f"SensorId: {self.sensor_id}\nSensorName: {self.name}\n"
-                  f"SensorInterval: {self.interval}\nMeasurands:\n")
+        output = (
+            f"SensorId: {self.sensor_id}\nSensorName: {self.name}\n"
+            f"SensorInterval: {self.interval}\nMeasurands:\n"
+        )
         for measurand in self.measurands:
             output += f"{measurand}\n"
         return output
 
-# ** Properties:
-# *** id:
+    # ** Properties:
+    # *** id:
 
     @property
     def sensor_id(self) -> int:
@@ -259,7 +264,7 @@ class Sensor():
         """Set the Id of this sensor."""
         self.__id = sensor_id
 
-# *** name:
+    # *** name:
 
     @property
     def name(self) -> str:
@@ -271,7 +276,7 @@ class Sensor():
         """Set the name of this sensor."""
         self.__name = name
 
-# *** interval:
+    # *** interval:
 
     @property
     def interval(self) -> timedelta:
@@ -283,7 +288,7 @@ class Sensor():
         """Set the measuring interval of this sensor."""
         self.__interval = interval
 
-# *** measurands:
+    # *** measurands:
 
     @property
     def measurands(self) -> List[Measurand]:
@@ -298,30 +303,32 @@ class Sensor():
 
 # * Component:
 # ** Definitions:
-class Component():
+class Component:
     """Class describing a sensor or actor component built into an instrument"""
 
-    version = '0.1'
+    version = "0.1"
 
     def __init__(self, component_id: int, component_name: str) -> None:
         self.__id: int = component_id
         self.__name: str = component_name
         self.__sensors: List[Sensor] = []
 
-# ** Private methods:
+    # ** Private methods:
 
     def __iter__(self) -> Iterator[Sensor]:
         return iter(self.__sensors)
 
     def __str__(self) -> str:
-        output = (f"ComponentId: {self.component_id}\n"
-                  f"ComponentName: {self.name}\nSensors:\n")
+        output = (
+            f"ComponentId: {self.component_id}\n"
+            f"ComponentName: {self.name}\nSensors:\n"
+        )
         for sensor in self.sensors:
             output += f"{sensor}\n"
         return output
 
-# ** Properties:
-# *** id:
+    # ** Properties:
+    # *** id:
 
     @property
     def component_id(self) -> int:
@@ -333,7 +340,7 @@ class Component():
         """Set the Id of this component."""
         self.__id = component_id
 
-# *** name:
+    # *** name:
 
     @property
     def name(self) -> str:
@@ -345,7 +352,7 @@ class Component():
         """Set the component name."""
         self.__name = name
 
-# *** sensors:
+    # *** sensors:
 
     @property
     def sensors(self) -> List[Sensor]:
@@ -375,12 +382,14 @@ class SaradInst(Generic[SI]):
         serial_number: Serial number of the connected instrument.
         components: List of sensor or actor components
     Public methods:
-        get_reply()"""
+        get_reply()
+        get_transparent_reply"""
 
-    version = '0.1'
+    version = "0.1"
 
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
+
         unlocked: int = 1
         locked: int = 2
 
@@ -388,21 +397,25 @@ class SaradInst(Generic[SI]):
         """Setting of the device. Displayed radon values based on
         short living progeny only (fast)
         or on short and long living progeny (slow)"""
+
         slow: int = 1
         fast: int = 2
 
     class PumpMode(Enum):
         """Setting of the devices having a pump."""
+
         continuous: int = 1
         interval: int = 2
 
     class Units(Enum):
         """Setting of the device. Unit system used for display."""
+
         si: int = 1
         us: int = 2
 
     class Signal(Enum):
         """Setting of the device. When shall it give an audible signal?"""
+
         off: int = 1
         alarm: int = 2
         sniffer_po216: int = 3
@@ -410,19 +423,21 @@ class SaradInst(Generic[SI]):
 
     class ChamberSize(Enum):
         """Setting the chamber size (Radon Scout PMT only)."""
+
         small: int = 1
         medium: int = 2
         large: int = 3
         xl: int = 4
 
     with open(
-            os.path.dirname(os.path.realpath(__file__)) + os.path.sep +
-            'instruments.yaml', 'r') as __f:
+        os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "instruments.yaml",
+        "r",
+    ) as __f:
         products = yaml.safe_load(__f)
 
-# ** Private methods:
+    # ** Private methods:
 
-# *** __init__():
+    # *** __init__():
 
     def __init__(self: SI, port=None, family=None) -> None:
         self.__port: str = port
@@ -432,7 +447,7 @@ class SaradInst(Generic[SI]):
         self.__components: Collection[Component] = []
         self.__interval: timedelta = timedelta(0)
         self._type_id: int = 0
-        self._type_name: str = ''
+        self._type_name: str = ""
         self._software_version: int = 0
         self._serial_number: int = 0
         self.signal = self.Signal.off
@@ -441,14 +456,14 @@ class SaradInst(Generic[SI]):
         self.units = self.Units.si
         self.chamber_size = self.ChamberSize.small
         self.lock = self.Lock.unlocked
-        self.__id: str = ''
+        self.__id: str = ""
 
-# *** __iter__():
+    # *** __iter__():
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
 
-# *** __make_command_msg():
+    # *** __make_command_msg():
 
     @staticmethod
     def __make_command_msg(cmd_data: List[bytes]) -> bytes:
@@ -461,20 +476,22 @@ class SaradInst(Generic[SI]):
         control_byte = len(payload) - 1
         if cmd:  # Control message
             control_byte = control_byte | 0x80  # set Bit 7
-        neg_control_byte = control_byte ^ 0xff
+        neg_control_byte = control_byte ^ 0xFF
         checksum = 0
         for byte in payload:
             checksum = checksum + byte
-        checksum_bytes = (checksum).to_bytes(2, byteorder='little')
-        output = b'B' + \
-                 bytes([control_byte]) + \
-                 bytes([neg_control_byte]) + \
-                 payload + \
-                 checksum_bytes + \
-                 b'E'
+        checksum_bytes = (checksum).to_bytes(2, byteorder="little")
+        output = (
+            b"B"
+            + bytes([control_byte])
+            + bytes([neg_control_byte])
+            + payload
+            + checksum_bytes
+            + b"E"
+        )
         return output
 
-# *** __check_answer():
+    # *** __check_answer():
 
     @staticmethod
     def __check_answer(answer: bytes) -> CheckedAnswerDict:
@@ -483,26 +500,27 @@ class SaradInst(Generic[SI]):
         #     is_control_message: True if control message
         #     payload: Payload of answer
         #     number_of_bytes_in_payload
-        logger.debug('Checking answer from serial port:')
-        logger.debug('Raw answer: %s', answer)
-        if answer.startswith(b'B') & answer.endswith(b'E'):
+        logger.debug("Checking answer from serial port:")
+        logger.debug("Raw answer: %s", answer)
+        if answer.startswith(b"B") & answer.endswith(b"E"):
             control_byte = answer[1]
             neg_control_byte = answer[2]
-            if (control_byte ^ 0xff) == neg_control_byte:
+            if (control_byte ^ 0xFF) == neg_control_byte:
                 control_byte_ok = True
-            number_of_bytes_in_payload = (control_byte & 0x7f) + 1
+            number_of_bytes_in_payload = (control_byte & 0x7F) + 1
             is_control = bool(control_byte & 0x80)
             status_byte = answer[3]
-            logger.debug('Status byte: %s', status_byte)
-            payload = answer[3:3 + number_of_bytes_in_payload]
+            logger.debug("Status byte: %s", status_byte)
+            payload = answer[3 : 3 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
                 calculated_checksum = calculated_checksum + byte
-            received_checksum_bytes = answer[3 + number_of_bytes_in_payload:5 +
-                                             number_of_bytes_in_payload]
-            received_checksum = int.from_bytes(received_checksum_bytes,
-                                               byteorder='little',
-                                               signed=False)
+            received_checksum_bytes = answer[
+                3 + number_of_bytes_in_payload : 5 + number_of_bytes_in_payload
+            ]
+            received_checksum = int.from_bytes(
+                received_checksum_bytes, byteorder="little", signed=False
+            )
             if received_checksum == calculated_checksum:
                 checksum_ok = True
             is_valid = control_byte_ok & checksum_ok
@@ -510,101 +528,101 @@ class SaradInst(Generic[SI]):
             is_valid = False
         if not is_valid:
             is_control = False
-            payload = b''
+            payload = b""
             number_of_bytes_in_payload = 0
-        logger.debug('Payload: %s', payload)
+        logger.debug("Payload: %s", payload)
         return {
             "is_valid": is_valid,
             "is_control": is_control,
             "payload": payload,
-            "number_of_bytes_in_payload": number_of_bytes_in_payload
+            "number_of_bytes_in_payload": number_of_bytes_in_payload,
         }
 
-# *** __get_message_payload():
+    # *** __get_message_payload():
 
-    def __get_message_payload(self, message: bytes,
-                              expected_length_of_reply: int,
-                              timeout: int) -> CheckedAnswerDict:
-        """ Returns a dictionary of:
+    def __get_message_payload(
+        self, message: bytes, expected_length_of_reply: int, timeout: int
+    ) -> CheckedAnswerDict:
+        """Returns a dictionary of:
         is_valid: True if answer is valid, False otherwise
         is_control_message: True if control message
         payload: Payload of answer
         number_of_bytes_in_payload"""
         serial_port = self.__port
-        baudrate = self.__family['baudrate']
-        parity = self.__family['parity']
-        write_sleeptime = self.__family['write_sleeptime']
-        wait_for_reply = self.__family['wait_for_reply']
-        ser = serial.Serial(serial_port,
-                            baudrate,
-                            bytesize=8,
-                            xonxoff=0,
-                            timeout=timeout,
-                            parity=parity,
-                            rtscts=0,
-                            stopbits=serial.STOPBITS_ONE)
+        baudrate = self.__family["baudrate"]
+        parity = self.__family["parity"]
+        write_sleeptime = self.__family["write_sleeptime"]
+        wait_for_reply = self.__family["wait_for_reply"]
+        ser = serial.Serial(
+            serial_port,
+            baudrate,
+            bytesize=8,
+            xonxoff=0,
+            timeout=timeout,
+            parity=parity,
+            rtscts=0,
+            stopbits=serial.STOPBITS_ONE,
+        )
         for element in message:
-            byte = (element).to_bytes(1, 'big')
+            byte = (element).to_bytes(1, "big")
             ser.write(byte)
             time.sleep(write_sleeptime)
         time.sleep(wait_for_reply)
         answer = ser.read(expected_length_of_reply)
         time.sleep(0.1)
         while ser.in_waiting:
-            logger.debug('%s bytes waiting.', ser.in_waiting)
+            logger.debug("%s bytes waiting.", ser.in_waiting)
             ser.read(ser.in_waiting)
             time.sleep(0.5)
         ser.close()
         checked_answer = self.__check_answer(answer)
         return {
-            "is_valid":
-            checked_answer['is_valid'],
-            "is_control":
-            checked_answer['is_control'],
-            "payload":
-            checked_answer['payload'],
-            "number_of_bytes_in_payload":
-            checked_answer['number_of_bytes_in_payload']
+            "is_valid": checked_answer["is_valid"],
+            "is_control": checked_answer["is_control"],
+            "payload": checked_answer["payload"],
+            "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
         }
 
-# *** __str__(self):
+    # *** __str__(self):
 
     def __str__(self) -> str:
-        output = (f"Id: {self.device_id}\n"
-                  f"SerialDevice: {self.port}\n"
-                  f"Baudrate: {self.family['baudrate']}\n"
-                  f"FamilyName: {self.family['family_name']}\n"
-                  f"FamilyId: {self.family['family_id']}\n"
-                  f"TypName: {self.type_name}\n"
-                  f"TypeId: {self.type_id}\n"
-                  f"SoftwareVersion: {self.software_version}\n"
-                  f"SerialNumber: {self.serial_number}\n")
+        output = (
+            f"Id: {self.device_id}\n"
+            f"SerialDevice: {self.port}\n"
+            f"Baudrate: {self.family['baudrate']}\n"
+            f"FamilyName: {self.family['family_name']}\n"
+            f"FamilyId: {self.family['family_id']}\n"
+            f"TypName: {self.type_name}\n"
+            f"TypeId: {self.type_id}\n"
+            f"SoftwareVersion: {self.software_version}\n"
+            f"SerialNumber: {self.serial_number}\n"
+        )
         return output
 
-# ** Protected methods:
-# *** _initialize():
+    # ** Protected methods:
+    # *** _initialize():
 
     def _initialize(self) -> None:
         self._get_description()
         self._build_component_list()
         self._last_sampling_time = None
 
-# *** _get_description():
+    # *** _get_description():
 
     def _get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
-        id_cmd = self.family['get_id_cmd']
-        length_of_reply = self.family['length_of_reply']
-        ok_byte = self.family['ok_byte']
+        id_cmd = self.family["get_id_cmd"]
+        length_of_reply = self.family["length_of_reply"]
+        ok_byte = self.family["ok_byte"]
         reply = self.get_reply(id_cmd, length_of_reply)
         if reply and (reply[0] == ok_byte):
-            logger.debug('Get description successful.')
+            logger.debug("Get description successful.")
             try:
                 self._type_id = reply[1]
                 self._software_version = reply[2]
-                self._serial_number = int.from_bytes(reply[3:5],
-                                                     byteorder='little',
-                                                     signed=False)
+                self._serial_number = int.from_bytes(
+                    reply[3:5], byteorder="little", signed=False
+                )
                 return True
             except TypeError:
                 logger.error("TypeError when parsing the payload.")
@@ -618,17 +636,17 @@ class SaradInst(Generic[SI]):
             except Exception:  # pylint: disable=broad-except
                 logger.error("Unknown error when parsing the payload.")
                 return False
-        logger.debug('Get description failed.')
+        logger.debug("Get description failed.")
         return False
 
-# *** _build_component_list():
+    # *** _build_component_list():
 
     def _build_component_list(self) -> int:
         """Build up a list of components with sensors and measurands.
         Will be overriden by derived classes."""
         return len(self.components)
 
-# *** _bytes_to_float():
+    # *** _bytes_to_float():
 
     @staticmethod
     def _bytes_to_float(value: bytes) -> float:
@@ -636,22 +654,22 @@ class SaradInst(Generic[SI]):
         floating point nummber according to IEEE 754"""
         byte_array = bytearray(value)
         byte_array.reverse()
-        return struct.unpack('<f', bytes(byte_array))[0]
+        return struct.unpack("<f", bytes(byte_array))[0]
 
-# *** _parse_value_string():
+    # *** _parse_value_string():
 
     @staticmethod
     def _parse_value_string(value: str) -> MeasurandDict:
         """Take a string containing a physical value with operator,
         value and unit and decompose it into its parts
         for further mathematical processing."""
-        measurand_operator: str = ''
+        measurand_operator: str = ""
         measurand_value: float = 0.0
-        measurand_unit: str = ''
+        measurand_unit: str = ""
         valid: bool = False
-        if value != 'No valid data!':
+        if value != "No valid data!":
             try:
-                if ('<' in value) or ('>' in value):
+                if ("<" in value) or (">" in value):
                     measurand_operator = value[0]
                     meas_with_unit = value[1:]
                 else:
@@ -665,13 +683,13 @@ class SaradInst(Generic[SI]):
             except Exception:  # pylint: disable=broad-except
                 pass
         return {
-            'measurand_operator': measurand_operator,
-            'measurand_value': measurand_value,
-            'measurand_unit': measurand_unit,
-            'valid': valid,
+            "measurand_operator": measurand_operator,
+            "measurand_value": measurand_value,
+            "measurand_unit": measurand_unit,
+            "valid": valid,
         }
 
-# *** _encode_setup_word():
+    # *** _encode_setup_word():
 
     def _encode_setup_word(self) -> bytes:
         """Compile the SetupWord for Doseman and RadonScout devices
@@ -679,17 +697,23 @@ class SaradInst(Generic[SI]):
         bv_signal = BitVector(intVal=self.signal.value - 1, size=2)
         bv_radon_mode = BitVector(intVal=self.radon_mode.value - 1, size=1)
         bv_pump_mode = BitVector(intVal=self.pump_mode.value - 1, size=1)
-        bv_pump_mode = BitVector(bitstring='0')
+        bv_pump_mode = BitVector(bitstring="0")
         bv_units = BitVector(intVal=self.units.value - 1, size=1)
-        bv_units = BitVector(bitstring='0')
+        bv_units = BitVector(bitstring="0")
         bv_chamber_size = BitVector(intVal=self.chamber_size.value - 1, size=2)
-        bv_padding = BitVector(bitstring='000000000')
-        bit_vector = bv_padding + bv_chamber_size + bv_units + bv_pump_mode + \
-            bv_radon_mode + bv_signal
+        bv_padding = BitVector(bitstring="000000000")
+        bit_vector = (
+            bv_padding
+            + bv_chamber_size
+            + bv_units
+            + bv_pump_mode
+            + bv_radon_mode
+            + bv_signal
+        )
         logger.debug(str(bit_vector))
-        return bit_vector.get_bitvector_in_ascii().encode('utf-8')
+        return bit_vector.get_bitvector_in_ascii().encode("utf-8")
 
-# *** _decode_setup_word(setup_word):
+    # *** _decode_setup_word(setup_word):
 
     def _decode_setup_word(self, setup_word: bytes) -> None:
         bit_vector = BitVector(rawbytes=setup_word)
@@ -704,11 +728,11 @@ class SaradInst(Generic[SI]):
         chamber_size_index = bit_vector[1:3].int_val()
         self.chamber_size = list(self.ChamberSize)[chamber_size_index]
 
-# *** _get_parameter():
+    # *** _get_parameter():
 
     def _get_parameter(self, parameter_name: Any) -> Any:
-        for inst_type in self.family['types']:
-            if inst_type['type_id'] == self.type_id:
+        for inst_type in self.family["types"]:
+            if inst_type["type_id"] == self.type_id:
                 try:
                     return inst_type[parameter_name]
                 except Exception:  # pylint: disable=broad-except
@@ -718,43 +742,118 @@ class SaradInst(Generic[SI]):
         except Exception:  # pylint: disable=broad-except
             return False
 
-# ** Public methods:
-# *** get_reply():
+    # ** Public methods:
+    # *** get_reply():
 
-    def get_reply(self,
-                  cmd_data: List[bytes],
-                  reply_length=50,
-                  timeout=1) -> Any:
+    def get_reply(self, cmd_data: List[bytes], reply_length=50, timeout=1) -> Any:
         """Returns a bytestring of the payload of the instruments reply
         to the provided list of 1-byte command and data bytes."""
         length = reply_length + 6
         msg = self.__make_command_msg(cmd_data)
         checked_payload = self.__get_message_payload(msg, length, timeout)
-        if checked_payload['is_valid']:
-            return checked_payload['payload']
-        logger.debug(checked_payload['payload'])
+        if checked_payload["is_valid"]:
+            return checked_payload["payload"]
+        logger.debug(checked_payload["payload"])
         return False
 
-# *** start_cycle():
+    # *** get_transparent_reply():
+
+    def get_transparent_reply(self, raw_cmd, reply_length=50, timeout=1, keep=True):
+        """Returns the raw bytestring of the instruments reply"""
+        serial_port = self.__port
+        baudrate = self.__family["baudrate"]
+        parity = self.__family["parity"]
+        write_sleeptime = self.__family["write_sleeptime"]
+        wait_for_reply = self.__family["wait_for_reply"]
+        if not keep:
+            ser = serial.Serial(
+                serial_port,
+                baudrate,
+                bytesize=8,
+                xonxoff=0,
+                timeout=timeout,
+                parity=parity,
+                rtscts=0,
+                stopbits=serial.STOPBITS_ONE,
+            )
+            if not ser.is_open:
+                ser.open()
+            logging.debug("Open serial, don't keep.")
+        else:
+            try:
+                ser = self.__ser
+                logging.debug("Reuse stored serial interface")
+                if not ser.is_open:
+                    logging.debug("Port is closed. Reopen.")
+                    ser.open()
+            except AttributeError:
+                ser = serial.Serial(
+                    serial_port,
+                    baudrate,
+                    bytesize=8,
+                    xonxoff=0,
+                    timeout=timeout,
+                    parity=parity,
+                    rtscts=0,
+                    stopbits=serial.STOPBITS_ONE,
+                    exclusive=True,
+                )
+                if not ser.is_open:
+                    ser.open()
+                logging.debug("Open serial")
+        perf_time_0 = time.perf_counter()
+        logging.debug("Writing {} to serial port".format(raw_cmd))
+        for element in raw_cmd:
+            byte = (element).to_bytes(1, "big")
+            ser.write(byte)
+            time.sleep(write_sleeptime)
+        perf_time_1 = time.perf_counter()
+        logging.debug(
+            "Writing the command to serial took me {} s".format(
+                perf_time_1 - perf_time_0
+            )
+        )
+        time.sleep(wait_for_reply)
+        answer = ser.read(reply_length)
+        perf_time_2 = time.perf_counter()
+        logging.debug(
+            "Receiving {} from serial took me {} s".format(
+                answer, perf_time_2 - perf_time_1
+            )
+        )
+        # time.sleep(0.1)
+        while ser.in_waiting:
+            logging.debug("{} bytes waiting".format(ser.in_waiting))
+            ser.read(ser.in_waiting)
+            time.sleep(0.1)
+        if not keep:
+            ser.close()
+            logging.debug("Serial interface closed.")
+        else:
+            logging.debug("Store serial interface")
+            self.__ser = ser
+        return answer
+
+    # *** start_cycle():
 
     def start_cycle(self, cycle_index: int) -> None:
         """Start measurement cycle.  Place holder for subclasses."""
 
-# *** stop_cycle():
+    # *** stop_cycle():
 
     def stop_cycle(self) -> None:
         """Stop measurement cycle.  Place holder for subclasses."""
 
-# *** set_real_time_clock(rtc_datetime):
+    # *** set_real_time_clock(rtc_datetime):
 
     def set_real_time_clock(self, _: datetime) -> bool:
         # pylint: disable=no-self-use
         """Set RTC of instrument to datetime.  Place holder for subclasses."""
         return False
 
-# ** Properties:
+    # ** Properties:
 
-# *** port:
+    # *** port:
 
     @property
     def port(self) -> str:
@@ -768,7 +867,7 @@ class SaradInst(Generic[SI]):
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 
-# *** device_id:
+    # *** device_id:
 
     @property
     def device_id(self) -> str:
@@ -780,7 +879,7 @@ class SaradInst(Generic[SI]):
         """Set device id."""
         self.__id = device_id
 
-# *** family:
+    # *** family:
 
     @property
     def family(self) -> FamilyDict:
@@ -794,38 +893,38 @@ class SaradInst(Generic[SI]):
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 
-# *** type_id:
+    # *** type_id:
 
     @property
     def type_id(self) -> int:
         """Return the device type id."""
         return self._type_id
 
-# *** type_name:
+    # *** type_name:
 
     @property
     def type_name(self) -> str:
         """Return the device type name."""
-        for type_in_family in self.family['types']:
-            if type_in_family['type_id'] == self.type_id:
-                return type_in_family['type_name']
-        return ''
+        for type_in_family in self.family["types"]:
+            if type_in_family["type_id"] == self.type_id:
+                return type_in_family["type_name"]
+        return ""
 
-# *** software_version:
+    # *** software_version:
 
     @property
     def software_version(self) -> int:
         """Return the firmware version of the device."""
         return self._software_version
 
-# *** serial_number:
+    # *** serial_number:
 
     @property
     def serial_number(self) -> int:
         """Return the serial number of the device."""
         return self._serial_number
 
-# *** components:
+    # *** components:
 
     @property
     def components(self) -> Collection[Component]:

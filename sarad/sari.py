@@ -12,9 +12,9 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, Generic, List, Optional, TypedDict, TypeVar
 
-import serial  # type: ignore
 import yaml
 from BitVector import BitVector  # type: ignore
+from serial import STOPBITS_ONE, Serial  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -553,7 +553,7 @@ class SaradInst(Generic[SI]):
         parity = self.__family["parity"]
         write_sleeptime = self.__family["write_sleeptime"]
         wait_for_reply = self.__family["wait_for_reply"]
-        ser = serial.Serial(
+        ser = Serial(
             serial_port,
             baudrate,
             bytesize=8,
@@ -561,7 +561,7 @@ class SaradInst(Generic[SI]):
             timeout=timeout,
             parity=parity,
             rtscts=0,
-            stopbits=serial.STOPBITS_ONE,
+            stopbits=STOPBITS_ONE,
         )
         for element in message:
             byte = (element).to_bytes(1, "big")
@@ -766,7 +766,7 @@ class SaradInst(Generic[SI]):
         write_sleeptime = self.__family["write_sleeptime"]
         wait_for_reply = self.__family["wait_for_reply"]
         if not keep:
-            ser = serial.Serial(
+            ser = Serial(
                 serial_port,
                 baudrate,
                 bytesize=8,
@@ -774,7 +774,7 @@ class SaradInst(Generic[SI]):
                 timeout=timeout,
                 parity=parity,
                 rtscts=0,
-                stopbits=serial.STOPBITS_ONE,
+                stopbits=STOPBITS_ONE,
             )
             if not ser.is_open:
                 ser.open()
@@ -787,7 +787,7 @@ class SaradInst(Generic[SI]):
                     logging.debug("Port is closed. Reopen.")
                     ser.open()
             except AttributeError:
-                ser = serial.Serial(
+                ser = Serial(
                     serial_port,
                     baudrate,
                     bytesize=8,
@@ -795,7 +795,7 @@ class SaradInst(Generic[SI]):
                     timeout=timeout,
                     parity=parity,
                     rtscts=0,
-                    stopbits=serial.STOPBITS_ONE,
+                    stopbits=STOPBITS_ONE,
                     exclusive=True,
                 )
                 if not ser.is_open:

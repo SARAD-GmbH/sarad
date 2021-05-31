@@ -548,33 +548,42 @@ class SaradInst(Generic[SI]):
         is_control_message: True if control message
         payload: Payload of answer
         number_of_bytes_in_payload"""
-        serial_port = self.__port
-        baudrate = self.__family["baudrate"]
-        parity = self.__family["parity"]
-        write_sleeptime = self.__family["write_sleeptime"]
-        wait_for_reply = self.__family["wait_for_reply"]
-        ser = Serial(
-            serial_port,
-            baudrate,
-            bytesize=8,
-            xonxoff=0,
-            timeout=timeout,
-            parity=parity,
-            rtscts=0,
-            stopbits=STOPBITS_ONE,
-        )
-        for element in message:
-            byte = (element).to_bytes(1, "big")
-            ser.write(byte)
-            time.sleep(write_sleeptime)
-        time.sleep(wait_for_reply)
-        answer = ser.read(expected_length_of_reply)
-        time.sleep(0.1)
-        while ser.in_waiting:
-            logger.debug("%s bytes waiting.", ser.in_waiting)
-            ser.read(ser.in_waiting)
-            time.sleep(0.5)
-        ser.close()
+
+        def cmd_cylce():
+            serial_port = self.__port
+            baudrate = self.__family["baudrate"]
+            parity = self.__family["parity"]
+            write_sleeptime = self.__family["write_sleeptime"]
+            wait_for_reply = self.__family["wait_for_reply"]
+            ser = Serial(
+                serial_port,
+                baudrate,
+                bytesize=8,
+                xonxoff=0,
+                timeout=timeout,
+                parity=parity,
+                rtscts=0,
+                stopbits=STOPBITS_ONE,
+            )
+            for element in message:
+                byte = (element).to_bytes(1, "big")
+                ser.write(byte)
+                time.sleep(write_sleeptime)
+            time.sleep(wait_for_reply)
+            answer = ser.read(expected_length_of_reply)
+            time.sleep(0.1)
+            while ser.in_waiting:
+                logger.debug("%s bytes waiting.", ser.in_waiting)
+                ser.read(ser.in_waiting)
+                time.sleep(0.5)
+            ser.close()
+            return answer
+
+        answer = cmd_cylce()
+        if answer == b"":
+            # Play it again, Sam!
+            # Workaround for firmware bug in SARAD instruments.
+            answer = cmd_cylce()
         checked_answer = self.__check_answer(answer)
         return {
             "is_valid": checked_answer["is_valid"],

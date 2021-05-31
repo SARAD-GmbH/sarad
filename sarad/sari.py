@@ -841,6 +841,9 @@ class SaradInst(Generic[SI]):
         else:
             logging.debug("Store serial interface")
             self.__ser = ser
+        if answer == b"":
+            logging.debug("Play it again Sam!")
+            answer = self.get_transparent_reply(raw_cmd, reply_length, timeout, keep)
         return answer
 
     # *** start_cycle():

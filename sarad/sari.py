@@ -581,8 +581,8 @@ class SaradInst(Generic[SI]):
 
         answer = cmd_cylce()
         if answer == b"":
-            # Play it again, Sam!
             # Workaround for firmware bug in SARAD instruments.
+            logger.debug("Play it again, Sam!")
             answer = cmd_cylce()
         checked_answer = self.__check_answer(answer)
         return {

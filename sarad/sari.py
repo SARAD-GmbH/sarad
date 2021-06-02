@@ -457,6 +457,7 @@ class SaradInst(Generic[SI]):
         self.chamber_size = self.ChamberSize.small
         self.lock = self.Lock.unlocked
         self.__id: str = ""
+        self.__ser = None
 
     # *** __iter__():
 
@@ -739,7 +740,7 @@ class SaradInst(Generic[SI]):
 
     # *** _get_parameter():
 
-    def _get_parameter(self, parameter_name: Any) -> Any:
+    def _get_parameter(self, parameter_name: str) -> Any:
         for inst_type in self.family["types"]:
             if inst_type["type_id"] == self.type_id:
                 try:
@@ -813,28 +814,26 @@ class SaradInst(Generic[SI]):
                         ser.open()
                     logging.debug("Open serial")
             perf_time_0 = time.perf_counter()
-            logging.debug("Writing {} to serial port".format(raw_cmd))
+            logging.debug("Writing %s to serial port", raw_cmd)
             for element in raw_cmd:
                 byte = (element).to_bytes(1, "big")
                 ser.write(byte)
                 time.sleep(write_sleeptime)
             perf_time_1 = time.perf_counter()
             logging.debug(
-                "Writing the command to serial took me {} s".format(
-                    perf_time_1 - perf_time_0
-                )
+                "Writing the command to serial took me %f s", perf_time_1 - perf_time_0
             )
             time.sleep(wait_for_reply)
             answer = ser.read(reply_length)
             perf_time_2 = time.perf_counter()
             logging.debug(
-                "Receiving {} from serial took me {} s".format(
-                    answer, perf_time_2 - perf_time_1
-                )
+                "Receiving %s from serial took me %f s",
+                answer,
+                perf_time_2 - perf_time_1,
             )
             # time.sleep(0.1)
             while ser.in_waiting:
-                logging.debug("{} bytes waiting".format(ser.in_waiting))
+                logging.debug("%d bytes waiting", ser.in_waiting)
                 ser.read(ser.in_waiting)
                 time.sleep(0.1)
             if not keep:

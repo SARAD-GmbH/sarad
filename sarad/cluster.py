@@ -4,16 +4,18 @@ All instruments forming a cluster are connected to
 the same instrument controller.
 SaradCluster is used as singleton."""
 
-from datetime import datetime
-import pickle
 import logging
-from typing import List, Any, Iterator, Dict, Optional, Generic, IO
+import pickle
+from datetime import datetime
+from typing import IO, Any, Dict, Generic, Iterator, List, Optional
+
 import hashids  # type: ignore
 import serial.tools.list_ports  # type: ignore
-from sarad.sari import SaradInst, SI
+
+from sarad.dacm import DacmInst
 from sarad.doseman import DosemanInst
 from sarad.radonscout import RscInst
-from sarad.dacm import DacmInst
+from sarad.sari import SI, SaradInst
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ class SaradCluster(Generic[SI]):
         synchronize(): Stop all instruments, set time, start all measurings
         dump(): Save all properties to a Pickle file"""
 
-    version: str = '0.1'
+    version: str = "0.1"
 
     def __init__(self, native_ports: Optional[List[int]] = None) -> None:
         if native_ports is None:
@@ -48,13 +50,13 @@ class SaradCluster(Generic[SI]):
         self.__connected_instruments: List[SI] = []
         self.__active_ports: List[int] = []
 
-# ** Private methods:
+    # ** Private methods:
 
     def __iter__(self) -> Iterator[SI]:
         return iter(self.__connected_instruments)
 
-# ** Public methods:
-# *** synchronize(self, cycles_dict):
+    # ** Public methods:
+    # *** synchronize(self, cycles_dict):
 
     def synchronize(self, cycles_dict: Dict[str, int]) -> bool:
         """Stop measuring cycles of all connected instruments.
@@ -65,39 +67,43 @@ class SaradCluster(Generic[SI]):
             try:
                 instrument.stop_cycle()
             except Exception:  # pylint: disable=broad-except
-                logger.error(
-                    'Not all instruments have been stopped as intended.')
+                logger.error("Not all instruments have been stopped as intended.")
                 return False
         self.__start_time = datetime.utcnow()
         for instrument in self.connected_instruments:
             try:
                 instrument.set_real_time_clock(self.__start_time)
-                logger.debug("Clock set to UTC on device %s",
-                             instrument.device_id)
+                logger.debug("Clock set to UTC on device %s", instrument.device_id)
                 logger.debug("Cycles_dict = %s", cycles_dict)
                 if instrument.device_id in cycles_dict:
                     cycle_index = cycles_dict[instrument.device_id]
-                    logger.debug("Cycle_index for device %s is %d",
-                                 instrument.device_id, cycle_index)
+                    logger.debug(
+                        "Cycle_index for device %s is %d",
+                        instrument.device_id,
+                        cycle_index,
+                    )
                 else:
                     cycle_index = 0
                 instrument.start_cycle(cycle_index)
-                logger.debug("Device %s started with cycle_index %d",
-                             instrument.device_id, cycle_index)
+                logger.debug(
+                    "Device %s started with cycle_index %d",
+                    instrument.device_id,
+                    cycle_index,
+                )
             except Exception:  # pylint: disable=broad-except
-                logger.error(
-                    'Failed to set time and start cycles on all instruments.')
+                logger.error("Failed to set time and start cycles on all instruments.")
                 return False
         return True
 
-# *** update_connected_instruments(self):
+    # *** update_connected_instruments(self):
 
-    def update_connected_instruments(self) -> List[SI]:
+    def update_connected_instruments(self, ports_to_test=None) -> List[SI]:
         """Update the list of connected instruments
         in self.__connected_instruments and return this list."""
         hid = hashids.Hashids()
-        ports_to_test = self.active_ports
-        logger.info('%d ports to test', len(ports_to_test))
+        if ports_to_test is not None:
+            ports_to_test = self.active_ports
+        logger.info("%d ports to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
         # NOTE: The order of tests is very important, because the only
@@ -109,11 +115,11 @@ class SaradCluster(Generic[SI]):
         # will be checked for instruments,
         # otherwise all available ports will be scanned.
         for family in SaradInst.products:
-            if family['family_id'] == 1:
+            if family["family_id"] == 1:
                 family_class: Any = DosemanInst
-            elif family['family_id'] == 2:
+            elif family["family_id"] == 2:
                 family_class = RscInst
-            elif family['family_id'] == 5:
+            elif family["family_id"] == 5:
                 family_class = DacmInst
             else:
                 continue
@@ -122,16 +128,16 @@ class SaradCluster(Generic[SI]):
             ports_with_instruments = []
             logger.info(ports_to_test)
             for port in ports_to_test:
-                logger.info("Testing port %s for %s.", port,
-                            family['family_name'])
+                logger.info("Testing port %s for %s.", port, family["family_name"])
                 test_instrument.port = port
                 if test_instrument.type_id and test_instrument.serial_number:
-                    device_id = hid.encode(test_instrument.family['family_id'],
-                                           test_instrument.type_id,
-                                           test_instrument.serial_number)
+                    device_id = hid.encode(
+                        test_instrument.family["family_id"],
+                        test_instrument.type_id,
+                        test_instrument.serial_number,
+                    )
                     test_instrument.device_id = device_id
-                    logger.info('%s found on port %s.', family['family_name'],
-                                port)
+                    logger.info("%s found on port %s.", family["family_name"], port)
                     connected_instruments.append(test_instrument)
                     ports_with_instruments.append(port)
                     if (ports_to_test.index(port) + 1) < len(ports_to_test):
@@ -142,15 +148,15 @@ class SaradCluster(Generic[SI]):
         self.__connected_instruments = connected_instruments
         return connected_instruments
 
-# *** dump(self, file):
+    # *** dump(self, file):
 
     def dump(self, file: IO[bytes]) -> None:
         """Save the cluster information to a file."""
-        logger.debug('Pickling mycluster into file.')
+        logger.debug("Pickling mycluster into file.")
         pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
 
-# ** Properties:
-# *** active_ports:
+    # ** Properties:
+    # *** active_ports:
 
     @property
     def active_ports(self) -> List[int]:
@@ -174,14 +180,14 @@ class SaradCluster(Generic[SI]):
             self.__active_ports.append(port.device)
         return self.__active_ports
 
-# *** connected_instruments:
+    # *** connected_instruments:
 
     @property
     def connected_instruments(self) -> List[SI]:
         """Return list of connected instruments."""
         return self.__connected_instruments
 
-# *** native_ports:
+    # *** native_ports:
 
     @property
     def native_ports(self) -> List[int]:
@@ -194,7 +200,7 @@ class SaradCluster(Generic[SI]):
         """Set the list of native serial ports that shall be used."""
         self.__native_ports = native_ports
 
-# *** start_time:
+    # *** start_time:
 
     @property
     def start_time(self) -> datetime:
@@ -213,7 +219,7 @@ mycluster.update_connected_instruments()
 logger.debug(mycluster.__dict__)
 
 # * Test environment:
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     for connected_instrument in mycluster:
         print(connected_instrument)

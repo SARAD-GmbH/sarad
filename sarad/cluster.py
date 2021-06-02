@@ -101,7 +101,7 @@ class SaradCluster(Generic[SI]):
         """Update the list of connected instruments
         in self.__connected_instruments and return this list."""
         hid = hashids.Hashids()
-        if ports_to_test is not None:
+        if ports_to_test is None:
             ports_to_test = self.active_ports
         logger.info("%d ports to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.

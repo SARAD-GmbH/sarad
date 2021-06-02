@@ -769,33 +769,14 @@ class SaradInst(Generic[SI]):
 
     def get_transparent_reply(self, raw_cmd, reply_length=50, timeout=1, keep=True):
         """Returns the raw bytestring of the instruments reply"""
-        serial_port = self.__port
-        baudrate = self.__family["baudrate"]
-        parity = self.__family["parity"]
-        write_sleeptime = self.__family["write_sleeptime"]
-        wait_for_reply = self.__family["wait_for_reply"]
-        if not keep:
-            ser = Serial(
-                serial_port,
-                baudrate,
-                bytesize=8,
-                xonxoff=0,
-                timeout=timeout,
-                parity=parity,
-                rtscts=0,
-                stopbits=STOPBITS_ONE,
-            )
-            if not ser.is_open:
-                ser.open()
-            logging.debug("Open serial, don't keep.")
-        else:
-            try:
-                ser = self.__ser
-                logging.debug("Reuse stored serial interface")
-                if not ser.is_open:
-                    logging.debug("Port is closed. Reopen.")
-                    ser.open()
-            except AttributeError:
+
+        def __get_transparent_reply(raw_cmd, reply_length, timeout, keep):
+            serial_port = self.__port
+            baudrate = self.__family["baudrate"]
+            parity = self.__family["parity"]
+            write_sleeptime = self.__family["write_sleeptime"]
+            wait_for_reply = self.__family["wait_for_reply"]
+            if not keep:
                 ser = Serial(
                     serial_port,
                     baudrate,
@@ -805,45 +786,70 @@ class SaradInst(Generic[SI]):
                     parity=parity,
                     rtscts=0,
                     stopbits=STOPBITS_ONE,
-                    exclusive=True,
                 )
                 if not ser.is_open:
                     ser.open()
-                logging.debug("Open serial")
-        perf_time_0 = time.perf_counter()
-        logging.debug("Writing {} to serial port".format(raw_cmd))
-        for element in raw_cmd:
-            byte = (element).to_bytes(1, "big")
-            ser.write(byte)
-            time.sleep(write_sleeptime)
-        perf_time_1 = time.perf_counter()
-        logging.debug(
-            "Writing the command to serial took me {} s".format(
-                perf_time_1 - perf_time_0
+                logging.debug("Open serial, don't keep.")
+            else:
+                try:
+                    ser = self.__ser
+                    logging.debug("Reuse stored serial interface")
+                    if not ser.is_open:
+                        logging.debug("Port is closed. Reopen.")
+                        ser.open()
+                except AttributeError:
+                    ser = Serial(
+                        serial_port,
+                        baudrate,
+                        bytesize=8,
+                        xonxoff=0,
+                        timeout=timeout,
+                        parity=parity,
+                        rtscts=0,
+                        stopbits=STOPBITS_ONE,
+                        exclusive=True,
+                    )
+                    if not ser.is_open:
+                        ser.open()
+                    logging.debug("Open serial")
+            perf_time_0 = time.perf_counter()
+            logging.debug("Writing {} to serial port".format(raw_cmd))
+            for element in raw_cmd:
+                byte = (element).to_bytes(1, "big")
+                ser.write(byte)
+                time.sleep(write_sleeptime)
+            perf_time_1 = time.perf_counter()
+            logging.debug(
+                "Writing the command to serial took me {} s".format(
+                    perf_time_1 - perf_time_0
+                )
             )
-        )
-        time.sleep(wait_for_reply)
-        answer = ser.read(reply_length)
-        perf_time_2 = time.perf_counter()
-        logging.debug(
-            "Receiving {} from serial took me {} s".format(
-                answer, perf_time_2 - perf_time_1
+            time.sleep(wait_for_reply)
+            answer = ser.read(reply_length)
+            perf_time_2 = time.perf_counter()
+            logging.debug(
+                "Receiving {} from serial took me {} s".format(
+                    answer, perf_time_2 - perf_time_1
+                )
             )
-        )
-        # time.sleep(0.1)
-        while ser.in_waiting:
-            logging.debug("{} bytes waiting".format(ser.in_waiting))
-            ser.read(ser.in_waiting)
-            time.sleep(0.1)
-        if not keep:
-            ser.close()
-            logging.debug("Serial interface closed.")
-        else:
-            logging.debug("Store serial interface")
-            self.__ser = ser
+            # time.sleep(0.1)
+            while ser.in_waiting:
+                logging.debug("{} bytes waiting".format(ser.in_waiting))
+                ser.read(ser.in_waiting)
+                time.sleep(0.1)
+            if not keep:
+                ser.close()
+                logging.debug("Serial interface closed.")
+            else:
+                logging.debug("Store serial interface")
+                self.__ser = ser
+            return answer
+
+        answer = __get_transparent_reply(raw_cmd, reply_length, timeout, keep)
         if answer == b"":
+            time.sleep(0.1)
             logging.debug("Play it again Sam!")
-            answer = self.get_transparent_reply(raw_cmd, reply_length, timeout, keep)
+            answer = __get_transparent_reply(raw_cmd, reply_length, timeout, keep)
         return answer
 
     # *** start_cycle():

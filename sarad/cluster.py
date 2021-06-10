@@ -213,13 +213,11 @@ class SaradCluster(Generic[SI]):
         self.__start_time = start_time
 
 
-# * Initialize mycluster as a singleton # TODO: In Hauptprogramm übernehmen
-#mycluster: SaradCluster = SaradCluster()
-#mycluster.update_connected_instruments()
-#logger.debug(mycluster.__dict__)
-
 # * Test environment:
 if __name__ == "__main__":
+    mycluster: SaradCluster = SaradCluster()
+    mycluster.update_connected_instruments()
+    logger.debug(mycluster.__dict__)
 
     for connected_instrument in mycluster:
         print(connected_instrument)

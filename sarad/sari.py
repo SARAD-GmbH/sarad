@@ -463,11 +463,10 @@ class SaradInst(Generic[SI]):
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
-    
-        
+
     def __hash__(self):
         return hash(self.device_id)
-    
+
     def __eq__(self, other):
         if isinstance(other, SaradInst):
             return self.device_id == other.device_id

@@ -103,7 +103,7 @@ class SaradCluster(Generic[SI]):
         hid = hashids.Hashids()
         if ports_to_test is None:
             ports_to_test = self.active_ports
-        logger.info("%d ports to test", len(ports_to_test))
+        logger.info("%d port(s) to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
         # NOTE: The order of tests is very important, because the only
@@ -126,7 +126,8 @@ class SaradCluster(Generic[SI]):
             test_instrument = family_class()
             test_instrument.family = family
             ports_with_instruments = []
-            logger.info(ports_to_test)
+            if ports_to_test != []:
+                logger.debug(ports_to_test)
             for port in ports_to_test:
                 logger.info("Testing port %s for %s.", port, family["family_name"])
                 test_instrument.port = port

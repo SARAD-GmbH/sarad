@@ -7,10 +7,10 @@ import logging
 import os
 import struct
 import time
-from collections.abc import Collection, Iterator
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, Generic, List, Optional, TypedDict, TypeVar
+from typing import (Any, Collection, Dict, Generic, Iterator, List, Optional,
+                    TypedDict, TypeVar)
 
 import yaml
 from BitVector import BitVector  # type: ignore
@@ -463,6 +463,18 @@ class SaradInst(Generic[SI]):
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
+
+    def __hash__(self):
+        return hash(self.device_id)
+
+    def __eq__(self, other):
+        if isinstance(other, SaradInst):
+            return self.device_id == other.device_id
+
+        if isinstance(other, str):
+            return other == self.device_id
+
+        return False
 
     # *** __make_command_msg():
 

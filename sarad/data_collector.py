@@ -3,31 +3,44 @@
 instrument whenever it is called.
 Made to be a data source for Zabbix agent."""
 
-import time
 import logging
-import signal
-import sys
 import os
-import socket
 import pickle
-from appdirs import AppDirs     # type: ignore
+import signal
+import socket
+import sys
+import time
+
 import click
-import yaml
-from filelock import Timeout, FileLock  # type: ignore
-from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
-import schedule  # type: ignore
 import click_log  # type: ignore
 import paho.mqtt.client as mqtt  # type: ignore
-from sarad.cluster import mycluster
+import schedule  # type: ignore
+import yaml
+from appdirs import AppDirs  # type: ignore
+from filelock import FileLock, Timeout  # type: ignore
+from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
+
+from sarad.cluster import SaradCluster
+
 logger = logging.getLogger()
 FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
 logging.basicConfig(format=FORMAT)
 
+# * Create mycluster object:
+
+mycluster: SaradCluster = SaradCluster()
+mycluster.update_connected_instruments()
+logger.debug(mycluster.__dict__)
+
 # * Configuration file:
 config = {}
 dirs = AppDirs("data_collector")
-for loc in [os.curdir, os.path.expanduser("~"), dirs.user_config_dir,
-            dirs.site_config_dir]:
+for loc in [
+    os.curdir,
+    os.path.expanduser("~"),
+    dirs.user_config_dir,
+    dirs.site_config_dir,
+]:
     try:
         with open(os.path.join(loc, "data_collector.conf"), "r") as ymlfile:
             config = yaml.safe_load(ymlfile)
@@ -39,11 +52,11 @@ if config == {}:
 
 # ** MQTT config:
 try:
-    BROKER = config['mqtt']['broker']
+    BROKER = config["mqtt"]["broker"]
 except KeyError:
-    BROKER = 'localhost'
+    BROKER = "localhost"
 try:
-    CLIENT_ID = config['mqtt']['client_id']
+    CLIENT_ID = config["mqtt"]["client_id"]
 except KeyError:
     CLIENT_ID = socket.gethostname()
 
@@ -52,10 +65,9 @@ def on_connect(client, userdata, flags, result_code):
     # pylint: disable=unused-argument
     """Will be carried out when the client connected to the MQTT broker."""
     if result_code:
-        logger.info('Connection to MQTT broker failed. result_code=%s',
-                    result_code)
+        logger.info("Connection to MQTT broker failed. result_code=%s", result_code)
     else:
-        logger.info('Connected with MQTT broker.')
+        logger.info("Connected with MQTT broker.")
 
 
 def on_disconnect(client, userdata, result_code):
@@ -63,10 +75,11 @@ def on_disconnect(client, userdata, result_code):
     """Will be carried out when the client disconnected
     from the MQTT broker."""
     if result_code:
-        logger.info('Disconnection from MQTT broker failed. result_code=%s',
-                    result_code)
+        logger.info(
+            "Disconnection from MQTT broker failed. result_code=%s", result_code
+        )
     else:
-        logger.info('Gracefully disconnected from MQTT broker.')
+        logger.info("Gracefully disconnected from MQTT broker.")
 
 
 mqtt_client = mqtt.Client()
@@ -75,11 +88,11 @@ mqtt_client.on_disconnect = on_disconnect
 
 # ** Zabbix config:
 try:
-    SERVER = config['zabbix']['server']
+    SERVER = config["zabbix"]["server"]
 except KeyError:
-    SERVER = 'localhost'
+    SERVER = "localhost"
 try:
-    HOST = config['zabbix']['host']
+    HOST = config["zabbix"]["host"]
 except KeyError:
     HOST = socket.gethostname()
 # Create Zabbix sender object
@@ -91,14 +104,14 @@ LOCK_HINT = "Another instance of this application currently holds the lock."
 
 
 # * Handling of Ctrl+C:
-def signal_handler(sig, frame):   # pylint: disable=unused-argument
+def signal_handler(sig, frame):  # pylint: disable=unused-argument
     """On Ctrl+C:
     - stop all cycles
     - disconnect from MQTT broker"""
-    logger.info('You pressed Ctrl+C!')
+    logger.info("You pressed Ctrl+C!")
     for instrument in mycluster:
         instrument.stop_cycle()
-        logger.info('Device %s stopped.', instrument.device_id)
+        logger.info("Device %s stopped.", instrument.device_id)
     mqtt_client.disconnect()
     mqtt_client.loop_stop()
     sys.exit(0)
@@ -117,18 +130,38 @@ def cli():
 
 # * Single value output:
 @cli.command()
-@click.option('--instrument', default='j2hRuRDy',
-              help=('Instrument Id.  Run ~data_collector cluster~ to get '
-                    'the list of available instruments.'))
-@click.option('--component', default=0, type=click.IntRange(0, 63),
-              help='The Id of the sensor component.')
-@click.option('--sensor', default=0, type=click.IntRange(0, 255),
-              help='The Id of the sensor of the component.')
-@click.option('--measurand', default=0, type=click.IntRange(0, 3),
-              help='The Id of the measurand of the sensor.')
-@click.option('--lock_path', type=click.Path(writable=True),
-              default='mycluster.lock',
-              help='The path and file name of the lock file.')
+@click.option(
+    "--instrument",
+    default="j2hRuRDy",
+    help=(
+        "Instrument Id.  Run ~data_collector cluster~ to get "
+        "the list of available instruments."
+    ),
+)
+@click.option(
+    "--component",
+    default=0,
+    type=click.IntRange(0, 63),
+    help="The Id of the sensor component.",
+)
+@click.option(
+    "--sensor",
+    default=0,
+    type=click.IntRange(0, 255),
+    help="The Id of the sensor of the component.",
+)
+@click.option(
+    "--measurand",
+    default=0,
+    type=click.IntRange(0, 3),
+    help="The Id of the measurand of the sensor.",
+)
+@click.option(
+    "--lock_path",
+    type=click.Path(writable=True),
+    default="mycluster.lock",
+    help="The path and file name of the lock file.",
+)
 def value(instrument, component, sensor, measurand, lock_path):
     """Command line application that gives back
     the most recent value of a SARAD instrument whenever it is called."""
@@ -137,19 +170,24 @@ def value(instrument, component, sensor, measurand, lock_path):
         with lock.acquire(timeout=10):
             for my_instrument in mycluster.connected_instruments:
                 if my_instrument.device_id == instrument:
-                    my_instrument.get_recent_value(component, sensor,
-                                                   measurand)
-                    click.echo(my_instrument.components[component].
-                               sensors[sensor].measurands[measurand])
+                    my_instrument.get_recent_value(component, sensor, measurand)
+                    click.echo(
+                        my_instrument.components[component]
+                        .sensors[sensor]
+                        .measurands[measurand]
+                    )
     except Timeout:
         click.echo(LOCK_HINT)
 
 
 # * List SARAD instruments:
 @cli.command()
-@click.option('--lock_path', type=click.Path(writable=True),
-              default='mycluster.lock',
-              help='The path and file name of the lock file.')
+@click.option(
+    "--lock_path",
+    type=click.Path(writable=True),
+    default="mycluster.lock",
+    help="The path and file name of the lock file.",
+)
 def cluster(lock_path):
     """Show list of connected SARAD instruments."""
     lock = FileLock(lock_path)
@@ -165,37 +203,44 @@ def cluster(lock_path):
 
 # * Transmit all values to a target:
 def send(target, instrument, component, sensor):
-    '''Define a function to be executed on scheduled times'''
+    """Define a function to be executed on scheduled times"""
     for measurand in sensor:
         c_idx = list(instrument).index(component)
         s_idx = list(component).index(sensor)
         m_idx = list(sensor).index(measurand)
-        logger.debug("Trying to get value for c_idx=%d, s_idx=%d, m_idx=%d",
-                     c_idx, s_idx, m_idx)
+        logger.debug(
+            "Trying to get value for c_idx=%d, s_idx=%d, m_idx=%d", c_idx, s_idx, m_idx
+        )
         instrument.get_recent_value(c_idx, s_idx, m_idx)
-        if target == 'screen':
+        if target == "screen":
             click.echo(measurand)
-        elif target == 'mqtt':
+        elif target == "mqtt":
             mqtt_client.publish(
-                f'{CLIENT_ID}/status/{instrument.device_id}/{sensor.name}/'
-                f'{measurand.name}',
-                f'{{"val": {measurand.value}, "ts": {measurand.time}}}')
-            logger.debug('MQTT message for %s published.', sensor.name)
-        elif target == 'zabbix':
+                f"{CLIENT_ID}/status/{instrument.device_id}/{sensor.name}/"
+                f"{measurand.name}",
+                f'{{"val": {measurand.value}, "ts": {measurand.time}}}',
+            )
+            logger.debug("MQTT message for %s published.", sensor.name)
+        elif target == "zabbix":
             zbx_value = measurand.value
             zbx_key = f"{sensor.name}-{measurand.name}"
             metrics = [ZabbixMetric(HOST, zbx_key, zbx_value)]
             zbx.send(metrics)
         else:
-            logger.error(('Target must be either screen, mqtt or zabbix.'))
+            logger.error(("Target must be either screen, mqtt or zabbix."))
 
 
 def set_send_scheduler(target, instrument, component, sensor):
     """Initialise the scheduler to perform the send function."""
-    schedule.every(sensor.interval.seconds).\
-        seconds.do(send, target, instrument, component, sensor)
-    logger.debug('Poll sensor %s of device %s in intervals of %d s.',
-                 sensor.name, instrument.device_id, sensor.interval.seconds)
+    schedule.every(sensor.interval.seconds).seconds.do(
+        send, target, instrument, component, sensor
+    )
+    logger.debug(
+        "Poll sensor %s of device %s in intervals of %d s.",
+        sensor.name,
+        instrument.device_id,
+        sensor.interval.seconds,
+    )
 
 
 def unwrapped_transmit(**kwargs):
@@ -203,34 +248,32 @@ def unwrapped_transmit(**kwargs):
     in our cluster to a target.
     Target can be the output of the command on the command line (screen),
     an MQTT broker or a Zabbix server."""
-    lock_path = kwargs['lock_path']
-    target = kwargs['target']
+    lock_path = kwargs["lock_path"]
+    target = kwargs["target"]
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=10):
-            with open('last_session', 'w+b') as session_file:
+            with open("last_session", "w+b") as session_file:
                 pickle.dump(kwargs, session_file)
             # Connect to MQTT broker
-            if target == 'mqtt':
+            if target == "mqtt":
                 mqtt_client.connect(BROKER)
                 mqtt_client.loop_start()
             # Start measuring cycles at all instruments
-            if 'cycles' in config:
-                config_dict = config['cycles']
+            if "cycles" in config:
+                config_dict = config["cycles"]
             else:
                 config_dict = {}
             mycluster.synchronize(config_dict)
             for instrument in mycluster:
                 instrument.set_lock()
-                logger.info(
-                    'Device %s started and locked.', instrument.device_id)
+                logger.info("Device %s started and locked.", instrument.device_id)
             # Build the scheduler
             for instrument in mycluster:
                 for component in instrument:
                     for sensor in component:
-                        set_send_scheduler(target, instrument, component,
-                                           sensor)
-            print('Press Ctrl+C to abort.')
+                        set_send_scheduler(target, instrument, component, sensor)
+            print("Press Ctrl+C to abort.")
             while True:
                 schedule.run_pending()
                 time.sleep(1)
@@ -239,12 +282,17 @@ def unwrapped_transmit(**kwargs):
 
 
 @cli.command()
-@click.option('--lock_path', default='mycluster.lock',
-              type=click.Path(writable=True),
-              help='The path and file name of the lock file.')
-@click.option('--target', default='screen',
-              help=('Where the values shall go to? '
-                    '(screen, mqtt, zabbix).'))
+@click.option(
+    "--lock_path",
+    default="mycluster.lock",
+    type=click.Path(writable=True),
+    help="The path and file name of the lock file.",
+)
+@click.option(
+    "--target",
+    default="screen",
+    help=("Where the values shall go to? " "(screen, mqtt, zabbix)."),
+)
 def transmit(**kwargs):
     """General function to transmit all values gathered from the instruments
     in our cluster to a target.
@@ -258,15 +306,15 @@ def transmit(**kwargs):
 def last_session():
     """Starts the last trapper session as continuous service"""
     try:
-        with open('last_session', 'r+b') as session_file:
+        with open("last_session", "r+b") as session_file:
             kwargs = pickle.load(session_file)
         logger.debug("Using arguments from last run: %s", kwargs)
         unwrapped_transmit(**kwargs)
     except IOError:
-        kwargs = {'lock_path': 'mycluster.lock', 'target': 'screen'}
+        kwargs = {"lock_path": "mycluster.lock", "target": "screen"}
         logger.debug("No last run detected. Using defaults: %s", kwargs)
         unwrapped_transmit(**kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

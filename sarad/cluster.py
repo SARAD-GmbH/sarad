@@ -5,6 +5,7 @@ the same instrument controller.
 SaradCluster is used as singleton."""
 
 import logging
+import os
 import pickle
 from datetime import datetime
 from typing import IO, Any, Dict, Generic, Iterator, List, Optional
@@ -103,7 +104,7 @@ class SaradCluster(Generic[SI]):
         hid = hashids.Hashids()
         if ports_to_test is None:
             ports_to_test = self.active_ports
-        logger.info("%d ports to test", len(ports_to_test))
+        logger.info("%d port(s) to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
         connected_instruments = []  # a list of instrument objects
         # NOTE: The order of tests is very important, because the only
@@ -126,23 +127,30 @@ class SaradCluster(Generic[SI]):
             test_instrument = family_class()
             test_instrument.family = family
             ports_with_instruments = []
-            logger.info(ports_to_test)
+            if ports_to_test != []:
+                logger.debug(ports_to_test)
             for port in ports_to_test:
                 logger.info("Testing port %s for %s.", port, family["family_name"])
-                test_instrument.port = port
-                if test_instrument.type_id and test_instrument.serial_number:
-                    device_id = hid.encode(
-                        test_instrument.family["family_id"],
-                        test_instrument.type_id,
-                        test_instrument.serial_number,
-                    )
-                    test_instrument.device_id = device_id
-                    logger.info("%s found on port %s.", family["family_name"], port)
-                    connected_instruments.append(test_instrument)
-                    ports_with_instruments.append(port)
-                    if (ports_to_test.index(port) + 1) < len(ports_to_test):
-                        test_instrument = family_class()
-                        test_instrument.family = family
+                try:
+                    test_instrument.port = port
+                    if test_instrument.type_id and test_instrument.serial_number:
+                        device_id = hid.encode(
+                            test_instrument.family["family_id"],
+                            test_instrument.type_id,
+                            test_instrument.serial_number,
+                        )
+                        test_instrument.device_id = device_id
+                        logger.info("%s found on port %s.", family["family_name"], port)
+                        connected_instruments.append(test_instrument)
+                        ports_with_instruments.append(port)
+                        if (ports_to_test.index(port) + 1) < len(ports_to_test):
+                            test_instrument = family_class()
+                            test_instrument.family = family
+                except serial.serialutil.SerialException:
+                    logger.error("Something went wrong with the serial interface.")
+                except OSError:
+                    logger.critical("OSError -- exiting for a restart")
+                    os._exit(1)  # pylint: disable=protected-access
             for port in ports_with_instruments:
                 ports_to_test.remove(port)
         self.__connected_instruments = connected_instruments

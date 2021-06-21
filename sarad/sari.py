@@ -7,10 +7,9 @@ import logging
 import os
 import struct
 import time
-from collections.abc import Collection, Iterator
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, Generic, List, Optional, TypedDict, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypedDict, TypeVar, Collection, Iterator
 
 import yaml
 from BitVector import BitVector  # type: ignore
@@ -239,7 +238,7 @@ class Sensor:
 
     # ** Private methods:
 
-    def __iter__(self) -> Iterator[Measurand]:
+    def __iter__(self):
         return iter(self.__measurands)
 
     def __str__(self) -> str:
@@ -315,7 +314,7 @@ class Component:
 
     # ** Private methods:
 
-    def __iter__(self) -> Iterator[Sensor]:
+    def __iter__(self):
         return iter(self.__sensors)
 
     def __str__(self) -> str:

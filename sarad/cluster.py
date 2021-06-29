@@ -44,13 +44,18 @@ class SaradCluster(Generic[SI]):
 
     version: str = "0.1"
 
-    def __init__(self, native_ports: Optional[List[int]] = None) -> None:
+    def __init__(
+        self,
+        native_ports: Optional[List[str]] = None,
+        ignore_ports: Optional[List[str]] = None,
+    ) -> None:
         if native_ports is None:
             native_ports = []
         self.__native_ports = native_ports
+        self.__ignore_ports = ignore_ports
         self.__start_time = datetime.min
         self.__connected_instruments: List[SI] = []
-        self.__active_ports: List[int] = []
+        self.__active_ports: List[str] = []
 
     # ** Private methods:
 
@@ -175,7 +180,7 @@ class SaradCluster(Generic[SI]):
     # *** active_ports:
 
     @property
-    def active_ports(self) -> List[int]:
+    def active_ports(self) -> List[str]:
         """SARAD instruments can be connected:
         1. by RS232 on a native RS232 interface at the computer
         2. via their built in FT232R USB-serial converter
@@ -206,7 +211,7 @@ class SaradCluster(Generic[SI]):
             self.__active_ports = []
             for port in active_ports:
                 self.__active_ports.append(port.device)
-        for port in self.__ignore_ports:
+        for port in set(self.__ignore_ports):
             if port in self.__active_ports:
                 self.__active_ports.remove(port)
         return self.__active_ports
@@ -221,20 +226,20 @@ class SaradCluster(Generic[SI]):
     # *** native_ports:
 
     @property
-    def native_ports(self) -> List[int]:
+    def native_ports(self) -> Optional[List[str]]:
         """Return the list of all native serial ports (RS-232 ports)
         available at the instrument controller."""
         return self.__native_ports
 
     @native_ports.setter
-    def native_ports(self, native_ports: List[int]) -> None:
+    def native_ports(self, native_ports: List[str]) -> None:
         """Set the list of native serial ports that shall be used."""
         self.__native_ports = native_ports
 
     # *** ignore_ports:
 
     @property
-    def ignore_ports(self) -> List[str]:
+    def ignore_ports(self) -> Optional[List[str]]:
         """Return the list of all serial ports
         at the instrument controller that shall be ignored."""
         return self.__ignore_ports

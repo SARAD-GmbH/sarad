@@ -154,8 +154,15 @@ class SaradCluster(Generic[SI]):
                     os._exit(1)  # pylint: disable=protected-access
             for port in ports_with_instruments:
                 ports_to_test.remove(port)
-        self.__connected_instruments = connected_instruments
-        return connected_instruments
+        # remove duplicates
+        self.__connected_instruments = list(set(connected_instruments))
+        for instrument in connected_instruments:
+            for maybe_duplicate in connected_instruments:
+                if (maybe_duplicate.port != instrument.port) and (
+                    maybe_duplicate.id == instrument.id
+                ):
+                    self.__connected_instruments.remove(maybe_duplicate)
+        return self.__connected_instruments
 
     # *** dump(self, file):
 
@@ -175,7 +182,7 @@ class SaradCluster(Generic[SI]):
         3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
         if sys.platform.startswith("win"):
-            ports = ['COM%s' % (i + 1) for i in range(256)]
+            ports = ["COM%s" % (i + 1) for i in range(256)]
             result = []
             for port in ports:
                 try:
@@ -185,20 +192,23 @@ class SaradCluster(Generic[SI]):
                 except (OSError, serial.SerialException):
                     pass
             self.__active_ports = result
-            return self.__active_ports
-        active_ports = []
-        # Get the list of accessible native ports
-        for port in serial.tools.list_ports.comports():
-            if port.device in self.__native_ports:
-                active_ports.append(port)
-        # FTDI USB-to-serial converters
-        active_ports.extend(serial.tools.list_ports.grep("0403"))
-        # Prolific and no-name USB-to-serial converters
-        active_ports.extend(serial.tools.list_ports.grep("067B"))
-        # Actually we don't want the ports but the port devices.
-        self.__active_ports = []
-        for port in active_ports:
-            self.__active_ports.append(port.device)
+        else:
+            active_ports = []
+            # Get the list of accessible native ports
+            for port in serial.tools.list_ports.comports():
+                if port.device in self.__native_ports:
+                    active_ports.append(port)
+            # FTDI USB-to-serial converters
+            active_ports.extend(serial.tools.list_ports.grep("0403"))
+            # Prolific and no-name USB-to-serial converters
+            active_ports.extend(serial.tools.list_ports.grep("067B"))
+            # Actually we don't want the ports but the port devices.
+            self.__active_ports = []
+            for port in active_ports:
+                self.__active_ports.append(port.device)
+        for port in self.__ignore_ports:
+            if port in self.__active_ports:
+                self.__active_ports.remove(port)
         return self.__active_ports
 
     # *** connected_instruments:
@@ -220,6 +230,19 @@ class SaradCluster(Generic[SI]):
     def native_ports(self, native_ports: List[int]) -> None:
         """Set the list of native serial ports that shall be used."""
         self.__native_ports = native_ports
+
+    # *** ignore_ports:
+
+    @property
+    def ignore_ports(self) -> List[str]:
+        """Return the list of all serial ports
+        at the instrument controller that shall be ignored."""
+        return self.__ignore_ports
+
+    @ignore_ports.setter
+    def ignore_ports(self, ignore_ports: List[str]) -> None:
+        """Set the list of serial ports that shall be ignored."""
+        self.__ignore_ports = ignore_ports
 
     # *** start_time:
 

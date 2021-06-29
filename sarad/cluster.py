@@ -7,6 +7,7 @@ SaradCluster is used as singleton."""
 import logging
 import os
 import pickle
+import sys
 from datetime import datetime
 from typing import IO, Any, Dict, Generic, Iterator, List, Optional
 
@@ -173,6 +174,18 @@ class SaradCluster(Generic[SI]):
         2. via their built in FT232R USB-serial converter
         3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
+        if sys.platform.startswith("win"):
+            ports = ['COM%s' % (i + 1) for i in range(256)]
+            result = []
+            for port in ports:
+                try:
+                    active_serial = serial.Serial(port)
+                    active_serial.close()
+                    result.append(port)
+                except (OSError, serial.SerialException):
+                    pass
+            self.__active_ports = result
+            return self.__active_ports
         active_ports = []
         # Get the list of accessible native ports
         for port in serial.tools.list_ports.comports():

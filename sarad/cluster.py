@@ -51,8 +51,10 @@ class SaradCluster(Generic[SI]):
     ) -> None:
         if native_ports is None:
             native_ports = []
-        self.__native_ports = native_ports
-        self.__ignore_ports = ignore_ports
+        self.__native_ports = set(native_ports)
+        if ignore_ports is None:
+            ignore_ports = []
+        self.__ignore_ports = set(ignore_ports)
         self.__start_time = datetime.min
         self.__connected_instruments: List[SI] = []
         self.__active_ports: List[str] = []
@@ -211,8 +213,8 @@ class SaradCluster(Generic[SI]):
             self.__active_ports = []
             for port in active_ports:
                 self.__active_ports.append(port.device)
-        for port in set(self.__ignore_ports):
-            if port in self.__active_ports:
+        for port in self.__active_ports:
+            if port in self.__ignore_ports:
                 self.__active_ports.remove(port)
         return self.__active_ports
 
@@ -229,12 +231,12 @@ class SaradCluster(Generic[SI]):
     def native_ports(self) -> Optional[List[str]]:
         """Return the list of all native serial ports (RS-232 ports)
         available at the instrument controller."""
-        return self.__native_ports
+        return list(self.__native_ports)
 
     @native_ports.setter
     def native_ports(self, native_ports: List[str]) -> None:
         """Set the list of native serial ports that shall be used."""
-        self.__native_ports = native_ports
+        self.__native_ports = set(native_ports)
 
     # *** ignore_ports:
 
@@ -242,12 +244,12 @@ class SaradCluster(Generic[SI]):
     def ignore_ports(self) -> Optional[List[str]]:
         """Return the list of all serial ports
         at the instrument controller that shall be ignored."""
-        return self.__ignore_ports
+        return list(self.__ignore_ports)
 
     @ignore_ports.setter
     def ignore_ports(self, ignore_ports: List[str]) -> None:
         """Set the list of serial ports that shall be ignored."""
-        self.__ignore_ports = ignore_ports
+        self.__ignore_ports = set(ignore_ports)
 
     # *** start_time:
 

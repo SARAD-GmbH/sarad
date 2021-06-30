@@ -57,7 +57,7 @@ class SaradCluster(Generic[SI]):
         self.__ignore_ports = set(ignore_ports)
         self.__start_time = datetime.min
         self.__connected_instruments: List[SI] = []
-        self.__active_ports: List[str] = []
+        self.__active_ports: Set[str] = set()
 
     # ** Private methods:
 
@@ -163,12 +163,6 @@ class SaradCluster(Generic[SI]):
                 ports_to_test.remove(port)
         # remove duplicates
         self.__connected_instruments = list(set(connected_instruments))
-        for instrument in connected_instruments:
-            for maybe_duplicate in connected_instruments:
-                if (maybe_duplicate.port != instrument.port) and (
-                    maybe_duplicate.id == instrument.id
-                ):
-                    self.__connected_instruments.remove(maybe_duplicate)
         return self.__connected_instruments
 
     # *** dump(self, file):
@@ -198,7 +192,7 @@ class SaradCluster(Generic[SI]):
                     result.append(port)
                 except (OSError, serial.SerialException):
                     pass
-            self.__active_ports = result
+            set_of_ports = set(result)
         else:
             active_ports = []
             # Get the list of accessible native ports
@@ -210,13 +204,17 @@ class SaradCluster(Generic[SI]):
             # Prolific and no-name USB-to-serial converters
             active_ports.extend(serial.tools.list_ports.grep("067B"))
             # Actually we don't want the ports but the port devices.
-            self.__active_ports = []
+            set_of_ports = set()
             for port in active_ports:
-                self.__active_ports.append(port.device)
-        for port in self.__active_ports:
-            if port in self.__ignore_ports:
-                self.__active_ports.remove(port)
-        return self.__active_ports
+                set_of_ports.add(port.device)
+        self.__active_ports = set()
+        for port in set_of_ports:
+            if port not in self.__ignore_ports:
+                self.__active_ports.add(port)
+        logger.info("Native ports: %s", self.__native_ports)
+        logger.info("Ignored ports: %s", self.__ignore_ports)
+        logger.info("Active ports: %s", self.__active_ports)
+        return list(self.__active_ports)
 
     # *** connected_instruments:
 

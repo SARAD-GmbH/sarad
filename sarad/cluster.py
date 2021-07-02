@@ -108,13 +108,29 @@ class SaradCluster(Generic[SI]):
 
     def update_connected_instruments(self, ports_to_test=None) -> List[SI]:
         """Update the list of connected instruments
-        in self.__connected_instruments and return this list."""
+        in self.__connected_instruments and return this list.
+
+        Args:
+            ports_to_test (List[str]): list of serial device ids to test.
+                If None, the function will test all serial devices in self.active_ports.
+                If given, the function will test serial devices in ports_to_test
+                and add newly detected instruments to self.__connected_instruments.
+                If no instrument can be found on one of the ports, the instrument
+                will be removed from self.__connected_instruments.
+
+        Returns:
+            List of instruments added to or removed from self.__connected_instruments.
+        """
         hid = hashids.Hashids()
         if ports_to_test is None:
             ports_to_test = self.active_ports
+            connected_instruments = []
+        else:
+            connected_instruments = self.__connected_instruments
+        added_instruments = []
+        ports_to_remove = []
         logger.info("%d port(s) to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
-        connected_instruments = []  # a list of instrument objects
         # NOTE: The order of tests is very important, because the only
         # difference between RadonScout and DACM GetId commands is the
         # length of reply. Since the reply for DACM is longer than that for
@@ -149,21 +165,27 @@ class SaradCluster(Generic[SI]):
                         )
                         test_instrument.device_id = device_id
                         logger.info("%s found on port %s.", family["family_name"], port)
-                        connected_instruments.append(test_instrument)
+                        added_instruments.append(test_instrument)
                         ports_with_instruments.append(port)
                         if (ports_to_test.index(port) + 1) < len(ports_to_test):
                             test_instrument = family_class()
                             test_instrument.family = family
                 except serial.serialutil.SerialException:
-                    logger.error("Something went wrong with the serial interface.")
+                    logger.warning("Tested serial interface not available.")
                 except OSError:
                     logger.critical("OSError -- exiting for a restart")
                     os._exit(1)  # pylint: disable=protected-access
             for port in ports_with_instruments:
                 ports_to_test.remove(port)
+        # remove instruments from self.__connected_instruments
+        logger.debug("Remove %s", ports_to_test)
+        for instrument in self.__connected_instruments:
+            if instrument.port in ports_to_test:
+                self.__connected_instruments.remove(instrument)
         # remove duplicates
-        self.__connected_instruments = list(set(connected_instruments))
-        return self.__connected_instruments
+        self.__connected_instruments = list(set(added_instruments).union(set(connected_instruments)))
+        logger.debug("Connected instruments: %s", self.__connected_instruments)
+        return list(set(added_instruments))
 
     # *** dump(self, file):
 

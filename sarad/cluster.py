@@ -11,8 +11,8 @@ import sys
 from datetime import datetime
 from typing import IO, Any, Dict, Generic, Iterator, List, Optional, Set
 
-import hashids  # type: ignore
 import serial.tools.list_ports  # type: ignore
+from hashids import Hashids  # type: ignore
 
 from sarad.dacm import DacmInst
 from sarad.doseman import DosemanInst
@@ -42,7 +42,47 @@ class SaradCluster(Generic[SI]):
         synchronize(): Stop all instruments, set time, start all measurings
         dump(): Save all properties to a Pickle file"""
 
-    version: str = "0.1"
+    version: str = "2.0"
+
+    @staticmethod
+    def get_instrument(device_id, port) -> Optional[SI]:
+        """Get the instrument object for an instrument
+        with know device_id that is connected to a known port
+
+        Args:
+            device_id (str): device id of the instrument encoding
+                family, type and serial number
+            port (str): id of the serial device the instrument is
+                connected to
+
+        Returns:
+            SaradInst object
+        """
+        hid = Hashids()
+        family_id = hid.decode(device_id)[0]
+        if family_id == 1:
+            family_class: Any = DosemanInst
+        elif family_id == 2:
+            family_class = RscInst
+        elif family_id == 5:
+            family_class = DacmInst
+        else:
+            logger.error("Family %s not supported", family_id)
+            return None
+        family = None
+        for family in SaradInst.products:
+            if family["family_id"] == family_id:
+                break
+        try:
+            assert family is not None
+        except AssertionError:
+            logger.error("Family %s not supported", family_id)
+            return None
+        instrument = family_class()
+        instrument.device_id = device_id
+        instrument.family = family
+        instrument.port = port
+        return instrument
 
     def __init__(
         self,
@@ -121,7 +161,7 @@ class SaradCluster(Generic[SI]):
         Returns:
             List of instruments added to or removed from self.__connected_instruments.
         """
-        hid = hashids.Hashids()
+        hid = Hashids()
         if ports_to_test is None:
             ports_to_test = self.active_ports
             connected_instruments = []

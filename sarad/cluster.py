@@ -9,7 +9,7 @@ import os
 import pickle
 import sys
 from datetime import datetime
-from typing import IO, Any, Dict, Generic, Iterator, List, Optional
+from typing import IO, Any, Dict, Generic, Iterator, List, Optional, Set
 
 import hashids  # type: ignore
 import serial.tools.list_ports  # type: ignore
@@ -128,7 +128,6 @@ class SaradCluster(Generic[SI]):
         else:
             connected_instruments = self.__connected_instruments
         added_instruments = []
-        ports_to_remove = []
         logger.info("%d port(s) to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
         # NOTE: The order of tests is very important, because the only
@@ -183,7 +182,9 @@ class SaradCluster(Generic[SI]):
             if instrument.port in ports_to_test:
                 self.__connected_instruments.remove(instrument)
         # remove duplicates
-        self.__connected_instruments = list(set(added_instruments).union(set(connected_instruments)))
+        self.__connected_instruments = list(
+            set(added_instruments).union(set(connected_instruments))
+        )
         logger.debug("Connected instruments: %s", self.__connected_instruments)
         return list(set(added_instruments))
 

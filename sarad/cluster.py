@@ -42,7 +42,7 @@ class SaradCluster(Generic[SI]):
         synchronize(): Stop all instruments, set time, start all measurings
         dump(): Save all properties to a Pickle file"""
 
-    version: str = "2.0"
+    version: str = "3.0"
 
     @staticmethod
     def get_instrument(device_id, port) -> Optional[SI]:
@@ -146,7 +146,9 @@ class SaradCluster(Generic[SI]):
 
     # *** update_connected_instruments(self):
 
-    def update_connected_instruments(self, ports_to_test=None) -> List[SI]:
+    def update_connected_instruments(
+        self, ports_to_test=None, ports_to_skip=None
+    ) -> List[SI]:
         """Update the list of connected instruments
         in self.__connected_instruments and return this list.
 
@@ -159,16 +161,33 @@ class SaradCluster(Generic[SI]):
                 will be removed from self.__connected_instruments.
 
         Returns:
-            List of instruments added to or removed from self.__connected_instruments.
+            List of instruments added to self.__connected_instruments.
+            [] if instruments have been removed.
         """
+        logger.debug("[update_connected_instruments]")
         hid = Hashids()
         if ports_to_test is None:
             ports_to_test = self.active_ports
             connected_instruments = []
         else:
             connected_instruments = self.__connected_instruments
+        if ports_to_skip is not None:
+            connected_instruments = self.__connected_instruments
+            logger.debug("Ports to test: %s", ports_to_test)
+            logger.debug("Ports to skip: %s", ports_to_skip)
+            ports_to_test = list(
+                set(ports_to_test).symmetric_difference(set(ports_to_skip))
+            )
+            logger.debug("Symmetric difference: %s", ports_to_test)
+            if ports_to_test == []:
+                logger.warning(
+                    "Nothing to do. "
+                    "Set of serial ports to skip is equal to set of active ports."
+                )
+                return []
+        logger.debug("Connected instruments: %s", connected_instruments)
         added_instruments = []
-        logger.info("%d port(s) to test", len(ports_to_test))
+        logger.debug("%d port(s) to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
         # NOTE: The order of tests is very important, because the only
         # difference between RadonScout and DACM GetId commands is the
@@ -193,7 +212,7 @@ class SaradCluster(Generic[SI]):
             if ports_to_test != []:
                 logger.debug(ports_to_test)
             for port in ports_to_test:
-                logger.info("Testing port %s for %s.", port, family["family_name"])
+                logger.debug("Testing port %s for %s.", port, family["family_name"])
                 try:
                     test_instrument.port = port
                     if test_instrument.type_id and test_instrument.serial_number:
@@ -203,7 +222,9 @@ class SaradCluster(Generic[SI]):
                             test_instrument.serial_number,
                         )
                         test_instrument.device_id = device_id
-                        logger.info("%s found on port %s.", family["family_name"], port)
+                        logger.debug(
+                            "%s found on port %s.", family["family_name"], port
+                        )
                         added_instruments.append(test_instrument)
                         ports_with_instruments.append(port)
                         if (ports_to_test.index(port) + 1) < len(ports_to_test):
@@ -274,9 +295,9 @@ class SaradCluster(Generic[SI]):
         for port in set_of_ports:
             if port not in self.__ignore_ports:
                 self.__active_ports.add(port)
-        logger.info("Native ports: %s", self.__native_ports)
-        logger.info("Ignored ports: %s", self.__ignore_ports)
-        logger.info("Active ports: %s", self.__active_ports)
+        logger.debug("Native ports: %s", self.__native_ports)
+        logger.debug("Ignored ports: %s", self.__ignore_ports)
+        logger.debug("Active ports: %s", self.__active_ports)
         return list(self.__active_ports)
 
     # *** connected_instruments:

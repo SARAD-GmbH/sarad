@@ -758,7 +758,9 @@ class SaradInst(Generic[SI]):
         try:
             assert answer != b""
         except AssertionError:
-            logging.warning("The instrument did not reply.")
+            logging.warning(
+                "No reply in __get_control_bytes(%s, %s)", serial.port, serial.baudrate
+            )
             return answer
         try:
             assert answer.startswith(b"B") is True

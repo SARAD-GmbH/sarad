@@ -60,6 +60,7 @@ class CheckedAnswerDict(TypedDict):
     is_control: bool
     payload: bytes
     number_of_bytes_in_payload: int
+    raw: bytes
 
 
 # * Measurand:
@@ -547,6 +548,7 @@ class SaradInst(Generic[SI]):
             "is_control": is_control,
             "payload": payload,
             "number_of_bytes_in_payload": number_of_bytes_in_payload,
+            "raw": answer,
         }
 
     # *** get_message_payload():

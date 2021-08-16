@@ -760,7 +760,7 @@ class SaradInst(Generic[SI]):
         try:
             assert answer != b""
         except AssertionError:
-            logging.warning(
+            logging.debug(
                 "No reply in __get_control_bytes(%s, %s)", serial.port, serial.baudrate
             )
             return answer

@@ -9,7 +9,7 @@ import os
 import pickle
 import sys
 from datetime import datetime
-from typing import IO, Any, Dict, Generic, Iterator, List, Optional
+from typing import IO, Any, Dict, Generic, Iterator, List, Optional, Set
 
 import hashids  # type: ignore
 import serial.tools.list_ports  # type: ignore
@@ -30,6 +30,7 @@ class SaradCluster(Generic[SI]):
 
     Properties:
         native_ports
+        ignore_ports
         active_ports
         connected_instruments
         start_time

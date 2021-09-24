@@ -752,38 +752,32 @@ class SaradInst(Generic[SI]):
         perf_time_0 = time.perf_counter()
         answer = serial.read(3)
         perf_time_1 = time.perf_counter()
-        logging.debug(
+        logger.debug(
             "Receiving %s from serial took me %f s",
             answer,
             perf_time_1 - perf_time_0,
         )
-        try:
-            assert answer != b""
-        except AssertionError:
-            logging.debug(
+        if answer == b"":
+            logger.debug(
                 "No reply in __get_control_bytes(%s, %s)", serial.port, serial.baudrate
             )
             return answer
-        try:
-            assert answer.startswith(b"B") is True
-        except AssertionError:
-            logging.warning("This seems to be no SARAD instrument.")
+        if answer.startswith(b"B") is not True:
+            logger.warning("This seems to be no SARAD instrument.")
             answer = b""
             return answer
         control_byte = answer[1]
         neg_control_byte = answer[2]
-        try:
-            assert (control_byte ^ 0xFF) == neg_control_byte
-        except AssertionError:
-            logging.error("Message corrupted.")
+        if (control_byte ^ 0xFF) != neg_control_byte:
+            logger.error("Message corrupted.")
             answer = b""
             return answer
         is_control = bool(control_byte & 0x80)
-        logging.debug("is_control: %s, control_byte: %s", is_control, control_byte)
+        logger.debug("is_control: %s, control_byte: %s", is_control, control_byte)
         # try:
         #     assert is_control is False
         # except AssertionError:
-        #     logging.error("Data message expected, but this is a control message.")
+        #     logger.error("Data message expected, but this is a control message.")
         #     answer = b""
         #     return answer
         return answer
@@ -810,13 +804,13 @@ class SaradInst(Generic[SI]):
             )
             if not ser.is_open:
                 ser.open()
-            logging.debug("Open serial, don't keep.")
+            logger.debug("Open serial, don't keep.")
         else:
             try:
                 ser = self.__ser
-                logging.debug("Reuse stored serial interface")
+                logger.debug("Reuse stored serial interface")
                 if not ser.is_open:
-                    logging.debug("Port is closed. Reopen.")
+                    logger.debug("Port is closed. Reopen.")
                     ser.open()
             except AttributeError:
                 ser = Serial(
@@ -832,14 +826,14 @@ class SaradInst(Generic[SI]):
                 )
                 if not ser.is_open:
                     ser.open()
-                logging.debug("Open serial")
+                logger.debug("Open serial")
         perf_time_0 = time.perf_counter()
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")
             ser.write(byte)
             time.sleep(self.__family["write_sleeptime"])
         perf_time_1 = time.perf_counter()
-        logging.debug(
+        logger.debug(
             "Writing command %s to serial took me %f s",
             raw_cmd,
             perf_time_1 - perf_time_0,
@@ -854,21 +848,21 @@ class SaradInst(Generic[SI]):
         number_of_remaining_bytes = payload_length + 3
         remaining_bytes = ser.read(number_of_remaining_bytes)
         while ser.in_waiting:
-            logging.debug("%d bytes waiting", ser.in_waiting)
+            logger.debug("%d bytes waiting", ser.in_waiting)
             ser.read(ser.in_waiting)
             time.sleep(0.1)
         perf_time_2 = time.perf_counter()
         answer = first_bytes + remaining_bytes
-        logging.debug(
+        logger.debug(
             "Receiving %s from serial took me %f s",
             answer,
             perf_time_2 - perf_time_1,
         )
         if not keep:
             ser.close()
-            logging.debug("Serial interface closed.")
+            logger.debug("Serial interface closed.")
         else:
-            logging.debug("Store serial interface")
+            logger.debug("Store serial interface")
             self.__ser = ser
         return answer
 

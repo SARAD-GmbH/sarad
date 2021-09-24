@@ -391,48 +391,49 @@ class SaradInst(Generic[SI]):
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
 
-        unlocked: int = 1
-        locked: int = 2
+        UNLOCKED: int = 1
+        LOCKED: int = 2
 
     class RadonMode(Enum):
         """Setting of the device. Displayed radon values based on
         short living progeny only (fast)
         or on short and long living progeny (slow)"""
 
-        slow: int = 1
-        fast: int = 2
+        SLOW: int = 1
+        FAST: int = 2
 
     class PumpMode(Enum):
         """Setting of the devices having a pump."""
 
-        continuous: int = 1
-        interval: int = 2
+        CONTINUOUS: int = 1
+        INTERVAL: int = 2
 
     class Units(Enum):
         """Setting of the device. Unit system used for display."""
 
-        si: int = 1
-        us: int = 2
+        SI: int = 1
+        US: int = 2
 
     class Signal(Enum):
         """Setting of the device. When shall it give an audible signal?"""
 
-        off: int = 1
-        alarm: int = 2
-        sniffer_po216: int = 3
-        po216_po218: int = 4
+        OFF: int = 1
+        ALARM: int = 2
+        SNIFFER_PO216: int = 3
+        PO216_PO218: int = 4
 
     class ChamberSize(Enum):
         """Setting the chamber size (Radon Scout PMT only)."""
 
-        small: int = 1
-        medium: int = 2
-        large: int = 3
-        xl: int = 4
+        SMALL: int = 1
+        MEDIUM: int = 2
+        LARGE: int = 3
+        XL: int = 4
 
     with open(
         os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "instruments.yaml",
         "r",
+        encoding="utf-8",
     ) as __f:
         products = yaml.safe_load(__f)
 
@@ -446,17 +447,16 @@ class SaradInst(Generic[SI]):
         if (port is not None) and (family is not None):
             self._initialize()
         self.__components: Collection[Component] = []
-        self.__interval: timedelta = timedelta(0)
         self._type_id: int = 0
         self._type_name: str = ""
         self._software_version: int = 0
         self._serial_number: int = 0
-        self.signal = self.Signal.off
-        self.radon_mode = self.RadonMode.slow
-        self.pump_mode = self.PumpMode.continuous
-        self.units = self.Units.si
-        self.chamber_size = self.ChamberSize.small
-        self.lock = self.Lock.unlocked
+        self.signal = self.Signal.OFF
+        self.radon_mode = self.RadonMode.SLOW
+        self.pump_mode = self.PumpMode.CONTINUOUS
+        self.units = self.Units.SI
+        self.chamber_size = self.ChamberSize.SMALL
+        self.lock = self.Lock.UNLOCKED
         self.__id: str = ""
         self.__ser = None
 

@@ -13,7 +13,6 @@ import sys
 import time
 
 import click
-import click_log  # type: ignore
 import paho.mqtt.client as mqtt  # type: ignore
 import schedule  # type: ignore
 import yaml
@@ -37,12 +36,11 @@ LOGCFG = {
             "stream": "ext://sys.stdout",
         },
     },
-    "loggers": {"": {"handlers": ["console"]}},
+    "loggers": {"": {"handlers": ["console"], "level": logging.DEBUG}},
 }
 
 logging.config.dictConfig(LOGCFG)
 logger = logging.getLogger(__name__)
-click_log.basic_config(logger)
 
 # * Create mycluster object:
 
@@ -142,9 +140,13 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # * Main group of commands:
 @click.group()
-@click_log.simple_verbosity_option(logger)
-def cli():
+@click.option("--verbose", "-v", is_flag=True, help="Will print more logging messages.")
+def cli(verbose):
     """Description for the group of commands"""
+    if verbose:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
     logger.debug("broker = %s, client_id = %s", BROKER, CLIENT_ID)
 
 

@@ -5,7 +5,14 @@ from datetime import datetime, timedelta
 
 from sarad.sari import Component, Measurand, SaradInst, Sensor
 
-logger = logging.getLogger(__name__)
+_LOGGER = None
+
+
+def logger():
+    """Returns the logger instance used in this module."""
+    global _LOGGER
+    _LOGGER = _LOGGER or logging.getLogger(__name__)
+    return _LOGGER
 
 
 # * RscInst:
@@ -46,6 +53,7 @@ class RscInst(SaradInst):
         self.__password = None
         self.__server_port = None
         self.__ip_address = None
+        self.__interval = None
 
     # ** Private methods:
     # *** _gather_all_recent_values(self):
@@ -82,19 +90,19 @@ class RscInst(SaradInst):
                     device_time_min,
                 )
             except TypeError:
-                logger.error("TypeError when parsing the payload.")
+                logger().error("TypeError when parsing the payload.")
                 return False
             except ReferenceError:
-                logger.error("ReferenceError when parsing the payload.")
+                logger().error("ReferenceError when parsing the payload.")
                 return False
             except LookupError:
-                logger.error("LookupError when parsing the payload.")
+                logger().error("LookupError when parsing the payload.")
                 return False
             except ValueError:
-                logger.error("ValueError when parsing the payload.")
+                logger().error("ValueError when parsing the payload.")
                 return False
             except Exception:  # pylint: disable=broad-except
-                logger.error("Unknown error when parsing the payload.")
+                logger().error("Unknown error when parsing the payload.")
                 return False
             self.__interval = sample_interval
             for component in self.components:
@@ -107,7 +115,7 @@ class RscInst(SaradInst):
                             if measurand.source == 8:  # battery voltage
                                 sensor.interval = timedelta(seconds=5)
                         except Exception:  # pylint: disable=broad-except
-                            logger.error(
+                            logger().error(
                                 "Can't get value for source %s in %s/%s/%s.",
                                 measurand.source,
                                 component.name,
@@ -115,14 +123,14 @@ class RscInst(SaradInst):
                                 measurand.name,
                             )
             return True
-        logger.error("Device %s doesn't reply.", self.device_id)
+        logger().error("Device %s doesn't reply.", self.device_id)
         return False
 
     # ** Protected methods overriding methods of SaradInst:
     # *** _build_component_list(self):
 
     def _build_component_list(self) -> int:
-        logger.debug("Building component list for Radon Scout instrument.")
+        logger().debug("Building component list for Radon Scout instrument.")
         for component_object in self.components:
             del component_object
         self.components = []
@@ -176,21 +184,21 @@ class RscInst(SaradInst):
                 )
                 return round(voltage, 2)
             except TypeError:
-                logger.error("TypeError when parsing the payload.")
+                logger().error("TypeError when parsing the payload.")
                 return False
             except ReferenceError:
-                logger.error("ReferenceError when parsing the payload.")
+                logger().error("ReferenceError when parsing the payload.")
                 return False
             except LookupError:
-                logger.error("LookupError when parsing the payload.")
+                logger().error("LookupError when parsing the payload.")
                 return False
             except Exception:  # pylint: disable=broad-except
-                logger.error("Unknown error when parsing the payload.")
+                logger().error("Unknown error when parsing the payload.")
                 return False
             else:
                 pass
         else:
-            logger.error("Device %s doesn't reply.", self.device_id)
+            logger().error("Device %s doesn't reply.", self.device_id)
             return False
 
     # *** _push_button(self):
@@ -199,9 +207,9 @@ class RscInst(SaradInst):
         reply = self.get_reply([b"\x12", b""], 1)
         ok_byte = self.family["ok_byte"]
         if reply and (reply[0] == ok_byte):
-            logger.debug("Push button simulated at device %s.", self.device_id)
+            logger().debug("Push button simulated at device %s.", self.device_id)
             return True
-        logger.error("Push button failed at device %s.", self.device_id)
+        logger().error("Push button failed at device %s.", self.device_id)
         return False
 
     # ** Public methods:
@@ -212,14 +220,14 @@ class RscInst(SaradInst):
         """Fill the component objects with recent readings."""
         # Do nothing as long as the previous values are valid.
         if self._last_sampling_time is None:
-            logger.warning(
+            logger().warning(
                 "The gathered values might be invalid. "
                 "You should use function start_cycle() in your application "
                 "for a regular initialization of the measuring cycle."
             )
             return self._gather_all_recent_values()
         if (datetime.utcnow() - self._last_sampling_time) < self.__interval:
-            logger.debug(
+            logger().debug(
                 "We do not have new values yet. Sample interval = %s.", self.__interval
             )
             return True
@@ -232,7 +240,7 @@ class RscInst(SaradInst):
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
         for measurand in self.components[component_id].sensors[sensor_id].measurands:
-            logger.debug(measurand)
+            logger().debug(measurand)
             if measurand.source == 8:  # battery voltage
                 measurand.value = self._get_battery_voltage()
                 measurand.time = datetime.utcnow().replace(microsecond=0)
@@ -256,9 +264,9 @@ class RscInst(SaradInst):
         )
         reply = self.get_reply([b"\x05", instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
-            logger.debug("Time on device %s set to UTC.", self.device_id)
+            logger().debug("Time on device %s set to UTC.", self.device_id)
             return True
-        logger.error("Setting the time on device %s failed.", {self.device_id})
+        logger().error("Setting the time on device %s failed.", {self.device_id})
         return False
 
     # *** stop_cycle(self):
@@ -268,9 +276,9 @@ class RscInst(SaradInst):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x15", b""], 1)
         if reply and (reply[0] == ok_byte):
-            logger.debug("Cycle stopped at device %s.", self.device_id)
+            logger().debug("Cycle stopped at device %s.", self.device_id)
             return True
-        logger.error("stop_cycle() failed at device %s.", self.device_id)
+        logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
 
     # *** start_cycle(self, cycle_index):
@@ -291,7 +299,7 @@ class RscInst(SaradInst):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x10", b""], 8)
         if reply and (reply[0] == ok_byte):
-            logger.debug("Getting config. from device %s.", self.device_id)
+            logger().debug("Getting config. from device %s.", self.device_id)
             try:
                 self.__interval = timedelta(minutes=reply[1])
                 setup_word = reply[2:3]
@@ -300,19 +308,19 @@ class RscInst(SaradInst):
                     reply[4:8], byteorder="little", signed=False
                 )
             except TypeError:
-                logger.error("TypeError when parsing the payload.")
+                logger().error("TypeError when parsing the payload.")
                 return False
             except ReferenceError:
-                logger.error("ReferenceError when parsing the payload.")
+                logger().error("ReferenceError when parsing the payload.")
                 return False
             except LookupError:
-                logger.error("LookupError when parsing the payload.")
+                logger().error("LookupError when parsing the payload.")
                 return False
             except Exception:  # pylint: disable=broad-except
-                logger.error("Unknown error when parsing the payload.")
+                logger().error("Unknown error when parsing the payload.")
                 return False
             return True
-        logger.error("Get config. failed at device %s.", self.device_id)
+        logger().error("Get config. failed at device %s.", self.device_id)
         return False
 
     # *** set_config(self):
@@ -327,12 +335,12 @@ class RscInst(SaradInst):
             + setup_word
             + (self.__alarm_level).to_bytes(4, byteorder="little")
         )
-        logger.debug(setup_data)
+        logger().debug(setup_data)
         reply = self.get_reply([b"\x0f", setup_data], 1)
         if reply and (reply[0] == ok_byte):
-            logger.debug("Set config. successful at device %s.", self.device_id)
+            logger().debug("Set config. successful at device %s.", self.device_id)
             return True
-        logger.error("Set config. failed at device %s.", self.device_id)
+        logger().error("Set config. failed at device %s.", self.device_id)
         return False
 
     # *** set_lock(self):
@@ -342,10 +350,10 @@ class RscInst(SaradInst):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x01", b""], 1)
         if reply and (reply[0] == ok_byte):
-            self.lock = self.Lock.locked
-            logger.debug("Device %s locked.", self.device_id)
+            self.lock = self.Lock.LOCKED
+            logger().debug("Device %s locked.", self.device_id)
             return True
-        logger.error("Locking failed at device %s.", self.device_id)
+        logger().error("Locking failed at device %s.", self.device_id)
         return False
 
     # *** set_unlock(self):
@@ -355,10 +363,10 @@ class RscInst(SaradInst):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x02", b""], 1)
         if reply and (reply[0] == ok_byte):
-            self.lock = self.Lock.unlocked
-            logger.debug("Device %s unlocked.", self.device_id)
+            self.lock = self.Lock.UNLOCKED
+            logger().debug("Device %s unlocked.", self.device_id)
             return True
-        logger.error("Unlocking failed at device %s.", self.device_id)
+        logger().error("Unlocking failed at device %s.", self.device_id)
         return False
 
     # *** set_long_interval(self):
@@ -369,9 +377,9 @@ class RscInst(SaradInst):
         reply = self.get_reply([b"\x03", b""], 1)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=3)
-            logger.debug("Device %s set to 3 h interval.", self.device_id)
+            logger().debug("Device %s set to 3 h interval.", self.device_id)
             return True
-        logger.error("Interval setup failed at device %s.", self.device_id)
+        logger().error("Interval setup failed at device %s.", self.device_id)
         return False
 
     # *** set_short_interval(self):
@@ -382,9 +390,9 @@ class RscInst(SaradInst):
         reply = self.get_reply([b"\x04", b""], 1)
         if reply and (reply[0] == ok_byte):
             self.__interval = timedelta(hours=1)
-            logger.debug("Device %s set to 1 h interval.", self.device_id)
+            logger().debug("Device %s set to 1 h interval.", self.device_id)
             return True
-        logger.error("Interval setup failed at device %s.", self.device_id)
+        logger().error("Interval setup failed at device %s.", self.device_id)
         return False
 
     # *** get_wifi_access(self):
@@ -395,28 +403,30 @@ class RscInst(SaradInst):
         reply = self.get_reply([b"\x18", b""], 125)
         if reply and (reply[0] == ok_byte):
             try:
-                logger.debug(reply)
+                logger().debug(reply)
                 self.__ssid = reply[0:33].rstrip(b"0")
                 self.__password = reply[33:97].rstrip(b"0")
                 self.__ip_address = reply[97:121].rstrip(b"0")
                 self.__server_port = int.from_bytes(reply[121:123], "big")
                 return True
             except TypeError:
-                logger.error("TypeError when parsing the payload.")
+                logger().error("TypeError when parsing the payload.")
                 return False
             except ReferenceError:
-                logger.error("ReferenceError when parsing the payload.")
+                logger().error("ReferenceError when parsing the payload.")
                 return False
             except LookupError:
-                logger.error("LookupError when parsing the payload.")
+                logger().error("LookupError when parsing the payload.")
                 return False
             except Exception:  # pylint: disable=broad-except
-                logger.error("Unknown error when parsing the payload.")
+                logger().error("Unknown error when parsing the payload.")
                 return False
             else:
                 pass
         else:
-            logger.error("Cannot get Wi-Fi access data from device %s.", self.device_id)
+            logger().error(
+                "Cannot get Wi-Fi access data from device %s.", self.device_id
+            )
             return False
 
     # *** set_wifi_access(self):
@@ -432,10 +442,10 @@ class RscInst(SaradInst):
                 server_port.to_bytes(2, "big"),
             ]
         )
-        logger.debug(access_data)
+        logger().debug(access_data)
         reply = self.get_reply([b"\x17", access_data], 118)
         if reply and (reply[0] == ok_byte):
-            logger.debug("WiFi access data on device %s set.", self.device_id)
+            logger().debug("WiFi access data on device %s set.", self.device_id)
             return True
-        logger.error("Setting WiFi access data on device %s failed.", self.device_id)
+        logger().error("Setting WiFi access data on device %s failed.", self.device_id)
         return False

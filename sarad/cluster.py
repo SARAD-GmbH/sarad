@@ -19,7 +19,14 @@ from sarad.doseman import DosemanInst
 from sarad.radonscout import RscInst
 from sarad.sari import SI, SaradInst
 
-logger = logging.getLogger(__name__)
+_LOGGER = None
+
+
+def logger():
+    """Returns the logger instance used in this module."""
+    global _LOGGER
+    _LOGGER = _LOGGER or logging.getLogger(__name__)
+    return _LOGGER
 
 
 # * SaradCluster:
@@ -68,7 +75,7 @@ class SaradCluster(Generic[SI]):
         elif family_id == 5:
             family_class = DacmInst
         else:
-            logger.error("Family %s not supported", family_id)
+            logger().error("Family %s not supported", family_id)
             return None
         family = None
         for family in SaradInst.products:
@@ -77,7 +84,7 @@ class SaradCluster(Generic[SI]):
         try:
             assert family is not None
         except AssertionError:
-            logger.error("Family %s not supported", family_id)
+            logger().error("Family %s not supported", family_id)
             return None
         instrument = family_class()
         instrument.device_id = device_id
@@ -117,17 +124,17 @@ class SaradCluster(Generic[SI]):
             try:
                 instrument.stop_cycle()
             except Exception:  # pylint: disable=broad-except
-                logger.error("Not all instruments have been stopped as intended.")
+                logger().error("Not all instruments have been stopped as intended.")
                 return False
         self.__start_time = datetime.utcnow()
         for instrument in self.connected_instruments:
             try:
                 instrument.set_real_time_clock(self.__start_time)
-                logger.debug("Clock set to UTC on device %s", instrument.device_id)
-                logger.debug("Cycles_dict = %s", cycles_dict)
+                logger().debug("Clock set to UTC on device %s", instrument.device_id)
+                logger().debug("Cycles_dict = %s", cycles_dict)
                 if instrument.device_id in cycles_dict:
                     cycle_index = cycles_dict[instrument.device_id]
-                    logger.debug(
+                    logger().debug(
                         "Cycle_index for device %s is %d",
                         instrument.device_id,
                         cycle_index,
@@ -135,13 +142,15 @@ class SaradCluster(Generic[SI]):
                 else:
                     cycle_index = 0
                 instrument.start_cycle(cycle_index)
-                logger.debug(
+                logger().debug(
                     "Device %s started with cycle_index %d",
                     instrument.device_id,
                     cycle_index,
                 )
             except Exception:  # pylint: disable=broad-except
-                logger.error("Failed to set time and start cycles on all instruments.")
+                logger().error(
+                    "Failed to set time and start cycles on all instruments."
+                )
                 return False
         return True
 
@@ -165,7 +174,7 @@ class SaradCluster(Generic[SI]):
             List of instruments added to self.__connected_instruments.
             [] if instruments have been removed.
         """
-        logger.debug("[update_connected_instruments]")
+        logger().debug("[update_connected_instruments]")
         hid = Hashids()
         if ports_to_test is None:
             ports_to_test = self.active_ports
@@ -174,21 +183,21 @@ class SaradCluster(Generic[SI]):
             connected_instruments = self.__connected_instruments
         if ports_to_skip is not None:
             connected_instruments = self.__connected_instruments
-            logger.debug("Ports to test: %s", ports_to_test)
-            logger.debug("Ports to skip: %s", ports_to_skip)
+            logger().debug("Ports to test: %s", ports_to_test)
+            logger().debug("Ports to skip: %s", ports_to_skip)
             ports_to_test = list(
                 set(ports_to_test).symmetric_difference(set(ports_to_skip))
             )
-            logger.debug("Symmetric difference: %s", ports_to_test)
+            logger().debug("Symmetric difference: %s", ports_to_test)
             if ports_to_test == []:
-                logger.warning(
+                logger().warning(
                     "Nothing to do. "
                     "Set of serial ports to skip is equal to set of active ports."
                 )
                 return []
-        logger.debug("Connected instruments: %s", connected_instruments)
+        logger().debug("Connected instruments: %s", connected_instruments)
         added_instruments = []
-        logger.debug("%d port(s) to test", len(ports_to_test))
+        logger().debug("%d port(s) to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
         # NOTE: The order of tests is very important, because the only
         # difference between RadonScout and DACM GetId commands is the
@@ -211,9 +220,9 @@ class SaradCluster(Generic[SI]):
             test_instrument.family = family
             ports_with_instruments = []
             if ports_to_test != []:
-                logger.debug(ports_to_test)
+                logger().debug(ports_to_test)
             for port in ports_to_test:
-                logger.debug("Testing port %s for %s.", port, family["family_name"])
+                logger().debug("Testing port %s for %s.", port, family["family_name"])
                 try:
                     test_instrument.port = port
                     if test_instrument.type_id and test_instrument.serial_number:
@@ -223,7 +232,7 @@ class SaradCluster(Generic[SI]):
                             test_instrument.serial_number,
                         )
                         test_instrument.device_id = device_id
-                        logger.debug(
+                        logger().debug(
                             "%s found on port %s.", family["family_name"], port
                         )
                         added_instruments.append(test_instrument)
@@ -232,14 +241,14 @@ class SaradCluster(Generic[SI]):
                             test_instrument = family_class()
                             test_instrument.family = family
                 except serial.serialutil.SerialException:
-                    logger.warning("Tested serial interface not available.")
+                    logger().warning("Tested serial interface not available.")
                 except OSError:
-                    logger.critical("OSError -- exiting for a restart")
+                    logger().critical("OSError -- exiting for a restart")
                     os._exit(1)  # pylint: disable=protected-access
             for port in ports_with_instruments:
                 ports_to_test.remove(port)
         # remove instruments from self.__connected_instruments
-        logger.debug("Remove %s", ports_to_test)
+        logger().debug("Remove %s", ports_to_test)
         for instrument in self.__connected_instruments:
             if instrument.port in ports_to_test:
                 self.__connected_instruments.remove(instrument)
@@ -247,14 +256,14 @@ class SaradCluster(Generic[SI]):
         self.__connected_instruments = list(
             set(added_instruments).union(set(connected_instruments))
         )
-        logger.debug("Connected instruments: %s", self.__connected_instruments)
+        logger().debug("Connected instruments: %s", self.__connected_instruments)
         return list(set(added_instruments))
 
     # *** dump(self, file):
 
     def dump(self, file: IO[bytes]) -> None:
         """Save the cluster information to a file."""
-        logger.debug("Pickling mycluster into file.")
+        logger().debug("Pickling mycluster into file.")
         pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
 
     # ** Properties:
@@ -296,9 +305,9 @@ class SaradCluster(Generic[SI]):
         for port in set_of_ports:
             if port not in self.__ignore_ports:
                 self.__active_ports.add(port)
-        logger.debug("Native ports: %s", self.__native_ports)
-        logger.debug("Ignored ports: %s", self.__ignore_ports)
-        logger.debug("Active ports: %s", self.__active_ports)
+        logger().debug("Native ports: %s", self.__native_ports)
+        logger().debug("Ignored ports: %s", self.__ignore_ports)
+        logger().debug("Active ports: %s", self.__active_ports)
         return list(self.__active_ports)
 
     # *** connected_instruments:
@@ -351,7 +360,7 @@ class SaradCluster(Generic[SI]):
 if __name__ == "__main__":
     mycluster: SaradCluster = SaradCluster()
     mycluster.update_connected_instruments()
-    logger.debug(mycluster.__dict__)
+    logger().debug(mycluster.__dict__)
 
     for connected_instrument in mycluster:
         print(connected_instrument)

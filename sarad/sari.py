@@ -16,7 +16,15 @@ import yaml
 from BitVector import BitVector  # type: ignore
 from serial import STOPBITS_ONE, Serial  # type: ignore
 
-logger = logging.getLogger(__name__)
+_LOGGER = None
+
+
+def logger():
+    """Returns the logger instance used in this module."""
+    global _LOGGER
+    _LOGGER = _LOGGER or logging.getLogger(__name__)
+    return _LOGGER
+
 
 SI = TypeVar("SI", bound="SaradInst")
 
@@ -512,8 +520,8 @@ class SaradInst(Generic[SI]):
         #     is_control_message: True if control message
         #     payload: Payload of answer
         #     number_of_bytes_in_payload
-        logger.debug("Checking answer from serial port:")
-        logger.debug("Raw answer: %s", answer)
+        logger().debug("Checking answer from serial port:")
+        logger().debug("Raw answer: %s", answer)
         if answer.startswith(b"B") & answer.endswith(b"E"):
             control_byte = answer[1]
             neg_control_byte = answer[2]
@@ -522,7 +530,7 @@ class SaradInst(Generic[SI]):
             number_of_bytes_in_payload = (control_byte & 0x7F) + 1
             is_control = bool(control_byte & 0x80)
             status_byte = answer[3]
-            logger.debug("Status byte: %s", status_byte)
+            logger().debug("Status byte: %s", status_byte)
             payload = answer[3 : 3 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
@@ -542,7 +550,7 @@ class SaradInst(Generic[SI]):
             is_control = False
             payload = b""
             number_of_bytes_in_payload = 0
-        logger.debug("Payload: %s", payload)
+        logger().debug("Payload: %s", payload)
         return {
             "is_valid": is_valid,
             "is_control": is_control,
@@ -562,7 +570,7 @@ class SaradInst(Generic[SI]):
         answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
-            logger.debug("Play it again, Sam!")
+            logger().debug("Play it again, Sam!")
             answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
         checked_answer = self.__check_answer(answer)
         return {
@@ -606,7 +614,7 @@ class SaradInst(Generic[SI]):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply(id_cmd, length_of_reply, timeout=0.5)
         if reply and (reply[0] == ok_byte):
-            logger.debug("Get description successful.")
+            logger().debug("Get description successful.")
             try:
                 self._type_id = reply[1]
                 self._software_version = reply[2]
@@ -615,18 +623,18 @@ class SaradInst(Generic[SI]):
                 )
                 return True
             except TypeError:
-                logger.error("TypeError when parsing the payload.")
+                logger().error("TypeError when parsing the payload.")
                 return False
             except ReferenceError:
-                logger.error("ReferenceError when parsing the payload.")
+                logger().error("ReferenceError when parsing the payload.")
                 return False
             except LookupError:
-                logger.error("LookupError when parsing the payload.")
+                logger().error("LookupError when parsing the payload.")
                 return False
             except Exception:  # pylint: disable=broad-except
-                logger.error("Unknown error when parsing the payload.")
+                logger().error("Unknown error when parsing the payload.")
                 return False
-        logger.debug("Get description failed.")
+        logger().debug("Get description failed.")
         return False
 
     # *** _build_component_list():
@@ -700,7 +708,7 @@ class SaradInst(Generic[SI]):
             + bv_radon_mode
             + bv_signal
         )
-        logger.debug(str(bit_vector))
+        logger().debug(str(bit_vector))
         return bit_vector.get_bitvector_in_ascii().encode("utf-8")
 
     # *** _decode_setup_word(setup_word):
@@ -742,7 +750,7 @@ class SaradInst(Generic[SI]):
         checked_payload = self.get_message_payload(msg, timeout)
         if checked_payload["is_valid"]:
             return checked_payload["payload"]
-        logger.debug(checked_payload["payload"])
+        logger().debug(checked_payload["payload"])
         return False
 
     # *** _get_transparent_reply():
@@ -752,32 +760,32 @@ class SaradInst(Generic[SI]):
         perf_time_0 = time.perf_counter()
         answer = serial.read(3)
         perf_time_1 = time.perf_counter()
-        logger.debug(
+        logger().debug(
             "Receiving %s from serial took me %f s",
             answer,
             perf_time_1 - perf_time_0,
         )
         if answer == b"":
-            logger.debug(
+            logger().debug(
                 "No reply in __get_control_bytes(%s, %s)", serial.port, serial.baudrate
             )
             return answer
         if answer.startswith(b"B") is not True:
-            logger.warning("This seems to be no SARAD instrument.")
+            logger().warning("This seems to be no SARAD instrument.")
             answer = b""
             return answer
         control_byte = answer[1]
         neg_control_byte = answer[2]
         if (control_byte ^ 0xFF) != neg_control_byte:
-            logger.error("Message corrupted.")
+            logger().error("Message corrupted.")
             answer = b""
             return answer
         is_control = bool(control_byte & 0x80)
-        logger.debug("is_control: %s, control_byte: %s", is_control, control_byte)
+        logger().debug("is_control: %s, control_byte: %s", is_control, control_byte)
         # try:
         #     assert is_control is False
         # except AssertionError:
-        #     logger.error("Data message expected, but this is a control message.")
+        #     logger().error("Data message expected, but this is a control message.")
         #     answer = b""
         #     return answer
         return answer
@@ -804,13 +812,13 @@ class SaradInst(Generic[SI]):
             )
             if not ser.is_open:
                 ser.open()
-            logger.debug("Open serial, don't keep.")
+            logger().debug("Open serial, don't keep.")
         else:
             try:
                 ser = self.__ser
-                logger.debug("Reuse stored serial interface")
+                logger().debug("Reuse stored serial interface")
                 if not ser.is_open:
-                    logger.debug("Port is closed. Reopen.")
+                    logger().debug("Port is closed. Reopen.")
                     ser.open()
             except AttributeError:
                 ser = Serial(
@@ -826,14 +834,14 @@ class SaradInst(Generic[SI]):
                 )
                 if not ser.is_open:
                     ser.open()
-                logger.debug("Open serial")
+                logger().debug("Open serial")
         perf_time_0 = time.perf_counter()
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")
             ser.write(byte)
             time.sleep(self.__family["write_sleeptime"])
         perf_time_1 = time.perf_counter()
-        logger.debug(
+        logger().debug(
             "Writing command %s to serial took me %f s",
             raw_cmd,
             perf_time_1 - perf_time_0,
@@ -848,21 +856,21 @@ class SaradInst(Generic[SI]):
         number_of_remaining_bytes = payload_length + 3
         remaining_bytes = ser.read(number_of_remaining_bytes)
         while ser.in_waiting:
-            logger.debug("%d bytes waiting", ser.in_waiting)
+            logger().debug("%d bytes waiting", ser.in_waiting)
             ser.read(ser.in_waiting)
             time.sleep(0.1)
         perf_time_2 = time.perf_counter()
         answer = first_bytes + remaining_bytes
-        logger.debug(
+        logger().debug(
             "Receiving %s from serial took me %f s",
             answer,
             perf_time_2 - perf_time_1,
         )
         if not keep:
             ser.close()
-            logger.debug("Serial interface closed.")
+            logger().debug("Serial interface closed.")
         else:
-            logger.debug("Store serial interface")
+            logger().debug("Store serial interface")
             self.__ser = ser
         return answer
 

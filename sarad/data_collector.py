@@ -4,6 +4,7 @@ instrument whenever it is called.
 Made to be a data source for Zabbix agent."""
 
 import logging
+import logging.config
 import os
 import pickle
 import signal
@@ -22,9 +23,26 @@ from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 
 from sarad.cluster import SaradCluster
 
-logger = logging.getLogger()
-FORMAT = "%(asctime)-15s %(levelname)-6s %(module)-15s %(message)s"
-logging.basicConfig(format=FORMAT)
+LOGCFG = {
+    "version": 1,
+    "formatters": {
+        "normal": {
+            "format": "%(asctime)-15s %(levelname)-8s %(module)-14s %(message)s"
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "normal",
+            "stream": "ext://sys.stdout",
+        },
+    },
+    "loggers": {"": {"handlers": ["console"]}},
+}
+
+logging.config.dictConfig(LOGCFG)
+logger = logging.getLogger(__name__)
+click_log.basic_config(logger)
 
 # * Create mycluster object:
 
@@ -42,7 +60,9 @@ for loc in [
     dirs.site_config_dir,
 ]:
     try:
-        with open(os.path.join(loc, "data_collector.conf"), "r") as ymlfile:
+        with open(
+            os.path.join(loc, "data_collector.conf"), "r", encoding="utf-8"
+        ) as ymlfile:
             config = yaml.safe_load(ymlfile)
     except IOError:
         pass

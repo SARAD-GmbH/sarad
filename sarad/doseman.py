@@ -1,10 +1,18 @@
 """Module for the communication with instruments of the DOSEman family."""
 
-from datetime import datetime
 import logging
+from datetime import datetime
+
 from sarad.sari import SaradInst
 
-logger = logging.getLogger(__name__)
+_LOGGER = None
+
+
+def logger():
+    """Returns the logger instance used in this module."""
+    global _LOGGER
+    _LOGGER = _LOGGER or logging.getLogger(__name__)
+    return _LOGGER
 
 
 # * DosemanInst:
@@ -24,7 +32,7 @@ class DosemanInst(SaradInst):
     Inherited Public methods:
         get_reply()"""
 
-    version = '0.1'
+    version = "0.1"
 
     # ** Private methods:
     def __init__(self, port=None, family=None):
@@ -33,20 +41,20 @@ class DosemanInst(SaradInst):
         SaradInst.__init__(self, port, family)
         self._last_sampling_time = None
 
-# ** Public methods:
-# *** stop_cycle(self):
+    # ** Public methods:
+    # *** stop_cycle(self):
 
     def stop_cycle(self):
         """Stop the measuring cycle."""
-        ok_byte = self.family['ok_byte']
-        reply = self.get_reply([b'\x15', b''], 1)
+        ok_byte = self.family["ok_byte"]
+        reply = self.get_reply([b"\x15", b""], 1)
         if reply and (reply[0] == ok_byte):
-            logger.debug('Cycle stopped at device %s.', self.device_id)
+            logger().debug("Cycle stopped at device %s.", self.device_id)
             return True
-        logger.error('stop_cycle() failed at device %s.', self.device_id)
+        logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
 
-# *** start_cycle(self, cycle_index):
+    # *** start_cycle(self, cycle_index):
 
     def start_cycle(self, _):
         """Start a measuring cycle."""

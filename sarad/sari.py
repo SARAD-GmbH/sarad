@@ -6,9 +6,9 @@ that all SARAD instruments have in common."""
 import logging
 import os
 import struct
-import time
 from datetime import datetime, timedelta
 from enum import Enum
+from time import perf_counter, sleep
 from typing import (Any, Collection, Dict, Generic, Iterator, List, Optional,
                     TypedDict, TypeVar)
 
@@ -753,13 +753,12 @@ class SaradInst(Generic[SI]):
         logger().debug(checked_payload["payload"])
         return False
 
-    # *** _get_transparent_reply():
     @staticmethod
     def __get_control_bytes(serial):
         """Read 3 Bytes from serial interface"""
-        perf_time_0 = time.perf_counter()
+        perf_time_0 = perf_counter()
         answer = serial.read(3)
-        perf_time_1 = time.perf_counter()
+        perf_time_1 = perf_counter()
         logger().debug(
             "Receiving %s from serial took me %f s",
             answer,
@@ -782,12 +781,6 @@ class SaradInst(Generic[SI]):
             return answer
         is_control = bool(control_byte & 0x80)
         logger().debug("is_control: %s, control_byte: %s", is_control, control_byte)
-        # try:
-        #     assert is_control is False
-        # except AssertionError:
-        #     logger().error("Data message expected, but this is a control message.")
-        #     answer = b""
-        #     return answer
         return answer
 
     @staticmethod
@@ -799,6 +792,16 @@ class SaradInst(Generic[SI]):
 
     def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
         """Returns the raw bytestring of the instruments reply"""
+
+        def _close_serial(serial):
+            serial.flush()
+            if not keep:
+                serial.close()
+                logger().debug("Serial interface closed.")
+                return None
+            logger().debug("Store serial interface")
+            return serial
+
         if not keep:
             ser = Serial(
                 self.__port,
@@ -835,43 +838,36 @@ class SaradInst(Generic[SI]):
                 if not ser.is_open:
                     ser.open()
                 logger().debug("Open serial")
-        perf_time_0 = time.perf_counter()
+        perf_time_0 = perf_counter()
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")
             ser.write(byte)
-            time.sleep(self.__family["write_sleeptime"])
-        perf_time_1 = time.perf_counter()
+            sleep(self.__family["write_sleeptime"])
+        perf_time_1 = perf_counter()
         logger().debug(
             "Writing command %s to serial took me %f s",
             raw_cmd,
             perf_time_1 - perf_time_0,
         )
-        # time.sleep(self.__family["wait_for_reply"])
+        sleep(self.__family["wait_for_reply"])
         first_bytes = self.__get_control_bytes(ser)
-        try:
-            assert first_bytes != b""
-        except AssertionError:
+        if first_bytes == b"":
+            self.__ser = _close_serial(ser)
             return b""
-        payload_length = self.__get_payload_length(first_bytes)
-        number_of_remaining_bytes = payload_length + 3
+        number_of_remaining_bytes = self.__get_payload_length(first_bytes) + 3
         remaining_bytes = ser.read(number_of_remaining_bytes)
         while ser.in_waiting:
             logger().debug("%d bytes waiting", ser.in_waiting)
             ser.read(ser.in_waiting)
-            time.sleep(0.1)
-        perf_time_2 = time.perf_counter()
+            sleep(0.1)
+        perf_time_2 = perf_counter()
         answer = first_bytes + remaining_bytes
         logger().debug(
             "Receiving %s from serial took me %f s",
             answer,
             perf_time_2 - perf_time_1,
         )
-        if not keep:
-            ser.close()
-            logger().debug("Serial interface closed.")
-        else:
-            logger().debug("Store serial interface")
-            self.__ser = ser
+        self.__ser = _close_serial(ser)
         return answer
 
     # *** start_cycle():

@@ -81,7 +81,7 @@ class DacmInst(SaradInst):
         return output
 
     def _build_component_list(self) -> int:
-        logger().debug("Building component list for Radon Scout instrument.")
+        logger().debug("Building component list for DACM instrument.")
         for component_object in self.components:
             del component_object
         self.components = []

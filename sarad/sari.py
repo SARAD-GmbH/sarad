@@ -543,8 +543,9 @@ class SaradInst(Generic[SI]):
 
     def _initialize(self) -> None:
         self._get_description()
-        self._build_component_list()
-        self._last_sampling_time = None
+        if self._valid_family:
+            self._build_component_list()
+            self._last_sampling_time = None
 
     def _get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
@@ -677,8 +678,7 @@ class SaradInst(Generic[SI]):
         logger().debug(checked_payload["payload"])
         return False
 
-    @staticmethod
-    def __get_control_bytes(serial):
+    def __get_control_bytes(self, serial):
         """Read 3 Bytes from serial interface"""
         perf_time_0 = perf_counter()
         answer = serial.read(3)
@@ -692,6 +692,7 @@ class SaradInst(Generic[SI]):
             logger().debug(
                 "No reply in __get_control_bytes(%s, %s)", serial.port, serial.baudrate
             )
+            self._valid_family = False
             return answer
         if answer.startswith(b"B") is not True:
             logger().warning("This seems to be no SARAD instrument.")
@@ -705,6 +706,7 @@ class SaradInst(Generic[SI]):
             return answer
         is_control = bool(control_byte & 0x80)
         logger().debug("is_control: %s, control_byte: %s", is_control, control_byte)
+        self._valid_family = True
         return answer
 
     @staticmethod

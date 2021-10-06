@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>sarad.doseman &#8212; Data collector 0.2 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css" />
+    <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="sarad.radonscout" href="../radonscout/index.html" />
+    <link rel="prev" title="sarad.data_collector" href="../data_collector/index.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-sarad.doseman">
+<span id="sarad-doseman"></span><h1><a class="reference internal" href="#module-sarad.doseman" title="sarad.doseman"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sarad.doseman</span></code></a><a class="headerlink" href="#module-sarad.doseman" title="Permalink to this headline">¶</a></h1>
+<p>Module for the communication with instruments of the DOSEman family.</p>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<section id="classes">
+<h3>Classes<a class="headerlink" href="#classes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sarad.doseman.DosemanInst" title="sarad.doseman.DosemanInst"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DosemanInst</span></code></a></p></td>
+<td><p>Instrument with Doseman communication protocol</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h3>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sarad.doseman.logger" title="sarad.doseman.logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logger</span></code></a>()</p></td>
+<td><p>Returns the logger instance used in this module.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="attributes">
+<h3>Attributes<a class="headerlink" href="#attributes" title="Permalink to this headline">¶</a></h3>
+<table class="longtable docutils align-default">
+<colgroup>
+<col style="width: 10%" />
+<col style="width: 90%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#sarad.doseman._LOGGER" title="sarad.doseman._LOGGER"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_LOGGER</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+<dl class="py data">
+<dt class="sig sig-object py" id="sarad.doseman._LOGGER">
+<span class="sig-prename descclassname"><span class="pre">sarad.doseman.</span></span><span class="sig-name descname"><span class="pre">_LOGGER</span></span><a class="headerlink" href="#sarad.doseman._LOGGER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="sarad.doseman.logger">
+<span class="sig-prename descclassname"><span class="pre">sarad.doseman.</span></span><span class="sig-name descname"><span class="pre">logger</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sarad.doseman.logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the logger instance used in this module.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="sarad.doseman.DosemanInst">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">sarad.doseman.</span></span><span class="sig-name descname"><span class="pre">DosemanInst</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">family</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sarad.doseman.DosemanInst" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="../sari/index.html#sarad.sari.SaradInst" title="sarad.sari.SaradInst"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sarad.sari.SaradInst</span></code></a></p>
+<p>Instrument with Doseman communication protocol</p>
+<dl class="simple">
+<dt>Inherited properties:</dt><dd><p>port
+device_id
+family
+type_id
+type_name
+software_version
+serial_number
+components: List of sensor or actor components</p>
+</dd>
+<dt>Inherited Public methods:</dt><dd><p>get_reply()</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="sarad.doseman.DosemanInst.version">
+<span class="sig-name descname"><span class="pre">version</span></span><em class="property"> <span class="pre">=</span> <span class="pre">0.1</span></em><a class="headerlink" href="#sarad.doseman.DosemanInst.version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sarad.doseman.DosemanInst.stop_cycle">
+<span class="sig-name descname"><span class="pre">stop_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sarad.doseman.DosemanInst.stop_cycle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stop the measuring cycle.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sarad.doseman.DosemanInst.start_cycle">
+<span class="sig-name descname"><span class="pre">start_cycle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">self</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">_</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#sarad.doseman.DosemanInst.start_cycle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Start a measuring cycle.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">Data collector</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sarad</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">API Reference</a><ul>
+  <li><a href="../index.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sarad</span></code></a><ul>
+      <li>Previous: <a href="../data_collector/index.html" title="previous chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sarad.data_collector</span></code></a></li>
+      <li>Next: <a href="../radonscout/index.html" title="next chapter"><code class="xref py py-mod docutils literal notranslate"><span class="pre">sarad.radonscout</span></code></a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, SARAD GmbH.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.2.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../../../_sources/autoapi/sarad/doseman/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

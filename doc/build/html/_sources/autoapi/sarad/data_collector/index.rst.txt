@@ -1,0 +1,200 @@
+:py:mod:`sarad.data_collector`
+==============================
+
+.. py:module:: sarad.data_collector
+
+.. autoapi-nested-parse::
+
+   Command line application that gives back the most recent value of a SARAD
+   instrument whenever it is called.
+   Made to be a data source for Zabbix agent.
+
+
+
+Module Contents
+---------------
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.data_collector.on_connect
+   sarad.data_collector.on_disconnect
+   sarad.data_collector.signal_handler
+   sarad.data_collector.cli
+   sarad.data_collector.value
+   sarad.data_collector.cluster
+   sarad.data_collector.send
+   sarad.data_collector.set_send_scheduler
+   sarad.data_collector.unwrapped_transmit
+   sarad.data_collector.transmit
+   sarad.data_collector.last_session
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.data_collector.LOGCFG
+   sarad.data_collector.logger
+   sarad.data_collector.mycluster
+   sarad.data_collector.config
+   sarad.data_collector.dirs
+   sarad.data_collector.config
+   sarad.data_collector.BROKER
+   sarad.data_collector.CLIENT_ID
+   sarad.data_collector.mqtt_client
+   sarad.data_collector.on_connect
+   sarad.data_collector.on_disconnect
+   sarad.data_collector.SERVER
+   sarad.data_collector.HOST
+   sarad.data_collector.zbx
+   sarad.data_collector.LOCK_HINT
+
+
+.. py:data:: LOGCFG
+   
+
+   
+
+.. py:data:: logger
+   
+
+   
+
+.. py:data:: mycluster
+   :annotation: :sarad.cluster.SaradCluster
+
+   
+
+.. py:data:: config
+   
+
+   Content of the configuration file data_collector.conf.
+
+   :type: Dict
+
+.. py:data:: dirs
+   
+
+   
+
+.. py:data:: config
+   
+
+   
+
+.. py:data:: BROKER
+   
+
+   
+
+.. py:data:: CLIENT_ID
+   
+
+   
+
+.. py:function:: on_connect(client, userdata, flags, result_code)
+
+   Will be carried out when the client connected to the MQTT broker.
+
+
+.. py:function:: on_disconnect(client, userdata, result_code)
+
+   Will be carried out when the client disconnected
+   from the MQTT broker.
+
+
+.. py:data:: mqtt_client
+   
+
+   
+
+.. py:data:: on_connect
+   
+
+   
+
+.. py:data:: on_disconnect
+   
+
+   
+
+.. py:data:: SERVER
+   
+
+   
+
+.. py:data:: HOST
+   
+
+   
+
+.. py:data:: zbx
+   
+
+   
+
+.. py:data:: LOCK_HINT
+   :annotation: = Another instance of this application currently holds the lock.
+
+   
+
+.. py:function:: signal_handler(sig, frame)
+
+   On Ctrl+C:
+   - stop all cycles
+   - disconnect from MQTT broker
+
+
+.. py:function:: cli(verbose)
+
+   Description for the group of commands
+
+
+.. py:function:: value(instrument, component, sensor, measurand, lock_path)
+
+   Command line application that gives back
+   the most recent value of a SARAD instrument whenever it is called.
+
+
+.. py:function:: cluster(lock_path)
+
+   Show list of connected SARAD instruments.
+
+
+.. py:function:: send(target, instrument, component, sensor)
+
+   Define a function to be executed on scheduled times
+
+
+.. py:function:: set_send_scheduler(target, instrument, component, sensor)
+
+   Initialise the scheduler to perform the send function.
+
+
+.. py:function:: unwrapped_transmit(**kwargs)
+
+   General function to transmit all values gathered from the instruments
+   in our cluster to a target.
+   Target can be the output of the command on the command line (screen),
+   an MQTT broker or a Zabbix server.
+
+
+.. py:function:: transmit(**kwargs)
+
+   General function to transmit all values gathered from the instruments
+   in our cluster to a target.
+   Target can be the output of the command on the command line (screen),
+   an MQTT broker or a Zabbix server.
+
+
+.. py:function:: last_session()
+
+   Starts the last trapper session as continuous service
+
+

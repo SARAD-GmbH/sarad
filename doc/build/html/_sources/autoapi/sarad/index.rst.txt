@@ -1,0 +1,20 @@
+:py:mod:`sarad`
+===============
+
+.. py:module:: sarad
+
+
+Submodules
+----------
+.. toctree::
+   :titlesonly:
+   :maxdepth: 1
+
+   cluster/index.rst
+   dacm/index.rst
+   data_collector/index.rst
+   doseman/index.rst
+   radonscout/index.rst
+   sari/index.rst
+
+

@@ -1,0 +1,162 @@
+:py:mod:`sarad.radonscout`
+==========================
+
+.. py:module:: sarad.radonscout
+
+.. autoapi-nested-parse::
+
+   Module for the communication with instruments of the Radon Scout family.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   sarad.radonscout.RscInst
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.radonscout.logger
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.radonscout._LOGGER
+
+
+.. py:data:: _LOGGER
+   
+
+   
+
+.. py:function:: logger()
+
+   Returns the logger instance used in this module.
+
+
+.. py:class:: RscInst(port=None, family=None)
+
+   Bases: :py:obj:`sarad.sari.SaradInst`
+
+   Instrument with Radon Scout communication protocol
+
+   Inherited properties:
+       port: String containing the serial communication port
+       family: Device family of the instrument expected to be at this port
+       device_id: Identifier for an individual instrument in a cluster
+       type_id
+       type_name
+       software_version
+       serial_number
+       components: List of sensor or actor components
+   Inherited methods from SaradInst:
+       get_reply()
+   Public methods:
+       get_all_recent_values()
+       get_recent_value(index)
+       set_real_time_clock(datetime)
+       stop_cycle()
+       start_cycle()
+       get_config()
+       set_config()
+
+   .. py:attribute:: version
+      :annotation: = 0.1
+
+      
+
+   .. py:method:: _gather_all_recent_values(self)
+
+
+   .. py:method:: _build_component_list(self) -> int
+
+      Build up a list of components with sensors and measurands.
+      Will be overriden by derived classes.
+
+
+   .. py:method:: _get_battery_voltage(self)
+
+
+   .. py:method:: _push_button(self)
+
+
+   .. py:method:: get_all_recent_values(self)
+
+      Fill the component objects with recent readings.
+
+
+   .. py:method:: get_recent_value(self, component_id=None, sensor_id=None, _=None)
+
+      Fill component objects with recent measuring values.        This function does the same like get_all_recent_values()        and is only here to provide a compatible API to the DACM interface
+
+
+   .. py:method:: set_real_time_clock(self, rtc_datetime: datetime.datetime) -> bool
+
+      Set the instrument time.
+
+
+   .. py:method:: stop_cycle(self)
+
+      Stop a measurement cycle.
+
+
+   .. py:method:: start_cycle(self, _)
+
+      Start a measurement cycle.
+
+
+   .. py:method:: get_config(self)
+
+      Get configuration from device.
+
+
+   .. py:method:: set_config(self)
+
+      Upload a new configuration to the device.
+
+
+   .. py:method:: set_lock(self)
+
+      Lock the hardware button or switch at the device.
+
+
+   .. py:method:: set_unlock(self)
+
+      Unlock the hardware button or switch at the device.
+
+
+   .. py:method:: set_long_interval(self)
+
+      Set the measuring interval to 3 h = 180 min = 10800 s
+
+
+   .. py:method:: set_short_interval(self)
+
+      Set the measuring interval to 1 h = 60 min = 3600 s
+
+
+   .. py:method:: get_wifi_access(self)
+
+      Get the Wi-Fi access data from instrument.
+
+
+   .. py:method:: set_wifi_access(self, ssid, password, ip_address, server_port)
+
+      Set the WiFi access data.
+
+
+

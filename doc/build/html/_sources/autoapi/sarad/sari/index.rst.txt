@@ -1,0 +1,691 @@
+:py:mod:`sarad.sari`
+====================
+
+.. py:module:: sarad.sari
+
+.. autoapi-nested-parse::
+
+   Abstract class for all SARAD instruments
+
+   SaradInst comprises all attributes and methods
+   that all SARAD instruments have in common.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   sarad.sari.MeasurandDict
+   sarad.sari.InstrumentDict
+   sarad.sari.FamilyDict
+   sarad.sari.CheckedAnswerDict
+   sarad.sari.Measurand
+   sarad.sari.Sensor
+   sarad.sari.Component
+   sarad.sari.SaradInst
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.sari.logger
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.sari._LOGGER
+   sarad.sari.SI
+
+
+.. py:data:: _LOGGER
+   
+
+   
+
+.. py:function:: logger()
+
+   Returns the logger instance used in this module.
+
+
+.. py:data:: SI
+   
+
+   
+
+.. py:class:: MeasurandDict
+
+   Bases: :py:obj:`TypedDict`
+
+   Type declaration for Measurand dictionary.
+
+   .. py:attribute:: measurand_operator
+      :annotation: :str
+
+      
+
+   .. py:attribute:: measurand_value
+      :annotation: :float
+
+      
+
+   .. py:attribute:: measurand_unit
+      :annotation: :str
+
+      
+
+   .. py:attribute:: valid
+      :annotation: :bool
+
+      
+
+
+.. py:class:: InstrumentDict
+
+   Bases: :py:obj:`TypedDict`
+
+   Type declaration for instrument type dictionary.
+
+   .. py:attribute:: type_id
+      :annotation: :int
+
+      
+
+   .. py:attribute:: type_name
+      :annotation: :str
+
+      
+
+
+.. py:class:: FamilyDict
+
+   Bases: :py:obj:`TypedDict`
+
+   Type declaration for Family dictionary.
+
+   .. py:attribute:: family_id
+      :annotation: :int
+
+      
+
+   .. py:attribute:: family_name
+      :annotation: :str
+
+      
+
+   .. py:attribute:: baudrate
+      :annotation: :int
+
+      
+
+   .. py:attribute:: get_id_cmd
+      :annotation: :List[bytes]
+
+      
+
+   .. py:attribute:: length_of_reply
+      :annotation: :int
+
+      
+
+   .. py:attribute:: wait_for_reply
+      :annotation: :float
+
+      
+
+   .. py:attribute:: write_sleeptime
+      :annotation: :float
+
+      
+
+   .. py:attribute:: parity
+      :annotation: :str
+
+      
+
+   .. py:attribute:: ok_byte
+      :annotation: :int
+
+      
+
+   .. py:attribute:: config_parameters
+      :annotation: :List[Dict[str, Any]]
+
+      
+
+   .. py:attribute:: types
+      :annotation: :List[InstrumentDict]
+
+      
+
+
+.. py:class:: CheckedAnswerDict
+
+   Bases: :py:obj:`TypedDict`
+
+   Type declaration for checked reply from instrument.
+
+   .. py:attribute:: is_valid
+      :annotation: :bool
+
+      
+
+   .. py:attribute:: is_control
+      :annotation: :bool
+
+      
+
+   .. py:attribute:: payload
+      :annotation: :bytes
+
+      
+
+   .. py:attribute:: number_of_bytes_in_payload
+      :annotation: :int
+
+      
+
+   .. py:attribute:: raw
+      :annotation: :bytes
+
+      
+
+
+.. py:class:: Measurand(measurand_id: int, measurand_name: str, measurand_unit=None, measurand_source=None)
+
+   Class providing a measurand that is delivered by a sensor.
+
+   Properties:
+       id
+       name
+       operator
+       value
+       unit
+       source
+       time
+       gps
+
+   .. py:attribute:: version
+      :annotation: :str = 0.1
+
+      
+
+   .. py:method:: __str__(self) -> str
+
+      Return str(self).
+
+
+   .. py:method:: measurand_id(self) -> int
+      :property:
+
+      Return the Id of this measurand.
+
+
+   .. py:method:: name(self) -> str
+      :property:
+
+      Return the name of this measurand.
+
+
+   .. py:method:: unit(self) -> str
+      :property:
+
+      Return the physical unit of this measurand.
+
+
+   .. py:method:: source(self) -> int
+      :property:
+
+      Return the source index belonging to this measurand.
+      This index marks the position the measurand can be found in the
+      list of recent values provided by the instrument
+      as reply to the GetComponentResult or _gather_all_recent_values
+      commands respectively.
+
+
+   .. py:method:: operator(self) -> str
+      :property:
+
+      Return the operator belonging to this measurand.
+      Typical operators are '<', '>'
+
+
+   .. py:method:: value(self) -> Optional[float]
+      :property:
+
+      Return the value of the measurand.
+
+
+   .. py:method:: time(self) -> datetime.datetime
+      :property:
+
+      Return the aquisition time (timestamp) of the measurand.
+
+
+   .. py:method:: gps(self) -> str
+      :property:
+
+      Return the GPS string of the measurand.
+
+
+
+.. py:class:: Sensor(sensor_id: int, sensor_name: str)
+
+   Class describing a sensor that is part of a component.
+
+   Properties:
+       id
+       name
+       interval: Measuring interval in seconds
+   Public methods:
+       get_measurands()
+
+   .. py:attribute:: version
+      :annotation: :str = 0.1
+
+      
+
+   .. py:method:: __iter__(self)
+
+
+   .. py:method:: __str__(self) -> str
+
+      Return str(self).
+
+
+   .. py:method:: sensor_id(self) -> int
+      :property:
+
+      Return the Id of this sensor.
+
+
+   .. py:method:: name(self) -> str
+      :property:
+
+      Return the name of this sensor.
+
+
+   .. py:method:: interval(self) -> datetime.timedelta
+      :property:
+
+      Return the measuring interval of this sensor.
+
+
+   .. py:method:: measurands(self) -> List[Measurand]
+      :property:
+
+      Return the list of measurands of this sensor.
+
+
+
+.. py:class:: Component(component_id: int, component_name: str)
+
+   Class describing a sensor or actor component built into an instrument
+
+   .. py:attribute:: version
+      :annotation: = 0.1
+
+      
+
+   .. py:method:: __iter__(self)
+
+
+   .. py:method:: __str__(self) -> str
+
+      Return str(self).
+
+
+   .. py:method:: component_id(self) -> int
+      :property:
+
+      Return the Id of this component.
+
+
+   .. py:method:: name(self) -> str
+      :property:
+
+      Return the name of this component.
+
+
+   .. py:method:: sensors(self) -> List[Sensor]
+      :property:
+
+      Return the list of sensors belonging to this component.
+
+
+
+.. py:class:: SaradInst(port=None, family=None)
+
+   Bases: :py:obj:`Generic`\ [\ :py:obj:`SI`\ ]
+
+   Basic class for the serial communication protocol of SARAD instruments
+
+   .. attribute:: products
+
+      Dictionary holding a database containing the features
+      of all SARAD products that cannot be gained from the instrument itself.
+
+      :type: Dict
+
+   Properties:
+       port: String containing the serial communication port
+       family: Device family of the instrument expected to be at this port
+       device_id: Identifier for an individual instrument in a cluster
+       type_id: Together with family, this Id identifys the instrument type.
+       type_name: Identifys the instrument type.
+       software_version: The version of the firmware.
+       serial_number: Serial number of the connected instrument.
+       components: List of sensor or actor components
+
+   .. py:class:: Lock
+
+      Bases: :py:obj:`enum.Enum`
+
+      Setting of the device. Lock the hardware button.
+
+      .. py:attribute:: UNLOCKED
+         :annotation: :int = 1
+
+         
+
+      .. py:attribute:: LOCKED
+         :annotation: :int = 2
+
+         
+
+
+   .. py:class:: RadonMode
+
+      Bases: :py:obj:`enum.Enum`
+
+      Setting of the device. Displayed radon values based on
+      short living progeny only (fast)
+      or on short and long living progeny (slow)
+
+      .. py:attribute:: SLOW
+         :annotation: :int = 1
+
+         
+
+      .. py:attribute:: FAST
+         :annotation: :int = 2
+
+         
+
+
+   .. py:class:: PumpMode
+
+      Bases: :py:obj:`enum.Enum`
+
+      Setting of the devices having a pump.
+
+      .. py:attribute:: CONTINUOUS
+         :annotation: :int = 1
+
+         
+
+      .. py:attribute:: INTERVAL
+         :annotation: :int = 2
+
+         
+
+
+   .. py:class:: Units
+
+      Bases: :py:obj:`enum.Enum`
+
+      Setting of the device. Unit system used for display.
+
+      .. py:attribute:: SI
+         :annotation: :int = 1
+
+         
+
+      .. py:attribute:: US
+         :annotation: :int = 2
+
+         
+
+
+   .. py:class:: Signal
+
+      Bases: :py:obj:`enum.Enum`
+
+      Setting of the device. When shall it give an audible signal?
+
+      .. py:attribute:: OFF
+         :annotation: :int = 1
+
+         
+
+      .. py:attribute:: ALARM
+         :annotation: :int = 2
+
+         
+
+      .. py:attribute:: SNIFFER_PO216
+         :annotation: :int = 3
+
+         
+
+      .. py:attribute:: PO216_PO218
+         :annotation: :int = 4
+
+         
+
+
+   .. py:class:: ChamberSize
+
+      Bases: :py:obj:`enum.Enum`
+
+      Setting the chamber size (Radon Scout PMT only).
+
+      .. py:attribute:: SMALL
+         :annotation: :int = 1
+
+         
+
+      .. py:attribute:: MEDIUM
+         :annotation: :int = 2
+
+         
+
+      .. py:attribute:: LARGE
+         :annotation: :int = 3
+
+         
+
+      .. py:attribute:: XL
+         :annotation: :int = 4
+
+         
+
+
+   .. py:attribute:: version
+      :annotation: = 1.0
+
+      
+
+   .. py:method:: __iter__(self) -> Iterator[Component]
+
+
+   .. py:method:: __hash__(self)
+
+      Return hash(self).
+
+
+   .. py:method:: __eq__(self, other)
+
+      Return self==value.
+
+
+   .. py:method:: __make_command_msg(cmd_data: List[bytes]) -> bytes
+      :staticmethod:
+
+      Encode the message to be sent to the SARAD instrument.
+      Arguments are the one byte long command
+      and the data bytes to be sent.
+
+
+   .. py:method:: __check_answer(answer: bytes) -> CheckedAnswerDict
+      :staticmethod:
+
+
+   .. py:method:: get_message_payload(self, message: bytes, timeout: int) -> CheckedAnswerDict
+
+      Send a message to the instrument and give back the payload of the reply.
+
+      :param message: The message to send.
+      :param timeout: Timeout for waiting for a reply from instrument.
+      :returns: Dictionary of
+          is_valid: True if answer is valid, False otherwise,
+          is_control_message: True if control message,
+          payload: Payload of answer,
+          number_of_bytes_in_payload
+
+
+   .. py:method:: __str__(self) -> str
+
+      Return str(self).
+
+
+   .. py:method:: _initialize(self) -> None
+
+
+   .. py:method:: _get_description(self) -> bool
+
+      Set instrument type, software version, and serial number.
+
+
+   .. py:method:: _build_component_list(self) -> int
+
+      Build up a list of components with sensors and measurands.
+      Will be overriden by derived classes.
+
+
+   .. py:method:: _bytes_to_float(value: bytes) -> float
+      :staticmethod:
+
+      Convert 4 bytes (little endian) from serial interface into
+      floating point nummber according to IEEE 754
+
+
+   .. py:method:: _parse_value_string(value: str) -> MeasurandDict
+      :staticmethod:
+
+      Take a string containing a physical value with operator,
+      value and unit and decompose it into its parts
+      for further mathematical processing.
+
+
+   .. py:method:: _encode_setup_word(self) -> bytes
+
+      Compile the SetupWord for Doseman and RadonScout devices
+      from its components.  All used arguments from self are enum objects.
+
+
+   .. py:method:: _decode_setup_word(self, setup_word: bytes) -> None
+
+
+   .. py:method:: _get_parameter(self, parameter_name: str) -> Any
+
+
+   .. py:method:: get_reply(self, cmd_data: List[bytes], _reply_length=50, timeout=0.1) -> Any
+
+      Returns a bytestring of the payload of the instruments reply
+      to the provided list of 1-byte command and data bytes.
+
+
+   .. py:method:: __get_control_bytes(serial)
+      :staticmethod:
+
+      Read 3 Bytes from serial interface
+
+
+   .. py:method:: __get_payload_length(first_bytes)
+      :staticmethod:
+
+      Read 3 Bytes from serial interface
+      to get the length of payload from the control byte.
+
+
+   .. py:method:: _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True)
+
+      Returns the raw bytestring of the instruments reply
+
+
+   .. py:method:: start_cycle(self, cycle_index: int) -> None
+
+      Start measurement cycle.  Place holder for subclasses.
+
+
+   .. py:method:: stop_cycle(self) -> None
+
+      Stop measurement cycle.  Place holder for subclasses.
+
+
+   .. py:method:: set_real_time_clock(self, _: datetime.datetime) -> bool
+
+      Set RTC of instrument to datetime.  Place holder for subclasses.
+
+
+   .. py:method:: port(self) -> str
+      :property:
+
+      Return serial port.
+
+
+   .. py:method:: device_id(self) -> str
+      :property:
+
+      Return device id.
+
+
+   .. py:method:: family(self) -> FamilyDict
+      :property:
+
+      Return the instrument family.
+
+
+   .. py:method:: type_id(self) -> int
+      :property:
+
+      Return the device type id.
+
+
+   .. py:method:: type_name(self) -> str
+      :property:
+
+      Return the device type name.
+
+
+   .. py:method:: software_version(self) -> int
+      :property:
+
+      Return the firmware version of the device.
+
+
+   .. py:method:: serial_number(self) -> int
+      :property:
+
+      Return the serial number of the device.
+
+
+   .. py:method:: components(self) -> Collection[Component]
+      :property:
+
+      Return the list of components of the device.
+
+
+

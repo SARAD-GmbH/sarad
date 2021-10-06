@@ -1,0 +1,84 @@
+:py:mod:`sarad.doseman`
+=======================
+
+.. py:module:: sarad.doseman
+
+.. autoapi-nested-parse::
+
+   Module for the communication with instruments of the DOSEman family.
+
+
+
+Module Contents
+---------------
+
+Classes
+~~~~~~~
+
+.. autoapisummary::
+
+   sarad.doseman.DosemanInst
+
+
+
+Functions
+~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.doseman.logger
+
+
+
+Attributes
+~~~~~~~~~~
+
+.. autoapisummary::
+
+   sarad.doseman._LOGGER
+
+
+.. py:data:: _LOGGER
+   
+
+   
+
+.. py:function:: logger()
+
+   Returns the logger instance used in this module.
+
+
+.. py:class:: DosemanInst(port=None, family=None)
+
+   Bases: :py:obj:`sarad.sari.SaradInst`
+
+   Instrument with Doseman communication protocol
+
+   Inherited properties:
+       port
+       device_id
+       family
+       type_id
+       type_name
+       software_version
+       serial_number
+       components: List of sensor or actor components
+   Inherited Public methods:
+       get_reply()
+
+   .. py:attribute:: version
+      :annotation: = 0.1
+
+      
+
+   .. py:method:: stop_cycle(self)
+
+      Stop the measuring cycle.
+
+
+   .. py:method:: start_cycle(self, _)
+
+      Start a measuring cycle.
+
+
+

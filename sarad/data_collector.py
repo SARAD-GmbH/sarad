@@ -43,13 +43,13 @@ logging.config.dictConfig(LOGCFG)
 logger = logging.getLogger(__name__)
 
 # * Create mycluster object:
-
 mycluster: SaradCluster = SaradCluster()
 mycluster.update_connected_instruments()
 logger.debug(mycluster.__dict__)
 
 # * Configuration file:
 config = {}
+"""Dict: Content of the configuration file data_collector.conf."""
 dirs = AppDirs("data_collector")
 for loc in [
     os.curdir,

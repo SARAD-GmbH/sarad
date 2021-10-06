@@ -18,8 +18,6 @@ def logger():
     return _LOGGER
 
 
-# * DacmInst:
-# ** Definitions:
 class DacmInst(SaradInst):
     """Instrument with DACM communication protocol
 
@@ -62,10 +60,6 @@ class DacmInst(SaradInst):
         self._module_name = None
         self._config_name = None
 
-    # ** Private methods:
-
-    # *** __str__(self):
-
     def __str__(self):
         output = (
             f"Id: {self.device_id}\n"
@@ -85,9 +79,6 @@ class DacmInst(SaradInst):
             f"ConfigName: {self.config_name}\n"
         )
         return output
-
-    # ** Protected methods overriding methods of SaradInst:
-    # *** _build_component_list(self):
 
     def _build_component_list(self) -> int:
         logger().debug("Building component list for Radon Scout instrument.")
@@ -124,8 +115,6 @@ class DacmInst(SaradInst):
                 component_object.sensors += [sensor_object]
             self.components += [component_object]
         return len(self.components)
-
-    # *** _get_description(self):
 
     def _get_description(self):
         """Get descriptive data about DACM instrument."""
@@ -174,9 +163,6 @@ class DacmInst(SaradInst):
         logger().debug("Get description failed.")
         return False
 
-    # ** Protected methods:
-    # *** _get_module_information(self):
-
     def _get_module_information(self):
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family["ok_byte"]
@@ -206,8 +192,6 @@ class DacmInst(SaradInst):
                 return False
         logger().debug("Get module information failed.")
         return False
-
-    # *** _get_component_information():
 
     def _get_component_information(self, component_index):
         """Get information about one component of a DACM instrument."""
@@ -250,8 +234,6 @@ class DacmInst(SaradInst):
                 return False
         logger().debug("Get component information failed.")
         return False
-
-    # *** _get_component_configuration():
 
     def _get_component_configuration(self, component_index):
         """Get information about the configuration of a component
@@ -302,8 +284,6 @@ class DacmInst(SaradInst):
         logger().debug("Get component configuration failed.")
         return False
 
-    # *** _read_cycle_start(self):
-
     def _read_cycle_start(self, cycle_index=0):
         """Get description of a measuring cycle."""
         ok_byte = self.family["ok_byte"]
@@ -344,8 +324,6 @@ class DacmInst(SaradInst):
         logger().debug("Get primary cycle info failed.")
         return False
 
-    # *** _read_cycle_continue():
-
     def _read_cycle_continue(self):
         """Get description of subsequent cycle intervals."""
         reply = self.get_reply([b"\x07", b""], 16)
@@ -377,9 +355,6 @@ class DacmInst(SaradInst):
         logger().debug("Get info about cycle interval failed.")
         return False
 
-    # ** Public methods:
-    # *** set_real_time_clock():
-
     def set_real_time_clock(self, date_time):
         """Set the instrument time."""
         ok_byte = self.family["ok_byte"]
@@ -400,8 +375,6 @@ class DacmInst(SaradInst):
         logger().error("Setting the time on device %s failed.", self.device_id)
         return False
 
-    # *** stop_cycle():
-
     def stop_cycle(self):
         """Stop the measuring cycle."""
         ok_byte = self.family["ok_byte"]
@@ -411,8 +384,6 @@ class DacmInst(SaradInst):
             return True
         logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
-
-    # *** start_cycle():
 
     def start_cycle(self, cycle_index=0):
         """Start a measuring cycle."""
@@ -432,16 +403,12 @@ class DacmInst(SaradInst):
             logger().error("DACM instrument replied with error code %s.", reply[1])
         return False
 
-    # *** set_lock():
-
     @staticmethod
     def set_lock():
         """Lock the hardware button or switch at the device.
         This is a dummy since this locking function does not exist
         on DACM instruments."""
         return True
-
-    # *** get_all_recent_values(self):
 
     def get_all_recent_values(self):
         """Get a list of dictionaries with recent measuring values."""
@@ -452,8 +419,6 @@ class DacmInst(SaradInst):
                 output = self.get_recent_value(component_id, sensor_id, measurand_id)
                 list_of_outputs.append(output)
         return list_of_outputs
-
-    # *** get_recent_value():
 
     def get_recent_value(self, component, sensor=0, measurand=0):
         """Get a dictionaries with recent measuring values from one sensor.
@@ -536,8 +501,6 @@ class DacmInst(SaradInst):
         logger().error("The instrument doesn't reply.")
         return False
 
-    # *** get/set_address():
-
     def get_address(self):
         """Return the address of the DACM module."""
         return self._address
@@ -547,8 +510,6 @@ class DacmInst(SaradInst):
         self._address = address
         if (self.port is not None) and (self.address is not None):
             self._initialize()
-
-    # *** get/set_date_of_config():
 
     def get_date_of_config(self):
         """Return the date the configuration was made on."""
@@ -560,8 +521,6 @@ class DacmInst(SaradInst):
         if (self.port is not None) and (self.date_of_config is not None):
             self._initialize()
 
-    # *** get/set_module_name():
-
     def get_module_name(self):
         """Return the name of the DACM module."""
         return self._module_name
@@ -571,8 +530,6 @@ class DacmInst(SaradInst):
         self._module_name = module_name
         if (self.port is not None) and (self.module_name is not None):
             self._initialize()
-
-    # *** get/set_config_name():
 
     def get_config_name(self):
         """Return the name of the configuration."""
@@ -584,19 +541,13 @@ class DacmInst(SaradInst):
         if (self.port is not None) and (self.config_name is not None):
             self._initialize()
 
-    # *** get_date_of_manufacture(self):
-
     def get_date_of_manufacture(self):
         """Return the date of manufacture."""
         return self._date_of_manufacture
 
-    # *** get_date_of_update(self):
-
     def get_date_of_update(self):
         """Return the date of firmware update."""
         return self._date_of_update
-
-    # ** Properties:
 
     module_name = property(get_module_name, set_module_name)
     address = property(get_address, set_address)

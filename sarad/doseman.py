@@ -15,8 +15,6 @@ def logger():
     return _LOGGER
 
 
-# * DosemanInst:
-# ** Definitions:
 class DosemanInst(SaradInst):
     """Instrument with Doseman communication protocol
 
@@ -34,15 +32,11 @@ class DosemanInst(SaradInst):
 
     version = "0.1"
 
-    # ** Private methods:
     def __init__(self, port=None, family=None):
         if family is None:
             family = SaradInst.products[0]
         SaradInst.__init__(self, port, family)
         self._last_sampling_time = None
-
-    # ** Public methods:
-    # *** stop_cycle(self):
 
     def stop_cycle(self):
         """Stop the measuring cycle."""
@@ -53,8 +47,6 @@ class DosemanInst(SaradInst):
             return True
         logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
-
-    # *** start_cycle(self, cycle_index):
 
     def start_cycle(self, _):
         """Start a measuring cycle."""

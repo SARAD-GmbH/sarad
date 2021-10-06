@@ -71,8 +71,6 @@ class CheckedAnswerDict(TypedDict):
     raw: bytes
 
 
-# * Measurand:
-# ** Definitions:
 class Measurand:
     """Class providing a measurand that is delivered by a sensor.
 
@@ -110,8 +108,6 @@ class Measurand:
         self.__operator: str = ""
         self.__gps: str = ""
 
-    # ** Private methods:
-
     def __str__(self) -> str:
         output = f"MeasurandId: {self.measurand_id}\nMeasurandName: {self.name}\n"
         if self.value is not None:
@@ -123,9 +119,6 @@ class Measurand:
             output += f"MeasurandSource: {self.source}\n"
         return output
 
-    # ** Properties:
-    # *** measurand_id:
-
     @property
     def measurand_id(self) -> int:
         """Return the Id of this measurand."""
@@ -135,8 +128,6 @@ class Measurand:
     def measurand_id(self, measurand_id: int) -> None:
         """Set the Id of this measurand."""
         self.__id = measurand_id
-
-    # *** name:
 
     @property
     def name(self) -> str:
@@ -148,8 +139,6 @@ class Measurand:
         """Set the name of this measurand."""
         self.__name = name
 
-    # *** unit:
-
     @property
     def unit(self) -> str:
         """Return the physical unit of this measurand."""
@@ -159,8 +148,6 @@ class Measurand:
     def unit(self, unit: str) -> None:
         """Set the physical unit of this measurand."""
         self.__unit = unit
-
-    # *** source:
 
     @property
     def source(self) -> int:
@@ -176,8 +163,6 @@ class Measurand:
         """Set the source index."""
         self.__source = source
 
-    # *** operator:
-
     @property
     def operator(self) -> str:
         """Return the operator belonging to this measurand.
@@ -189,8 +174,6 @@ class Measurand:
         """Set the operator of this measurand."""
         self.__operator = operator
 
-    # *** value:
-
     @property
     def value(self) -> Optional[float]:
         """Return the value of the measurand."""
@@ -201,8 +184,6 @@ class Measurand:
         """Set the value of the measurand."""
         self.__value = value
 
-    # *** time:
-
     @property
     def time(self) -> datetime:
         """Return the aquisition time (timestamp) of the measurand."""
@@ -212,8 +193,6 @@ class Measurand:
     def time(self, time_stamp: datetime) -> None:
         """Set the aquisition time (timestamp) of the measurand."""
         self.__time = time_stamp
-
-    # *** gps:
 
     @property
     def gps(self) -> str:
@@ -226,8 +205,6 @@ class Measurand:
         self.__gps = gps
 
 
-# * Sensor:
-# ** Definitions:
 class Sensor:
     """Class describing a sensor that is part of a component.
 
@@ -246,8 +223,6 @@ class Sensor:
         self.__interval: timedelta = timedelta(0)
         self.__measurands: List[Measurand] = []
 
-    # ** Private methods:
-
     def __iter__(self):
         return iter(self.__measurands)
 
@@ -260,9 +235,6 @@ class Sensor:
             output += f"{measurand}\n"
         return output
 
-    # ** Properties:
-    # *** id:
-
     @property
     def sensor_id(self) -> int:
         """Return the Id of this sensor."""
@@ -272,8 +244,6 @@ class Sensor:
     def sensor_id(self, sensor_id: int) -> None:
         """Set the Id of this sensor."""
         self.__id = sensor_id
-
-    # *** name:
 
     @property
     def name(self) -> str:
@@ -285,8 +255,6 @@ class Sensor:
         """Set the name of this sensor."""
         self.__name = name
 
-    # *** interval:
-
     @property
     def interval(self) -> timedelta:
         """Return the measuring interval of this sensor."""
@@ -296,8 +264,6 @@ class Sensor:
     def interval(self, interval: timedelta):
         """Set the measuring interval of this sensor."""
         self.__interval = interval
-
-    # *** measurands:
 
     @property
     def measurands(self) -> List[Measurand]:
@@ -310,8 +276,6 @@ class Sensor:
         self.__measurands = measurands
 
 
-# * Component:
-# ** Definitions:
 class Component:
     """Class describing a sensor or actor component built into an instrument"""
 
@@ -321,8 +285,6 @@ class Component:
         self.__id: int = component_id
         self.__name: str = component_name
         self.__sensors: List[Sensor] = []
-
-    # ** Private methods:
 
     def __iter__(self):
         return iter(self.__sensors)
@@ -336,9 +298,6 @@ class Component:
             output += f"{sensor}\n"
         return output
 
-    # ** Properties:
-    # *** id:
-
     @property
     def component_id(self) -> int:
         """Return the Id of this component."""
@@ -349,8 +308,6 @@ class Component:
         """Set the Id of this component."""
         self.__id = component_id
 
-    # *** name:
-
     @property
     def name(self) -> str:
         """Return the name of this component."""
@@ -360,8 +317,6 @@ class Component:
     def name(self, name: str):
         """Set the component name."""
         self.__name = name
-
-    # *** sensors:
 
     @property
     def sensors(self) -> List[Sensor]:
@@ -374,13 +329,13 @@ class Component:
         self.__sensors = sensors
 
 
-# * SaradInst:
-# ** Definitions:
 class SaradInst(Generic[SI]):
     """Basic class for the serial communication protocol of SARAD instruments
 
-    Class attributes:
-        products
+    Attributes:
+        products (Dict): Dictionary holding a database containing the features
+             of all SARAD products that cannot be gained from the instrument itself.
+
     Properties:
         port: String containing the serial communication port
         family: Device family of the instrument expected to be at this port
@@ -390,9 +345,7 @@ class SaradInst(Generic[SI]):
         software_version: The version of the firmware.
         serial_number: Serial number of the connected instrument.
         components: List of sensor or actor components
-    Public methods:
-        get_reply()
-        get_message_payload()"""
+    """
 
     version = "1.0"
 
@@ -445,10 +398,6 @@ class SaradInst(Generic[SI]):
     ) as __f:
         products = yaml.safe_load(__f)
 
-    # ** Private methods:
-
-    # *** __init__():
-
     def __init__(self: SI, port=None, family=None) -> None:
         self.__port: str = port
         self.__family: FamilyDict = family
@@ -468,8 +417,6 @@ class SaradInst(Generic[SI]):
         self.__id: str = ""
         self.__ser = None
 
-    # *** __iter__():
-
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
 
@@ -482,8 +429,6 @@ class SaradInst(Generic[SI]):
         if isinstance(other, str):
             return other == self.device_id
         return False
-
-    # *** __make_command_msg():
 
     @staticmethod
     def __make_command_msg(cmd_data: List[bytes]) -> bytes:
@@ -510,8 +455,6 @@ class SaradInst(Generic[SI]):
             + b"E"
         )
         return output
-
-    # *** __check_answer():
 
     @staticmethod
     def __check_answer(answer: bytes) -> CheckedAnswerDict:
@@ -559,14 +502,16 @@ class SaradInst(Generic[SI]):
             "raw": answer,
         }
 
-    # *** get_message_payload():
-
     def get_message_payload(self, message: bytes, timeout: int) -> CheckedAnswerDict:
-        """Returns a dictionary of:
-        is_valid: True if answer is valid, False otherwise
-        is_control_message: True if control message
-        payload: Payload of answer
-        number_of_bytes_in_payload"""
+        """Send a message to the instrument and give back the payload of the reply.
+
+        :param message: The message to send.
+        :param timeout: Timeout for waiting for a reply from instrument.
+        :returns: Dictionary of
+            is_valid: True if answer is valid, False otherwise,
+            is_control_message: True if control message,
+            payload: Payload of answer,
+            number_of_bytes_in_payload"""
         answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
@@ -580,8 +525,6 @@ class SaradInst(Generic[SI]):
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
             "raw": answer,
         }
-
-    # *** __str__(self):
 
     def __str__(self) -> str:
         output = (
@@ -597,15 +540,10 @@ class SaradInst(Generic[SI]):
         )
         return output
 
-    # ** Protected methods:
-    # *** _initialize():
-
     def _initialize(self) -> None:
         self._get_description()
         self._build_component_list()
         self._last_sampling_time = None
-
-    # *** _get_description():
 
     def _get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
@@ -637,14 +575,10 @@ class SaradInst(Generic[SI]):
         logger().debug("Get description failed.")
         return False
 
-    # *** _build_component_list():
-
     def _build_component_list(self) -> int:
         """Build up a list of components with sensors and measurands.
         Will be overriden by derived classes."""
         return len(self.components)
-
-    # *** _bytes_to_float():
 
     @staticmethod
     def _bytes_to_float(value: bytes) -> float:
@@ -653,8 +587,6 @@ class SaradInst(Generic[SI]):
         byte_array = bytearray(value)
         byte_array.reverse()
         return struct.unpack("<f", bytes(byte_array))[0]
-
-    # *** _parse_value_string():
 
     @staticmethod
     def _parse_value_string(value: str) -> MeasurandDict:
@@ -687,8 +619,6 @@ class SaradInst(Generic[SI]):
             "valid": valid,
         }
 
-    # *** _encode_setup_word():
-
     def _encode_setup_word(self) -> bytes:
         """Compile the SetupWord for Doseman and RadonScout devices
         from its components.  All used arguments from self are enum objects."""
@@ -711,8 +641,6 @@ class SaradInst(Generic[SI]):
         logger().debug(str(bit_vector))
         return bit_vector.get_bitvector_in_ascii().encode("utf-8")
 
-    # *** _decode_setup_word(setup_word):
-
     def _decode_setup_word(self, setup_word: bytes) -> None:
         bit_vector = BitVector(rawbytes=setup_word)
         signal_index = bit_vector[6:8].int_val()
@@ -726,8 +654,6 @@ class SaradInst(Generic[SI]):
         chamber_size_index = bit_vector[1:3].int_val()
         self.chamber_size = list(self.ChamberSize)[chamber_size_index]
 
-    # *** _get_parameter():
-
     def _get_parameter(self, parameter_name: str) -> Any:
         for inst_type in self.family["types"]:
             if inst_type["type_id"] == self.type_id:
@@ -739,9 +665,6 @@ class SaradInst(Generic[SI]):
             return self.family[parameter_name]
         except Exception:  # pylint: disable=broad-except
             return False
-
-    # ** Public methods:
-    # *** get_reply():
 
     def get_reply(self, cmd_data: List[bytes], _reply_length=50, timeout=0.1) -> Any:
         """Returns a bytestring of the payload of the instruments reply
@@ -870,26 +793,16 @@ class SaradInst(Generic[SI]):
         self.__ser = _close_serial(ser)
         return answer
 
-    # *** start_cycle():
-
     def start_cycle(self, cycle_index: int) -> None:
         """Start measurement cycle.  Place holder for subclasses."""
 
-    # *** stop_cycle():
-
     def stop_cycle(self) -> None:
         """Stop measurement cycle.  Place holder for subclasses."""
-
-    # *** set_real_time_clock(rtc_datetime):
 
     def set_real_time_clock(self, _: datetime) -> bool:
         # pylint: disable=no-self-use
         """Set RTC of instrument to datetime.  Place holder for subclasses."""
         return False
-
-    # ** Properties:
-
-    # *** port:
 
     @property
     def port(self) -> str:
@@ -903,8 +816,6 @@ class SaradInst(Generic[SI]):
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 
-    # *** device_id:
-
     @property
     def device_id(self) -> str:
         """Return device id."""
@@ -914,8 +825,6 @@ class SaradInst(Generic[SI]):
     def device_id(self, device_id: str):
         """Set device id."""
         self.__id = device_id
-
-    # *** family:
 
     @property
     def family(self) -> FamilyDict:
@@ -929,14 +838,10 @@ class SaradInst(Generic[SI]):
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 
-    # *** type_id:
-
     @property
     def type_id(self) -> int:
         """Return the device type id."""
         return self._type_id
-
-    # *** type_name:
 
     @property
     def type_name(self) -> str:
@@ -946,21 +851,15 @@ class SaradInst(Generic[SI]):
                 return type_in_family["type_name"]
         return ""
 
-    # *** software_version:
-
     @property
     def software_version(self) -> int:
         """Return the firmware version of the device."""
         return self._software_version
 
-    # *** serial_number:
-
     @property
     def serial_number(self) -> int:
         """Return the serial number of the device."""
         return self._serial_number
-
-    # *** components:
 
     @property
     def components(self) -> Collection[Component]:

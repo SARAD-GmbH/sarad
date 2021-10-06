@@ -15,8 +15,6 @@ def logger():
     return _LOGGER
 
 
-# * RscInst:
-# ** Definitions:
 class RscInst(SaradInst):
     """Instrument with Radon Scout communication protocol
 
@@ -54,9 +52,6 @@ class RscInst(SaradInst):
         self.__server_port = None
         self.__ip_address = None
         self.__interval = None
-
-    # ** Private methods:
-    # *** _gather_all_recent_values(self):
 
     def _gather_all_recent_values(self):
         ok_byte = self.family["ok_byte"]
@@ -126,9 +121,6 @@ class RscInst(SaradInst):
         logger().error("Device %s doesn't reply.", self.device_id)
         return False
 
-    # ** Protected methods overriding methods of SaradInst:
-    # *** _build_component_list(self):
-
     def _build_component_list(self) -> int:
         logger().debug("Building component list for Radon Scout instrument.")
         for component_object in self.components:
@@ -165,9 +157,6 @@ class RscInst(SaradInst):
             self.components += [component_object]
         return len(self.components)
 
-    # ** Protected methods:
-    # *** _get_battery_voltage(self):
-
     def _get_battery_voltage(self):
         battery_bytes = self._get_parameter("battery_bytes")
         battery_coeff = self._get_parameter("battery_coeff")
@@ -201,8 +190,6 @@ class RscInst(SaradInst):
             logger().error("Device %s doesn't reply.", self.device_id)
             return False
 
-    # *** _push_button(self):
-
     def _push_button(self):
         reply = self.get_reply([b"\x12", b""], 1)
         ok_byte = self.family["ok_byte"]
@@ -211,10 +198,6 @@ class RscInst(SaradInst):
             return True
         logger().error("Push button failed at device %s.", self.device_id)
         return False
-
-    # ** Public methods:
-
-    # *** get_all_recent_values(self):
 
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
@@ -233,8 +216,6 @@ class RscInst(SaradInst):
             return True
         return self._gather_all_recent_values()
 
-    # *** get_recent_value(component_id, sensor_id, measurand_id):
-
     def get_recent_value(self, component_id=None, sensor_id=None, _=None):
         """Fill component objects with recent measuring values.\
         This function does the same like get_all_recent_values()\
@@ -246,8 +227,6 @@ class RscInst(SaradInst):
                 measurand.time = datetime.utcnow().replace(microsecond=0)
                 return measurand.value
         return self.get_all_recent_values()
-
-    # *** set_real_time_clock(rtc_datetime):
 
     def set_real_time_clock(self, rtc_datetime: datetime) -> bool:
         """Set the instrument time."""
@@ -269,8 +248,6 @@ class RscInst(SaradInst):
         logger().error("Setting the time on device %s failed.", {self.device_id})
         return False
 
-    # *** stop_cycle(self):
-
     def stop_cycle(self):
         """Stop a measurement cycle."""
         ok_byte = self.family["ok_byte"]
@@ -281,8 +258,6 @@ class RscInst(SaradInst):
         logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
 
-    # *** start_cycle(self, cycle_index):
-
     def start_cycle(self, _):
         """Start a measurement cycle."""
         self.get_config()  # to set self.__interval
@@ -291,8 +266,6 @@ class RscInst(SaradInst):
                 sensor.interval = self.__interval
         self._last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
-
-    # *** get_config(self):
 
     def get_config(self):
         """Get configuration from device."""
@@ -323,8 +296,6 @@ class RscInst(SaradInst):
         logger().error("Get config. failed at device %s.", self.device_id)
         return False
 
-    # *** set_config(self):
-
     def set_config(self):
         """Upload a new configuration to the device."""
         ok_byte = self.family["ok_byte"]
@@ -343,8 +314,6 @@ class RscInst(SaradInst):
         logger().error("Set config. failed at device %s.", self.device_id)
         return False
 
-    # *** set_lock(self):
-
     def set_lock(self):
         """Lock the hardware button or switch at the device."""
         ok_byte = self.family["ok_byte"]
@@ -355,8 +324,6 @@ class RscInst(SaradInst):
             return True
         logger().error("Locking failed at device %s.", self.device_id)
         return False
-
-    # *** set_unlock(self):
 
     def set_unlock(self):
         """Unlock the hardware button or switch at the device."""
@@ -369,8 +336,6 @@ class RscInst(SaradInst):
         logger().error("Unlocking failed at device %s.", self.device_id)
         return False
 
-    # *** set_long_interval(self):
-
     def set_long_interval(self):
         """Set the measuring interval to 3 h = 180 min = 10800 s"""
         ok_byte = self.family["ok_byte"]
@@ -382,8 +347,6 @@ class RscInst(SaradInst):
         logger().error("Interval setup failed at device %s.", self.device_id)
         return False
 
-    # *** set_short_interval(self):
-
     def set_short_interval(self):
         """Set the measuring interval to 1 h = 60 min = 3600 s"""
         ok_byte = self.family["ok_byte"]
@@ -394,8 +357,6 @@ class RscInst(SaradInst):
             return True
         logger().error("Interval setup failed at device %s.", self.device_id)
         return False
-
-    # *** get_wifi_access(self):
 
     def get_wifi_access(self):
         """Get the Wi-Fi access data from instrument."""
@@ -428,8 +389,6 @@ class RscInst(SaradInst):
                 "Cannot get Wi-Fi access data from device %s.", self.device_id
             )
             return False
-
-    # *** set_wifi_access(self):
 
     def set_wifi_access(self, ssid, password, ip_address, server_port):
         """Set the WiFi access data."""

@@ -29,8 +29,6 @@ def logger():
     return _LOGGER
 
 
-# * SaradCluster:
-# ** Definitions:
 class SaradCluster(Generic[SI]):
     """Class to define a cluster of SARAD instruments
     that are all connected to one controller
@@ -107,13 +105,8 @@ class SaradCluster(Generic[SI]):
         self.__connected_instruments: List[SI] = []
         self.__active_ports: Set[str] = set()
 
-    # ** Private methods:
-
     def __iter__(self) -> Iterator[SI]:
         return iter(self.__connected_instruments)
-
-    # ** Public methods:
-    # *** synchronize(self, cycles_dict):
 
     def synchronize(self, cycles_dict: Dict[str, int]) -> bool:
         """Stop measuring cycles of all connected instruments.
@@ -153,8 +146,6 @@ class SaradCluster(Generic[SI]):
                 )
                 return False
         return True
-
-    # *** update_connected_instruments(self):
 
     def update_connected_instruments(
         self, ports_to_test=None, ports_to_skip=None
@@ -259,15 +250,10 @@ class SaradCluster(Generic[SI]):
         logger().debug("Connected instruments: %s", self.__connected_instruments)
         return list(set(added_instruments))
 
-    # *** dump(self, file):
-
     def dump(self, file: IO[bytes]) -> None:
         """Save the cluster information to a file."""
         logger().debug("Pickling mycluster into file.")
         pickle.dump(self, file, pickle.HIGHEST_PROTOCOL)
-
-    # ** Properties:
-    # *** active_ports:
 
     @property
     def active_ports(self) -> List[str]:
@@ -310,14 +296,10 @@ class SaradCluster(Generic[SI]):
         logger().debug("Active ports: %s", self.__active_ports)
         return list(self.__active_ports)
 
-    # *** connected_instruments:
-
     @property
     def connected_instruments(self) -> List[SI]:
         """Return list of connected instruments."""
         return self.__connected_instruments
-
-    # *** native_ports:
 
     @property
     def native_ports(self) -> Optional[List[str]]:
@@ -330,8 +312,6 @@ class SaradCluster(Generic[SI]):
         """Set the list of native serial ports that shall be used."""
         self.__native_ports = set(native_ports)
 
-    # *** ignore_ports:
-
     @property
     def ignore_ports(self) -> Optional[List[str]]:
         """Return the list of all serial ports
@@ -342,8 +322,6 @@ class SaradCluster(Generic[SI]):
     def ignore_ports(self, ignore_ports: List[str]) -> None:
         """Set the list of serial ports that shall be ignored."""
         self.__ignore_ports = set(ignore_ports)
-
-    # *** start_time:
 
     @property
     def start_time(self) -> datetime:
@@ -356,7 +334,6 @@ class SaradCluster(Generic[SI]):
         self.__start_time = start_time
 
 
-# * Test environment:
 if __name__ == "__main__":
     mycluster: SaradCluster = SaradCluster()
     mycluster.update_connected_instruments()

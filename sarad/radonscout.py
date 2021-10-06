@@ -290,7 +290,9 @@ class RscInst(SaradInst):
                 logger().error("LookupError when parsing the payload.")
                 return False
             except Exception:  # pylint: disable=broad-except
-                logger().error("Unknown error when parsing the payload.")
+                logger().error(
+                    "The connected instrument does not belong to the RadonScout family."
+                )
                 self._valid_family = False
                 return False
             return True

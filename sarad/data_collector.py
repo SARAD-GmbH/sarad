@@ -62,6 +62,7 @@ for loc in [
             os.path.join(loc, "data_collector.conf"), "r", encoding="utf-8"
         ) as ymlfile:
             config = yaml.safe_load(ymlfile)
+        break
     except IOError:
         pass
 

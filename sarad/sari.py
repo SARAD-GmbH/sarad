@@ -416,6 +416,7 @@ class SaradInst(Generic[SI]):
         self.lock = self.Lock.UNLOCKED
         self.__id: str = ""
         self.__ser = None
+        self._valid_family = True
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -870,3 +871,8 @@ class SaradInst(Generic[SI]):
     def components(self, components: Collection[Component]):
         """Set the list of components of the device."""
         self.__components = components
+
+    @property
+    def valid_family(self) -> bool:
+        """True if the family set is correct for the connected instrument."""
+        return self._valid_family

@@ -159,6 +159,7 @@ class DacmInst(SaradInst):
                 return False
             except Exception:  # pylint: disable=broad-except
                 logger().error("Unknown error when parsing the payload.")
+                self._valid_family = False
                 return False
         logger().debug("Get description failed.")
         return False

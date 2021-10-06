@@ -291,6 +291,7 @@ class RscInst(SaradInst):
                 return False
             except Exception:  # pylint: disable=broad-except
                 logger().error("Unknown error when parsing the payload.")
+                self._valid_family = False
                 return False
             return True
         logger().error("Get config. failed at device %s.", self.device_id)

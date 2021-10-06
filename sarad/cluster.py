@@ -190,32 +190,28 @@ class SaradCluster(Generic[SI]):
         added_instruments = []
         logger().debug("%d port(s) to test", len(ports_to_test))
         # We check every active port and try for a connected SARAD instrument.
-        # NOTE: The order of tests is very important, because the only
-        # difference between RadonScout and DACM GetId commands is the
-        # length of reply. Since the reply for DACM is longer than that for
-        # RadonScout, the test for RadonScout has always to be made before
-        # that for DACM.
         # If ports_to_test is specified, only that list of ports
         # will be checked for instruments,
         # otherwise all available ports will be scanned.
-        for family in SaradInst.products:
-            if family["family_id"] == 1:
-                family_class: Any = DosemanInst
-            elif family["family_id"] == 2:
-                family_class = RscInst
-            elif family["family_id"] == 5:
-                family_class = DacmInst
-            else:
-                continue
-            test_instrument = family_class()
-            test_instrument.family = family
-            ports_with_instruments = []
-            if ports_to_test != []:
-                logger().debug(ports_to_test)
-            for port in ports_to_test:
+        if ports_to_test != []:
+            logger().debug(ports_to_test)
+        for port in ports_to_test:
+            for family in reversed(SaradInst.products):
+                if family["family_id"] == 1:
+                    family_class: Any = DosemanInst
+                elif family["family_id"] == 2:
+                    family_class = RscInst
+                elif family["family_id"] == 5:
+                    family_class = DacmInst
+                else:
+                    continue
+                test_instrument = family_class()
+                test_instrument.family = family
                 logger().debug("Testing port %s for %s.", port, family["family_name"])
                 try:
                     test_instrument.port = port
+                    if not test_instrument.valid_family:
+                        continue
                     if test_instrument.type_id and test_instrument.serial_number:
                         device_id = hid.encode(
                             test_instrument.family["family_id"],
@@ -224,20 +220,20 @@ class SaradCluster(Generic[SI]):
                         )
                         test_instrument.device_id = device_id
                         logger().debug(
-                            "%s found on port %s.", family["family_name"], port
+                            "%s found on port %s.",
+                            test_instrument.family["family_name"],
+                            port,
                         )
                         added_instruments.append(test_instrument)
-                        ports_with_instruments.append(port)
                         if (ports_to_test.index(port) + 1) < len(ports_to_test):
                             test_instrument = family_class()
                             test_instrument.family = family
+                        break
                 except serial.serialutil.SerialException:
                     logger().warning("Tested serial interface not available.")
                 except OSError:
                     logger().critical("OSError -- exiting for a restart")
                     os._exit(1)  # pylint: disable=protected-access
-            for port in ports_with_instruments:
-                ports_to_test.remove(port)
         # remove instruments from self.__connected_instruments
         logger().debug("Remove %s", ports_to_test)
         for instrument in self.__connected_instruments:

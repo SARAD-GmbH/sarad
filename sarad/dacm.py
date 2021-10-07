@@ -558,3 +558,8 @@ class DacmInst(SaradInst):
     config_name = property(get_config_name, set_config_name)
     date_of_manufacture = property(get_date_of_manufacture)
     date_of_update = property(get_date_of_update)
+
+    @property
+    def type_name(self) -> str:
+        """Return the device type name."""
+        return self.module_name

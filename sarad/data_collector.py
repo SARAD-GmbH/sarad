@@ -36,7 +36,7 @@ LOGCFG = {
             "stream": "ext://sys.stdout",
         },
     },
-    "loggers": {"": {"handlers": ["console"], "level": logging.DEBUG}},
+    "loggers": {"": {"handlers": ["console"], "level": logging.INFO}},
 }
 
 logging.config.dictConfig(LOGCFG)

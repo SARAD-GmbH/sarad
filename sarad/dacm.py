@@ -158,7 +158,7 @@ class DacmInst(SaradInst):
                 logger().error("LookupError when parsing the payload.")
                 return False
             except Exception:  # pylint: disable=broad-except
-                logger().error(
+                logger().debug(
                     "The connected instrument does not belong to the DACM family."
                 )
                 self._valid_family = False

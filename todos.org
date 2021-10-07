@@ -1,0 +1,13 @@
+* DONE Teste org-projectile
+  CLOSED: [2020-07-13 Mon 13:25]
+  :PROPERTIES:
+  :CREATED:  [2020-07-13 Mon 13:23]
+  :END:
+Da ist nicht viel dabei.  SPC-p-o zum öffnen, dann mit SPC-Tab zurück.
+
+* TODO Logging into file
+  :PROPERTIES:
+  :CREATED:  [2021-10-07 Do 09:14]
+  :END:
+  I want the output on the command line to be clean and debug output in a
+  rotating log file.

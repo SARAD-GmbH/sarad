@@ -399,8 +399,8 @@ class SaradInst(Generic[SI]):
         products = yaml.safe_load(__f)
 
     def __init__(self: SI, port=None, family=None) -> None:
-        self.__port: str = port
-        self.__family: FamilyDict = family
+        self._port: str = port
+        self._family: FamilyDict = family
         if (port is not None) and (family is not None):
             self._initialize()
         self.__components: Collection[Component] = []
@@ -432,7 +432,7 @@ class SaradInst(Generic[SI]):
         return False
 
     @staticmethod
-    def __make_command_msg(cmd_data: List[bytes]) -> bytes:
+    def _make_command_msg(cmd_data: List[bytes]) -> bytes:
         """Encode the message to be sent to the SARAD instrument.
         Arguments are the one byte long command
         and the data bytes to be sent."""
@@ -671,14 +671,14 @@ class SaradInst(Generic[SI]):
     def get_reply(self, cmd_data: List[bytes], _reply_length=50, timeout=0.1) -> Any:
         """Returns a bytestring of the payload of the instruments reply
         to the provided list of 1-byte command and data bytes."""
-        msg = self.__make_command_msg(cmd_data)
+        msg = self._make_command_msg(cmd_data)
         checked_payload = self.get_message_payload(msg, timeout)
         if checked_payload["is_valid"]:
             return checked_payload["payload"]
         logger().debug(checked_payload["payload"])
         return False
 
-    def __get_control_bytes(self, serial):
+    def _get_control_bytes(self, serial):
         """Read 3 Bytes from serial interface"""
         perf_time_0 = perf_counter()
         answer = serial.read(3)
@@ -690,7 +690,7 @@ class SaradInst(Generic[SI]):
         )
         if answer == b"":
             logger().debug(
-                "No reply in __get_control_bytes(%s, %s)", serial.port, serial.baudrate
+                "No reply in _get_control_bytes(%s, %s)", serial.port, serial.baudrate
             )
             self._valid_family = False
             return answer
@@ -710,7 +710,7 @@ class SaradInst(Generic[SI]):
         return answer
 
     @staticmethod
-    def __get_payload_length(first_bytes):
+    def _get_payload_length(first_bytes):
         """Read 3 Bytes from serial interface
         to get the length of payload from the control byte."""
         control_byte = first_bytes[1]
@@ -730,12 +730,12 @@ class SaradInst(Generic[SI]):
 
         if not keep:
             ser = Serial(
-                self.__port,
-                self.__family["baudrate"],
+                self._port,
+                self._family["baudrate"],
                 bytesize=8,
                 xonxoff=0,
                 timeout=timeout,
-                parity=self.__family["parity"],
+                parity=self._family["parity"],
                 rtscts=0,
                 stopbits=STOPBITS_ONE,
             )
@@ -751,12 +751,12 @@ class SaradInst(Generic[SI]):
                     ser.open()
             except AttributeError:
                 ser = Serial(
-                    self.__port,
-                    self.__family["baudrate"],
+                    self._port,
+                    self._family["baudrate"],
                     bytesize=8,
                     xonxoff=0,
                     timeout=timeout,
-                    parity=self.__family["parity"],
+                    parity=self._family["parity"],
                     rtscts=0,
                     stopbits=STOPBITS_ONE,
                     exclusive=True,
@@ -768,19 +768,19 @@ class SaradInst(Generic[SI]):
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")
             ser.write(byte)
-            sleep(self.__family["write_sleeptime"])
+            sleep(self._family["write_sleeptime"])
         perf_time_1 = perf_counter()
         logger().debug(
             "Writing command %s to serial took me %f s",
             raw_cmd,
             perf_time_1 - perf_time_0,
         )
-        sleep(self.__family["wait_for_reply"])
-        first_bytes = self.__get_control_bytes(ser)
+        sleep(self._family["wait_for_reply"])
+        first_bytes = self._get_control_bytes(ser)
         if first_bytes == b"":
             self.__ser = _close_serial(ser)
             return b""
-        number_of_remaining_bytes = self.__get_payload_length(first_bytes) + 3
+        number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
         remaining_bytes = ser.read(number_of_remaining_bytes)
         while ser.in_waiting:
             logger().debug("%d bytes waiting", ser.in_waiting)
@@ -810,12 +810,12 @@ class SaradInst(Generic[SI]):
     @property
     def port(self) -> str:
         """Return serial port."""
-        return self.__port
+        return self._port
 
     @port.setter
     def port(self, port: str):
         """Set serial port."""
-        self.__port = port
+        self._port = port
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 
@@ -832,12 +832,12 @@ class SaradInst(Generic[SI]):
     @property
     def family(self) -> FamilyDict:
         """Return the instrument family."""
-        return self.__family
+        return self._family
 
     @family.setter
     def family(self, family: FamilyDict):
         """Set the instrument family."""
-        self.__family = family
+        self._family = family
         if (self.port is not None) and (self.family is not None):
             self._initialize()
 

@@ -738,13 +738,15 @@ class SaradInst(Generic[SI]):
             answer,
             perf_time_1 - perf_time_0,
         )
-        if answer == b"":
-            logger().debug(
-                "No reply in _get_control_bytes(%s, %s)", serial.port, serial.baudrate
-            )
-            self._valid_family = False
-            return answer
-        while answer.startswith(b"B") is not True:
+        while not answer.startswith(b"B"):
+            if answer == b"":
+                logger().debug(
+                    "No reply in _get_control_bytes(%s, %s)",
+                    serial.port,
+                    serial.baudrate,
+                )
+                self._valid_family = False
+                return answer
             logger().warning(
                 "Message %s should start with b'B'. I will try to fix it.", answer
             )

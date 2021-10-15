@@ -66,6 +66,7 @@ class CheckedAnswerDict(TypedDict):
     """Type declaration for checked reply from instrument."""
     is_valid: bool
     is_control: bool
+    is_last_frame: bool
     payload: bytes
     number_of_bytes_in_payload: int
     raw: bytes
@@ -458,7 +459,7 @@ class SaradInst(Generic[SI]):
         return output
 
     @staticmethod
-    def __check_answer(answer: bytes) -> CheckedAnswerDict:
+    def _check_message(answer: bytes, multiframe: bool) -> CheckedAnswerDict:
         # Returns a dictionary of:
         #     is_valid: True if answer is valid, False otherwise
         #     is_control_message: True if control message
@@ -466,11 +467,10 @@ class SaradInst(Generic[SI]):
         #     number_of_bytes_in_payload
         logger().debug("Checking answer from serial port:")
         logger().debug("Raw answer: %s", answer)
-        if answer.startswith(b"B") & answer.endswith(b"E"):
+        if answer.startswith(b"B") and answer.endswith(b"E"):
             control_byte = answer[1]
             neg_control_byte = answer[2]
-            if (control_byte ^ 0xFF) == neg_control_byte:
-                control_byte_ok = True
+            control_byte_ok = bool((control_byte ^ 0xFF) == neg_control_byte)
             number_of_bytes_in_payload = (control_byte & 0x7F) + 1
             is_control = bool(control_byte & 0x80)
             status_byte = answer[3]
@@ -485,19 +485,22 @@ class SaradInst(Generic[SI]):
             received_checksum = int.from_bytes(
                 received_checksum_bytes, byteorder="little", signed=False
             )
-            if received_checksum == calculated_checksum:
-                checksum_ok = True
-            is_valid = control_byte_ok & checksum_ok
+            checksum_ok = bool(received_checksum == calculated_checksum)
+            is_valid = bool(control_byte_ok and checksum_ok)
         else:
+            logger().debug("Invalid B-E frame")
             is_valid = False
         if not is_valid:
             is_control = False
             payload = b""
             number_of_bytes_in_payload = 0
+        is_one_frame_reply = not multiframe
+        is_rend = bool(is_valid and is_control and (payload == b"\x04"))
         logger().debug("Payload: %s", payload)
         return {
             "is_valid": is_valid,
             "is_control": is_control,
+            "is_last_frame": is_one_frame_reply or is_rend,
             "payload": payload,
             "number_of_bytes_in_payload": number_of_bytes_in_payload,
             "raw": answer,
@@ -506,22 +509,69 @@ class SaradInst(Generic[SI]):
     def get_message_payload(self, message: bytes, timeout: int) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
 
-        :param message: The message to send.
-        :param timeout: Timeout for waiting for a reply from instrument.
-        :returns: Dictionary of
+        Args:
+            message:
+                The message to send.
+            timeout:
+                Timeout for waiting for a reply from instrument.
+        Returns:
+            A dictionary of
             is_valid: True if answer is valid, False otherwise,
             is_control_message: True if control message,
+            is_last_frame: True if no follow-up B-E frame is expected,
             payload: Payload of answer,
-            number_of_bytes_in_payload"""
-        answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
+            number_of_bytes_in_payload,
+            raw: The raw byte string from _get_transparent_reply.
+        """
+        answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
-            answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
-        checked_answer = self.__check_answer(answer)
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+        checked_answer = self._check_message(answer, False)
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],
+            "is_last_frame": checked_answer["is_last_frame"],
+            "payload": checked_answer["payload"],
+            "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
+            "raw": answer,
+        }
+
+    def get_next_payload(self, timeout: int) -> CheckedAnswerDict:
+        """Delivers a follow-up B-E frame without sending a command to the instr.
+
+        Only for multi B-E frame replies (CMD_GetSumSpectrum (\x60) and
+        CMD_GetRoiAreas (\x61) of the DOSEman family)
+
+                Args:
+                    timeout:
+                        Timeout for waiting for a reply from instrument.
+                Returns:
+                    A dictionary of
+                    is_valid: True if answer is valid, False otherwise,
+                    is_control_message: True if control message,
+                    is_last_frame: True if no follow-up B-E frame is expected,
+                    payload: Payload of answer,
+                    number_of_bytes_in_payload,
+                    raw: The raw byte string from _get_transparent_reply.
+
+        """
+        answer = self._get_transparent_reply(b"", timeout=timeout, keep=True)
+        if answer == b"":
+            return {
+                "is_valid": False,
+                "is_control": False,
+                "is_last_frame": True,
+                "payload": b"",
+                "number_of_bytes_in_payload": 0,
+                "raw": answer,
+            }
+        checked_answer = self._check_message(answer, True)
+        return {
+            "is_valid": checked_answer["is_valid"],
+            "is_control": checked_answer["is_control"],
+            "is_last_frame": checked_answer["is_last_frame"],
             "payload": checked_answer["payload"],
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
             "raw": answer,
@@ -694,15 +744,18 @@ class SaradInst(Generic[SI]):
             )
             self._valid_family = False
             return answer
-        if answer.startswith(b"B") is not True:
-            logger().warning("This seems to be no SARAD instrument.")
-            answer = b""
-            return answer
+        while answer.startswith(b"B") is not True:
+            logger().warning(
+                "Message %s should start with b'B'. I will try to fix it.", answer
+            )
+            tmp_bytearray = bytearray(answer)
+            tmp_bytearray = tmp_bytearray[1:]
+            tmp_bytearray.extend(serial.read(1))
+            answer = bytes(tmp_bytearray)
         control_byte = answer[1]
         neg_control_byte = answer[2]
         if (control_byte ^ 0xFF) != neg_control_byte:
             logger().error("Message corrupted.")
-            answer = b""
             return answer
         is_control = bool(control_byte & 0x80)
         logger().debug("is_control: %s, control_byte: %s", is_control, control_byte)
@@ -716,18 +769,39 @@ class SaradInst(Generic[SI]):
         control_byte = first_bytes[1]
         return (control_byte & 0x7F) + 1
 
+    @staticmethod
+    def _close_serial(serial, keep):
+        serial.flush()
+        if not keep:
+            serial.close()
+            logger().debug("Serial interface closed.")
+            return None
+        logger().debug("Store serial interface")
+        return serial
+
+    def _get_be_frame(self, serial, keep):
+        """Get one Rx B-E frame"""
+        first_bytes = self._get_control_bytes(serial)
+        if first_bytes == b"":
+            self.__ser = self._close_serial(serial, keep)
+            return b""
+        number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
+        remaining_bytes = serial.read(number_of_remaining_bytes)
+        # If everything went well, the last byte must be b"E" (69)
+        # Here we try to fix cases with corrupt frames waiting for b"E" to come.
+        if remaining_bytes[-1] != 69:
+            one_byte = 0
+            while serial.in_waiting and one_byte != 69:
+                logger().debug("%d bytes waiting", serial.in_waiting)
+                one_byte = serial.read(1)[0]
+                tmp_bytearray = bytearray(remaining_bytes)
+                tmp_bytearray.append(one_byte)
+                remaining_bytes = bytes(tmp_bytearray)
+                sleep(0.1)
+        return first_bytes + remaining_bytes
+
     def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
         """Returns the raw bytestring of the instruments reply"""
-
-        def _close_serial(serial):
-            serial.flush()
-            if not keep:
-                serial.close()
-                logger().debug("Serial interface closed.")
-                return None
-            logger().debug("Store serial interface")
-            return serial
-
         if not keep:
             ser = Serial(
                 self._port,
@@ -776,25 +850,17 @@ class SaradInst(Generic[SI]):
             perf_time_1 - perf_time_0,
         )
         sleep(self._family["wait_for_reply"])
-        first_bytes = self._get_control_bytes(ser)
-        if first_bytes == b"":
-            self.__ser = _close_serial(ser)
-            return b""
-        number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
-        remaining_bytes = ser.read(number_of_remaining_bytes)
-        while ser.in_waiting:
-            logger().debug("%d bytes waiting", ser.in_waiting)
-            ser.read(ser.in_waiting)
-            sleep(0.1)
+        be_frame = self._get_be_frame(ser, True)
+        answer = bytearray(be_frame)
+        logger().warning(be_frame)
         perf_time_2 = perf_counter()
-        answer = first_bytes + remaining_bytes
         logger().debug(
             "Receiving %s from serial took me %f s",
-            answer,
+            bytes(answer),
             perf_time_2 - perf_time_1,
         )
-        self.__ser = _close_serial(ser)
-        return answer
+        self.__ser = self._close_serial(ser, keep)
+        return bytes(answer)
 
     def start_cycle(self, cycle_index: int) -> None:
         """Start measurement cycle.  Place holder for subclasses."""

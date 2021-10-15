@@ -2,12 +2,10 @@
 
 import logging
 from datetime import datetime
-from time import perf_counter, sleep
 
 from overrides import overrides  # type: ignore
-from serial import STOPBITS_ONE, Serial  # type: ignore
 
-from sarad.sari import SaradInst
+from sarad.sari import CheckedAnswerDict, SaradInst
 
 _LOGGER = None
 
@@ -42,94 +40,40 @@ class DosemanInst(SaradInst):
         SaradInst.__init__(self, port, family)
         self._last_sampling_time = None
 
-    @staticmethod
-    def _close_serial(serial, keep):
-        serial.flush()
-        if not keep:
-            serial.close()
-            logger().debug("Serial interface closed.")
-            return None
-        logger().debug("Store serial interface")
-        return serial
-
-    def __get_be_frame(self, serial, keep):
-        """Get one Rx B-E frame"""
-        first_bytes = self._get_control_bytes(serial)
-        if first_bytes == b"":
-            self.__ser = self._close_serial(serial, keep)
-            return b""
-        number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
-        remaining_bytes = serial.read(number_of_remaining_bytes)
-        return first_bytes + remaining_bytes
-
     @overrides
-    def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
-        """Returns the raw bytestring of the instruments reply"""
-        if not keep:
-            ser = Serial(
-                self._port,
-                self._family["baudrate"],
-                bytesize=8,
-                xonxoff=0,
-                timeout=timeout,
-                parity=self._family["parity"],
-                rtscts=0,
-                stopbits=STOPBITS_ONE,
-            )
-            if not ser.is_open:
-                ser.open()
-            logger().debug("Open serial, don't keep.")
-        else:
-            try:
-                ser = self.__ser
-                logger().debug("Reuse stored serial interface")
-                if not ser.is_open:
-                    logger().debug("Port is closed. Reopen.")
-                    ser.open()
-            except AttributeError:
-                ser = Serial(
-                    self._port,
-                    self._family["baudrate"],
-                    bytesize=8,
-                    xonxoff=0,
-                    timeout=timeout,
-                    parity=self._family["parity"],
-                    rtscts=0,
-                    stopbits=STOPBITS_ONE,
-                    exclusive=True,
-                )
-                if not ser.is_open:
-                    ser.open()
-                logger().debug("Open serial")
-        perf_time_0 = perf_counter()
-        for element in raw_cmd:
-            byte = (element).to_bytes(1, "big")
-            ser.write(byte)
-            sleep(self._family["write_sleeptime"])
-        perf_time_1 = perf_counter()
-        logger().debug(
-            "Writing command %s to serial took me %f s",
-            raw_cmd,
-            perf_time_1 - perf_time_0,
-        )
-        sleep(self._family["wait_for_reply"])
-        be_frame = self.__get_be_frame(ser, True)
-        answer = bytearray(be_frame)
-        logger().warning(be_frame)
-        while ser.in_waiting:
-            logger().warning("%d bytes waiting", ser.in_waiting)
-            be_frame = self.__get_be_frame(ser, True)
-            logger().warning(be_frame)
-            answer.extend(be_frame)
-            sleep(0.2)
-        perf_time_2 = perf_counter()
-        logger().debug(
-            "Receiving %s from serial took me %f s",
-            bytes(answer),
-            perf_time_2 - perf_time_1,
-        )
-        self.__ser = self._close_serial(ser, keep)
-        return bytes(answer)
+    def get_message_payload(self, message, timeout) -> CheckedAnswerDict:
+        """Send a message to the instrument and give back the payload of the reply.
+
+        Args:
+            message:
+                The message to send.
+            timeout:
+                Timeout for waiting for a reply from instrument.
+        Returns:
+            A dictionary of
+            is_valid: True if answer is valid, False otherwise,
+            is_control_message: True if control message,
+            is_last_frame: True if no follow-up B-E frame is expected,
+            payload: Payload of answer,
+            number_of_bytes_in_payload,
+            raw: The raw byte string from _get_transparent_reply.
+        """
+        answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+        if answer == b"":
+            # Workaround for firmware bug in SARAD instruments.
+            logger().debug("Play it again, Sam!")
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+        checked_message = self._check_message(message, False)
+        multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
+        checked_answer = self._check_message(answer, multiframe)
+        return {
+            "is_valid": checked_answer["is_valid"],
+            "is_control": checked_answer["is_control"],
+            "is_last_frame": checked_answer["is_last_frame"],
+            "payload": checked_answer["payload"],
+            "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
+            "raw": answer,
+        }
 
     def stop_cycle(self):
         """Stop the measuring cycle."""

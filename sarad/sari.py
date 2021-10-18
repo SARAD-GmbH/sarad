@@ -854,7 +854,6 @@ class SaradInst(Generic[SI]):
         sleep(self._family["wait_for_reply"])
         be_frame = self._get_be_frame(ser, True)
         answer = bytearray(be_frame)
-        logger().warning(be_frame)
         perf_time_2 = perf_counter()
         logger().debug(
             "Receiving %s from serial took me %f s",

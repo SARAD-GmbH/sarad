@@ -738,7 +738,7 @@ class SaradInst(Generic[SI]):
             answer,
             perf_time_1 - perf_time_0,
         )
-        while not answer.startswith(b"B"):
+        if not answer.startswith(b"B"):
             if answer == b"":
                 logger().debug(
                     "No reply in _get_control_bytes(%s, %s)",
@@ -748,12 +748,10 @@ class SaradInst(Generic[SI]):
                 self._valid_family = False
                 return answer
             logger().warning(
-                "Message %s should start with b'B'. I will try to fix it.", answer
+                "Message %s should start with b'B'. No SARAD instrument.", answer
             )
-            tmp_bytearray = bytearray(answer)
-            tmp_bytearray = tmp_bytearray[1:]
-            tmp_bytearray.extend(serial.read(1))
-            answer = bytes(tmp_bytearray)
+            self._valid_family = False
+            return b""
         control_byte = answer[1]
         neg_control_byte = answer[2]
         if (control_byte ^ 0xFF) != neg_control_byte:

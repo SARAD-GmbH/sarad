@@ -498,7 +498,7 @@ class SaradInst(Generic[SI]):
         # (DOSEman data download)
         is_rend = bool(is_valid and is_control and (payload == b"\x04"))
         # Close the serial interface, if message-reply cycle has finished.
-        if is_one_frame_reply or is_rend:
+        if (is_one_frame_reply or is_rend) and (self.__ser is not None):
             self._close_serial(self.__ser, False)
         logger().debug("Payload: %s", payload)
         return {

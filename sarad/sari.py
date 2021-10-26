@@ -775,13 +775,16 @@ class SaradInst(Generic[SI]):
 
     @staticmethod
     def _close_serial(serial, keep):
-        serial.flush()
-        if not keep:
-            serial.close()
-            logger().debug("Serial interface closed.")
-            return None
-        logger().debug("Store serial interface")
-        return serial
+        if serial is not None:
+            serial.flush()
+            if not keep:
+                serial.close()
+                logger().debug("Serial interface closed.")
+                return None
+            logger().debug("Store serial interface")
+            return serial
+        logger().debug("Tried to close stored serial interface but nothing to do.")
+        return None
 
     def _get_be_frame(self, serial, keep):
         """Get one Rx B-E frame"""

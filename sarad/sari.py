@@ -458,8 +458,7 @@ class SaradInst(Generic[SI]):
         )
         return output
 
-    @staticmethod
-    def _check_message(answer: bytes, multiframe: bool) -> CheckedAnswerDict:
+    def _check_message(self, answer: bytes, multiframe: bool) -> CheckedAnswerDict:
         # Returns a dictionary of:
         #     is_valid: True if answer is valid, False otherwise
         #     is_control_message: True if control message
@@ -495,7 +494,12 @@ class SaradInst(Generic[SI]):
             payload = b""
             number_of_bytes_in_payload = 0
         is_one_frame_reply = not multiframe
+        # is_rend is True if that this is the last frame of a multiframe reply
+        # (DOSEman data download)
         is_rend = bool(is_valid and is_control and (payload == b"\x04"))
+        # Close the serial interface, if message-reply cycle has finished.
+        if is_one_frame_reply or is_rend:
+            self._close_serial(self.__ser, False)
         logger().debug("Payload: %s", payload)
         return {
             "is_valid": is_valid,
@@ -523,11 +527,11 @@ class SaradInst(Generic[SI]):
             number_of_bytes_in_payload,
             raw: The raw byte string from _get_transparent_reply.
         """
-        answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+        answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
-            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
         checked_answer = self._check_message(answer, False)
         return {
             "is_valid": checked_answer["is_valid"],

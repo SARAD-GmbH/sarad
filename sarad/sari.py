@@ -518,7 +518,7 @@ class SaradInst(Generic[SI]):
             message:
                 The message to send.
             timeout:
-                Timeout for waiting for a reply from instrument.
+                Timeout in seconds for waiting for a reply from instrument.
         Returns:
             A dictionary of
             is_valid: True if answer is valid, False otherwise,

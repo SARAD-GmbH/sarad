@@ -59,6 +59,7 @@ class DacmInst(SaradInst):
         self._date_of_config = None
         self._module_name = None
         self._config_name = None
+        self.__interval = 0
 
     def __str__(self):
         output = (
@@ -432,10 +433,13 @@ class DacmInst(SaradInst):
         2 = minimum of last completed interval,
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
-        component_id = self.components[component].id
-        sensor_id = self.components[component].sensors[sensor].id
+        component_id = self.components[component].component_id
+        sensor_id = self.components[component].sensors[sensor].sensor_id
         measurand_id = (
-            self.components[component].sensors[sensor].measurands[measurand].id
+            self.components[component]
+            .sensors[sensor]
+            .measurands[measurand]
+            .measurand_id
         )
         reply = self.get_reply(
             [
@@ -481,7 +485,7 @@ class DacmInst(SaradInst):
                     "deviation": float(gps_list[5]),
                 }
                 output["gps"] = gps_dict
-            except Exception:
+            except Exception:  # pylint: disable=broad-except
                 gps_dict = {
                     "valid": False,
                     "latitude": None,

@@ -737,6 +737,9 @@ class SaradInst(Generic[SI]):
         """Read 3 Bytes from serial interface"""
         perf_time_0 = perf_counter()
         answer = serial.read(3)
+        #while len(answer) < 3:
+        #    sleep(0.1)
+        #    serial.read(3-len(answer))
         perf_time_1 = perf_counter()
         logger().debug(
             "Receiving %s from serial took me %f s",
@@ -797,16 +800,9 @@ class SaradInst(Generic[SI]):
         remaining_bytes = serial.read(number_of_remaining_bytes)
         # If everything went well, the last byte must be b"E" (69)
         # Here we try to fix cases with corrupt frames waiting for b"E" to come.
-        if remaining_bytes[-1] != 69:
-            one_byte = 0
-            while serial.in_waiting and one_byte != 69:
-                logger().debug("%d bytes waiting", serial.in_waiting)
-                one_byte = serial.read(1)[0]
-                tmp_bytearray = bytearray(remaining_bytes)
-                tmp_bytearray.append(one_byte)
-                remaining_bytes = bytes(tmp_bytearray)
-                sleep(0.1)
-        return first_bytes + remaining_bytes
+        left_bytes = serial.read_until('E',None)
+
+        return first_bytes + remaining_bytes + left_bytes
 
     def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
         """Returns the raw bytestring of the instruments reply"""
@@ -817,6 +813,7 @@ class SaradInst(Generic[SI]):
                 bytesize=8,
                 xonxoff=0,
                 timeout=timeout,
+                inter_byte_timeout=timeout,
                 parity=self._family["parity"],
                 rtscts=0,
                 stopbits=STOPBITS_ONE,
@@ -838,6 +835,7 @@ class SaradInst(Generic[SI]):
                     bytesize=8,
                     xonxoff=0,
                     timeout=timeout,
+                    inter_byte_timeout=timeout,
                     parity=self._family["parity"],
                     rtscts=0,
                     stopbits=STOPBITS_ONE,

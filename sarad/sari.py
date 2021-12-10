@@ -737,9 +737,15 @@ class SaradInst(Generic[SI]):
         """Read 3 Bytes from serial interface"""
         perf_time_0 = perf_counter()
         answer = serial.read(3)
-        #while len(answer) < 3:
-        #    sleep(0.1)
-        #    serial.read(3-len(answer))
+        #if not (answer is None) and (len(answer) < 3):
+        #    logger().debug("Checking for too short header: %s", answer)
+        #    awnser_left = serial.read_until(b'\xFF',3-len(answer))
+        #    answer = answer + awnser_left
+        if answer:
+            while len(answer) < 3:
+                sleep(0.1)
+                answer_left = serial.read(3-len(answer))
+                answer = answer + answer_left
         perf_time_1 = perf_counter()
         logger().debug(
             "Receiving %s from serial took me %f s",

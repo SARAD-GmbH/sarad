@@ -62,14 +62,12 @@ class DosemanInst(SaradInst):
         checked_message = self._check_message(message, False)
         # If this is a get-data command, we expect multiple B-E frames.
         multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
-        answer = self._get_transparent_reply(message, timeout=timeout, keep=multiframe)
+        answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
-            answer = self._get_transparent_reply(
-                message, timeout=timeout, keep=multiframe
-            )
-        checked_answer = self._check_message(answer, multiframe)
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+        checked_answer = self._check_message(answer, True)
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],

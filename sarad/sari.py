@@ -781,7 +781,7 @@ class SaradInst(Generic[SI]):
 
     @staticmethod
     def _close_serial(serial, keep):
-        if serial is not None:
+        if serial is not None and serial.is_open:
             serial.flush()
             if not keep:
                 serial.close()
@@ -804,9 +804,11 @@ class SaradInst(Generic[SI]):
             return b""
         number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
         remaining_bytes = serial.read(number_of_remaining_bytes)
-        logger().error("Uncomplete B-E frame. Trying to complete.")
-        left_bytes = serial.read_until("E", None)
-        return first_bytes + remaining_bytes + left_bytes
+        if len(remaining_bytes) < number_of_remaining_bytes:
+            logger().error("Uncomplete B-E frame. Trying to complete.")
+            left_bytes = serial.read_until("E", None)
+            return first_bytes + remaining_bytes + left_bytes
+        return first_bytes + remaining_bytes
 
     def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
         """Returns the raw bytestring of the instruments reply"""

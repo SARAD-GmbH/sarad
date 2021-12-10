@@ -528,11 +528,11 @@ class SaradInst(Generic[SI]):
             number_of_bytes_in_payload,
             raw: The raw byte string from _get_transparent_reply.
         """
-        answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
+        answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
-            answer = self._get_transparent_reply(message, timeout=timeout, keep=False)
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         checked_answer = self._check_message(answer, False)
         return {
             "is_valid": checked_answer["is_valid"],
@@ -737,9 +737,6 @@ class SaradInst(Generic[SI]):
         """Read 3 Bytes from serial interface"""
         perf_time_0 = perf_counter()
         answer = serial.read(3)
-        #while len(answer) < 3:
-        #    sleep(0.1)
-        #    serial.read(3-len(answer))
         perf_time_1 = perf_counter()
         logger().debug(
             "Receiving %s from serial took me %f s",
@@ -790,6 +787,9 @@ class SaradInst(Generic[SI]):
         logger().debug("Tried to close stored serial interface but nothing to do.")
         return None
 
+    def release_instrument(self):
+        _close_serial(self.__ser, False)
+
     def _get_be_frame(self, serial, keep):
         """Get one Rx B-E frame"""
         first_bytes = self._get_control_bytes(serial)
@@ -798,10 +798,8 @@ class SaradInst(Generic[SI]):
             return b""
         number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
         remaining_bytes = serial.read(number_of_remaining_bytes)
-        # If everything went well, the last byte must be b"E" (69)
-        # Here we try to fix cases with corrupt frames waiting for b"E" to come.
-        left_bytes = serial.read_until('E',None)
-
+        logger().error("Uncomplete B-E frame. Trying to complete.")
+        left_bytes = serial.read_until("E", None)
         return first_bytes + remaining_bytes + left_bytes
 
     def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):

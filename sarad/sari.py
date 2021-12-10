@@ -740,7 +740,7 @@ class SaradInst(Generic[SI]):
         if answer:
             while len(answer) < 3:
                 sleep(0.1)
-                answer_left = serial.read(3-len(answer))
+                answer_left = serial.read(3 - len(answer))
                 answer = answer + answer_left
         perf_time_1 = perf_counter()
         logger().debug(

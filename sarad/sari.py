@@ -788,7 +788,8 @@ class SaradInst(Generic[SI]):
         return None
 
     def release_instrument(self):
-        _close_serial(self.__ser, False)
+        """Close serial port to release the reserved instrument"""
+        self._close_serial(self.__ser, False)
 
     def _get_be_frame(self, serial, keep):
         """Get one Rx B-E frame"""

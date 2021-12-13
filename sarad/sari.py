@@ -497,10 +497,6 @@ class SaradInst(Generic[SI]):
         # is_rend is True if that this is the last frame of a multiframe reply
         # (DOSEman data download)
         is_rend = bool(is_valid and is_control and (payload == b"\x04"))
-        # Close the serial interface, if message-reply cycle has finished.
-        if (is_one_frame_reply or is_rend) and (self.__ser is not None):
-            if self.__ser.is_open:
-                self._close_serial(self.__ser, False)
         logger().debug("Payload: %s", payload)
         return {
             "is_valid": is_valid,
@@ -511,7 +507,7 @@ class SaradInst(Generic[SI]):
             "raw": answer,
         }
 
-    def get_message_payload(self, message: bytes, timeout: int) -> CheckedAnswerDict:
+    def get_message_payload(self, message: bytes, timeout: float) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
 
         Args:
@@ -803,6 +799,12 @@ class SaradInst(Generic[SI]):
             self.__ser = self._close_serial(serial, keep)
             return b""
         number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
+        logger().debug(
+            "Expecting %d bytes at timeouts of %f %f",
+            number_of_remaining_bytes,
+            serial.timeout,
+            serial.inter_byte_timeout,
+        )
         remaining_bytes = serial.read(number_of_remaining_bytes)
         if len(remaining_bytes) < number_of_remaining_bytes:
             logger().error("Uncomplete B-E frame. Trying to complete.")
@@ -818,8 +820,6 @@ class SaradInst(Generic[SI]):
                 self._family["baudrate"],
                 bytesize=8,
                 xonxoff=0,
-                timeout=timeout,
-                inter_byte_timeout=timeout,
                 parity=self._family["parity"],
                 rtscts=0,
                 stopbits=STOPBITS_ONE,
@@ -840,8 +840,6 @@ class SaradInst(Generic[SI]):
                     self._family["baudrate"],
                     bytesize=8,
                     xonxoff=0,
-                    timeout=timeout,
-                    inter_byte_timeout=timeout,
                     parity=self._family["parity"],
                     rtscts=0,
                     stopbits=STOPBITS_ONE,
@@ -850,6 +848,8 @@ class SaradInst(Generic[SI]):
                 if not ser.is_open:
                     ser.open()
                 logger().debug("Open serial")
+        ser.timeout = timeout
+        ser.inter_byte_timeout = timeout
         perf_time_0 = perf_counter()
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")

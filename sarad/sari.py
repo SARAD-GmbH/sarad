@@ -6,6 +6,7 @@ that all SARAD instruments have in common."""
 import logging
 import os
 import struct
+import time
 from datetime import datetime, timedelta
 from enum import Enum
 from time import perf_counter, sleep
@@ -826,14 +827,16 @@ class SaradInst(Generic[SI]):
             )
             if not ser.is_open:
                 ser.open()
+            time.sleep(0.5)
             logger().debug("Open serial, don't keep.")
         else:
             try:
                 ser = self.__ser
-                logger().debug("Reuse stored serial interface")
                 if not ser.is_open:
                     logger().debug("Port is closed. Reopen.")
                     ser.open()
+                    time.sleep(0.5)
+                logger().debug("Reuse stored serial interface")
             except AttributeError:
                 ser = Serial(
                     self._port,
@@ -848,6 +851,7 @@ class SaradInst(Generic[SI]):
                 if not ser.is_open:
                     ser.open()
                 logger().debug("Open serial")
+                time.sleep(0.5)
         ser.timeout = timeout
         ser.inter_byte_timeout = timeout
         perf_time_0 = perf_counter()

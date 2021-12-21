@@ -15,7 +15,7 @@ from typing import (Any, Collection, Dict, Generic, Iterator, List, Optional,
 
 import yaml
 from BitVector import BitVector  # type: ignore
-from serial import STOPBITS_ONE, Serial  # type: ignore
+from serial import STOPBITS_ONE, Serial, SerialException  # type: ignore
 
 _LOGGER = None
 
@@ -784,14 +784,15 @@ class SaradInst(Generic[SI]):
                 serial.close()
                 logger().debug("Serial interface closed.")
                 return None
-            logger().debug("Store serial interface")
+            logger().debug("Keeping serial interface open.")
             return serial
-        logger().debug("Tried to close stored serial interface but nothing to do.")
+        logger().debug("Tried to close %s but nothing to do.", serial)
         return None
 
     def release_instrument(self):
         """Close serial port to release the reserved instrument"""
-        self._close_serial(self.__ser, False)
+        logger().debug("Release serial interface %s", self.__ser)
+        self.__ser = self._close_serial(self.__ser, False)
 
     def _get_be_frame(self, serial, keep):
         """Get one Rx B-E frame"""
@@ -825,19 +826,23 @@ class SaradInst(Generic[SI]):
                 rtscts=0,
                 stopbits=STOPBITS_ONE,
             )
-            if not ser.is_open:
-                ser.open()
             time.sleep(0.5)
             logger().debug("Open serial, don't keep.")
         else:
-            try:
-                ser = self.__ser
-                if not ser.is_open:
-                    logger().debug("Port is closed. Reopen.")
-                    ser.open()
-                    time.sleep(0.5)
-                logger().debug("Reuse stored serial interface")
-            except AttributeError:
+            if self.__ser is not None:
+                try:
+                    ser = self.__ser
+                    if not ser.is_open:
+                        logger().debug("Serial interface is closed. Reopen.")
+                        ser.open()
+                        time.sleep(0.5)
+                    logger().debug("Reuse stored serial interface")
+                except (AttributeError, SerialException, OSError):
+                    logger().warning(
+                        "Something went wrong with reopening -> Re-initialize"
+                    )
+                    self.__ser = None
+            if self.__ser is None:
                 ser = Serial(
                     self._port,
                     self._family["baudrate"],
@@ -848,8 +853,6 @@ class SaradInst(Generic[SI]):
                     stopbits=STOPBITS_ONE,
                     exclusive=True,
                 )
-                if not ser.is_open:
-                    ser.open()
                 logger().debug("Open serial")
                 time.sleep(0.5)
         ser.timeout = timeout

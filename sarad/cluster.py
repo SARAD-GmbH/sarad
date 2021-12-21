@@ -244,6 +244,8 @@ class SaradCluster(Generic[SI]):
             set(added_instruments).union(set(connected_instruments))
         )
         logger().debug("Connected instruments: %s", self.__connected_instruments)
+        for instr in self.__connected_instruments:
+            instr.release_instrument()
         return list(set(added_instruments))
 
     def dump(self, file: IO[bytes]) -> None:

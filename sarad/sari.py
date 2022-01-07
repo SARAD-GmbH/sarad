@@ -459,7 +459,8 @@ class SaradInst(Generic[SI]):
         )
         return output
 
-    def _check_message(self, answer: bytes, multiframe: bool) -> CheckedAnswerDict:
+    @staticmethod
+    def _check_message(answer: bytes, multiframe: bool) -> CheckedAnswerDict:
         # Returns a dictionary of:
         #     is_valid: True if answer is valid, False otherwise
         #     is_control_message: True if control message

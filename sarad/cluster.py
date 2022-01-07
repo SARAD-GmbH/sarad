@@ -118,6 +118,7 @@ class SaradCluster(Generic[SI]):
                 instrument.stop_cycle()
             except Exception:  # pylint: disable=broad-except
                 logger().error("Not all instruments have been stopped as intended.")
+                raise
                 return False
         self.__start_time = datetime.utcnow()
         for instrument in self.connected_instruments:
@@ -144,6 +145,7 @@ class SaradCluster(Generic[SI]):
                 logger().error(
                     "Failed to set time and start cycles on all instruments."
                 )
+                raise
                 return False
         return True
 
@@ -180,7 +182,7 @@ class SaradCluster(Generic[SI]):
                 set(ports_to_test).symmetric_difference(set(ports_to_skip))
             )
             logger().debug("Symmetric difference: %s", ports_to_test)
-            if ports_to_test == []:
+            if not ports_to_test:
                 logger().warning(
                     "Nothing to do. "
                     "Set of serial ports to skip is equal to set of active ports."
@@ -261,7 +263,7 @@ class SaradCluster(Generic[SI]):
         3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
         if sys.platform.startswith("win"):
-            ports = ["COM%s" % (i + 1) for i in range(256)]
+            ports = [f"COM{(i + 1) for i in range(256)}"]
             result = []
             for port in ports:
                 try:

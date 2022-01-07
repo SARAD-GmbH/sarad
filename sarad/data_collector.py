@@ -22,6 +22,7 @@ from pyzabbix import ZabbixMetric, ZabbixSender  # type: ignore
 
 from sarad.cluster import SaradCluster
 
+LOGLEVEL = logging.DEBUG
 LOGCFG = {
     "version": 1,
     "formatters": {
@@ -33,10 +34,19 @@ LOGCFG = {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "normal",
+            "level": logging.INFO,
             "stream": "ext://sys.stdout",
         },
+        "file": {
+            "class": "logging.FileHandler",
+            "formatter": "normal",
+            "level": LOGLEVEL,
+            "filename": "data_collector.log",
+            "mode": "w",
+            "encoding": "utf-8",
+        },
     },
-    "loggers": {"": {"handlers": ["console"], "level": logging.INFO}},
+    "root": {"handlers": ["file", "console"], "level": logging.DEBUG},
 }
 
 logging.config.dictConfig(LOGCFG)
@@ -66,7 +76,7 @@ for loc in [
     except IOError:
         pass
 
-if config == {}:
+if not config:
     logger.debug("There seems to be no configuration file. Using defaults.")
 
 # ** MQTT config:
@@ -141,13 +151,8 @@ signal.signal(signal.SIGINT, signal_handler)
 
 # * Main group of commands:
 @click.group()
-@click.option("--verbose", "-v", is_flag=True, help="Will print more logging messages.")
-def cli(verbose):
+def cli():
     """Description for the group of commands"""
-    if verbose:
-        logger.setLevel(logging.DEBUG)
-    else:
-        logger.setLevel(logging.INFO)
     logger.debug("broker = %s, client_id = %s", BROKER, CLIENT_ID)
 
 
@@ -296,6 +301,7 @@ def unwrapped_transmit(**kwargs):
                 for component in instrument:
                     for sensor in component:
                         set_send_scheduler(target, instrument, component, sensor)
+            logger.info("Waiting for first set of values")
             print("Press Ctrl+C to abort.")
             while True:
                 schedule.run_pending()

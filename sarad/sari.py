@@ -720,7 +720,7 @@ class SaradInst(Generic[SI]):
         except Exception:  # pylint: disable=broad-except
             return False
 
-    def get_reply(self, cmd_data: List[bytes], _reply_length=50, timeout=0.1) -> Any:
+    def get_reply(self, cmd_data: List[bytes], _reply_length=50, timeout=0.5) -> Any:
         """Returns a bytestring of the payload of the instruments reply
         to the provided list of 1-byte command and data bytes."""
         msg = self._make_command_msg(cmd_data)

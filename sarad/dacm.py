@@ -179,8 +179,8 @@ class DacmInst(SaradInst):
                 config_month = reply[3]
                 config_year = int.from_bytes(reply[4:6], byteorder="big", signed=False)
                 self._date_of_config = datetime(config_year, config_month, config_day)
-                self._module_name = reply[6:39].split(b"\x00")[0].decode("ascii")
-                self._config_name = reply[39:].split(b"\x00")[0].decode("ascii")
+                self._module_name = reply[6:39].split(b"\x00")[0].decode("cp1252")
+                self._config_name = reply[39:].split(b"\x00")[0].decode("cp1252")
                 return True
             except TypeError:
                 logger().error("TypeError when parsing the payload.")
@@ -212,7 +212,7 @@ class DacmInst(SaradInst):
                 data_record_size = int.from_bytes(
                     reply[6:8], byteorder="big", signed=False
                 )
-                name = reply[8:16].split(b"\x00")[0].decode("ascii")
+                name = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 hw_capability = BitVector(rawbytes=reply[16:20])
                 return {
                     "revision": revision,
@@ -247,9 +247,9 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get component configuration successful.")
             try:
-                sensor_name = reply[8:16].split(b"\x00")[0].decode("ascii")
-                sensor_value = reply[8:16].split(b"\x00")[0].decode("ascii")
-                sensor_unit = reply[8:16].split(b"\x00")[0].decode("ascii")
+                sensor_name = reply[8:16].split(b"\x00")[0].decode("cp1252")
+                sensor_value = reply[8:16].split(b"\x00")[0].decode("cp1252")
+                sensor_unit = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 input_config = int.from_bytes(reply[6:8], byteorder="big", signed=False)
                 alert_level_lo = int.from_bytes(
                     reply[6:8], byteorder="big", signed=False
@@ -295,7 +295,7 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte) and reply[1]:
             logger().debug("Get primary cycle information successful.")
             try:
-                cycle_name = reply[2:19].split(b"\x00")[0].decode("ascii")
+                cycle_name = reply[2:19].split(b"\x00")[0].decode("cp1252")
                 cycle_interval = timedelta(
                     seconds=int.from_bytes(
                         reply[19:21], byteorder="little", signed=False
@@ -391,6 +391,7 @@ class DacmInst(SaradInst):
 
     def start_cycle(self, cycle_index=0):
         """Start a measuring cycle."""
+        logger().debug("Trying to start measuring cycle %d", cycle_index)
         self.__interval = self._read_cycle_start(cycle_index)["cycle_interval"]
         for component in self.components:
             for sensor in component.sensors:
@@ -450,10 +451,12 @@ class DacmInst(SaradInst):
         )
         if reply and (reply[0] > 0):
             output = {}
-            output["component_name"] = reply[1:17].split(b"\x00")[0].decode("ascii")
+            output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
             output["measurand_id"] = measurand_id
-            output["sensor_name"] = reply[18:34].split(b"\x00")[0].decode("ascii")
-            output["measurand"] = reply[35:51].split(b"\x00")[0].strip().decode("ascii")
+            output["sensor_name"] = reply[18:34].split(b"\x00")[0].decode("cp1252")
+            output["measurand"] = (
+                reply[35:51].split(b"\x00")[0].strip().decode("cp1252")
+            )
             measurand_dict = self._parse_value_string(output["measurand"])
             output["measurand_operator"] = measurand_dict["measurand_operator"]
             output["value"] = measurand_dict["measurand_value"]
@@ -472,7 +475,7 @@ class DacmInst(SaradInst):
             else:
                 output["datetime"] = None
             try:
-                gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("latin_1"))
+                gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))
                 gps_dict = {
                     "valid": True,
                     "latitude": float(gps_list[0])

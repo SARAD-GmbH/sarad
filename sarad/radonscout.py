@@ -1,18 +1,10 @@
 """Module for the communication with instruments of the Radon Scout family."""
 
-import logging
 from datetime import datetime, timedelta
 
-from sarad.sari import Component, Measurand, SaradInst, Sensor
+from overrides import overrides  # type: ignore
 
-_LOGGER = None
-
-
-def logger():
-    """Returns the logger instance used in this module."""
-    global _LOGGER
-    _LOGGER = _LOGGER or logging.getLogger(__name__)
-    return _LOGGER
+from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
 
 
 class RscInst(SaradInst):
@@ -183,7 +175,7 @@ class RscInst(SaradInst):
                 return False
             except Exception:  # pylint: disable=broad-except
                 logger().error("Unknown error when parsing the payload.")
-                return False
+                raise
             else:
                 pass
         else:
@@ -228,6 +220,7 @@ class RscInst(SaradInst):
                 return measurand.value
         return self.get_all_recent_values()
 
+    @overrides
     def set_real_time_clock(self, rtc_datetime: datetime) -> bool:
         """Set the instrument time."""
         ok_byte = self.family["ok_byte"]
@@ -248,6 +241,7 @@ class RscInst(SaradInst):
         logger().error("Setting the time on device %s failed.", {self.device_id})
         return False
 
+    @overrides
     def stop_cycle(self):
         """Stop a measurement cycle."""
         ok_byte = self.family["ok_byte"]
@@ -258,6 +252,7 @@ class RscInst(SaradInst):
         logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
 
+    @overrides
     def start_cycle(self, _):
         """Start a measurement cycle."""
         self.get_config()  # to set self.__interval

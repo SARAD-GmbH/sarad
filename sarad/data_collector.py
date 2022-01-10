@@ -193,7 +193,7 @@ def cli():
 def value(instrument, component, sensor, measurand, lock_path):
     """Command line application that gives back
     the most recent value of a SARAD instrument whenever it is called."""
-    lock = FileLock(lock_path)
+    lock = FileLock(lock_path)  # pylint: disable=abstract-class-instantiated
     try:
         with lock.acquire(timeout=10):
             for my_instrument in mycluster.connected_instruments:
@@ -218,7 +218,7 @@ def value(instrument, component, sensor, measurand, lock_path):
 )
 def cluster(lock_path):
     """Show list of connected SARAD instruments."""
-    lock = FileLock(lock_path)
+    lock = FileLock(lock_path)  # pylint: disable=abstract-class-instantiated
     try:
         with lock.acquire(timeout=10):
             for instrument in mycluster:
@@ -278,7 +278,7 @@ def unwrapped_transmit(**kwargs):
     an MQTT broker or a Zabbix server."""
     lock_path = kwargs["lock_path"]
     target = kwargs["target"]
-    lock = FileLock(lock_path)
+    lock = FileLock(lock_path)  # pylint: disable=abstract-class-instantiated
     try:
         with lock.acquire(timeout=10):
             with open("last_session", "w+b") as session_file:

@@ -22,7 +22,7 @@ _LOGGER = None
 
 def logger():
     """Returns the logger instance used in this module."""
-    global _LOGGER
+    global _LOGGER  # pylint: disable=global-statement
     _LOGGER = _LOGGER or logging.getLogger(__name__)
     return _LOGGER
 
@@ -73,7 +73,7 @@ class CheckedAnswerDict(TypedDict):
     raw: bytes
 
 
-class Measurand:
+class Measurand:  # pylint: disable=too-many-instance-attributes
     """Class providing a measurand that is delivered by a sensor.
 
     Properties:
@@ -470,8 +470,7 @@ class SaradInst(Generic[SI]):
         logger().debug("Raw answer: %s", answer)
         if answer.startswith(b"B") and answer.endswith(b"E"):
             control_byte = answer[1]
-            neg_control_byte = answer[2]
-            control_byte_ok = bool((control_byte ^ 0xFF) == neg_control_byte)
+            control_byte_ok = bool((control_byte ^ 0xFF) == answer[2])
             number_of_bytes_in_payload = (control_byte & 0x7F) + 1
             is_control = bool(control_byte & 0x80)
             status_byte = answer[3]
@@ -495,7 +494,6 @@ class SaradInst(Generic[SI]):
             is_control = False
             payload = b""
             number_of_bytes_in_payload = 0
-        is_one_frame_reply = not multiframe
         # is_rend is True if that this is the last frame of a multiframe reply
         # (DOSEman data download)
         is_rend = bool(is_valid and is_control and (payload == b"\x04"))
@@ -503,7 +501,7 @@ class SaradInst(Generic[SI]):
         return {
             "is_valid": is_valid,
             "is_control": is_control,
-            "is_last_frame": is_one_frame_reply or is_rend,
+            "is_last_frame": (not multiframe) or is_rend,
             "payload": payload,
             "number_of_bytes_in_payload": number_of_bytes_in_payload,
             "raw": answer,

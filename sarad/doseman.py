@@ -1,20 +1,8 @@
 """Module for the communication with instruments of the DOSEman family."""
 
-import logging
-from datetime import datetime
-
 from overrides import overrides  # type: ignore
 
-from sarad.sari import CheckedAnswerDict, SaradInst
-
-_LOGGER = None
-
-
-def logger():
-    """Returns the logger instance used in this module."""
-    global _LOGGER
-    _LOGGER = _LOGGER or logging.getLogger(__name__)
-    return _LOGGER
+from sarad.sari import CheckedAnswerDict, SaradInst, logger
 
 
 class DosemanInst(SaradInst):
@@ -61,7 +49,7 @@ class DosemanInst(SaradInst):
         # Run _check_message to get the payload of the sent message.
         checked_message = self._check_message(message, False)
         # If this is a get-data command, we expect multiple B-E frames.
-        multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
+        _multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
@@ -77,6 +65,7 @@ class DosemanInst(SaradInst):
             "raw": answer,
         }
 
+    @overrides
     def stop_cycle(self):
         """Stop the measuring cycle."""
         ok_byte = self.family["ok_byte"]
@@ -87,11 +76,14 @@ class DosemanInst(SaradInst):
         logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
 
+    @overrides
     def start_cycle(self, _):
-        """Start a measuring cycle."""
+        """Start a measuring cycle.
+        TODO: rewrite or remove
         self.get_config()  # to set self.__interval
         for component in self.components:
             for sensor in component.sensors:
                 sensor.interval = self.__interval
         self._last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
+        """

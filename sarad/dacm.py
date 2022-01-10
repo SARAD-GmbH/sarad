@@ -1,21 +1,12 @@
 """Module for the communication with instruments of the DACM family."""
 
-import logging
 import re
 from datetime import datetime, timedelta
 
 from BitVector import BitVector  # type: ignore
+from overrides import overrides  # type: ignore
 
-from sarad.sari import Component, Measurand, SaradInst, Sensor
-
-_LOGGER = None
-
-
-def logger():
-    """Returns the logger instance used in this module."""
-    global _LOGGER
-    _LOGGER = _LOGGER or logging.getLogger(__name__)
-    return _LOGGER
+from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
 
 
 class DacmInst(SaradInst):
@@ -62,17 +53,8 @@ class DacmInst(SaradInst):
         self.__interval = 0
 
     def __str__(self):
-        output = (
-            f"Id: {self.device_id}\n"
-            f"SerialDevice: {self.port}\n"
-            f"Baudrate: {self.family['baudrate']}\n"
-            f"FamilyName: {self.family['family_name']}\n"
-            f"FamilyId: {self.family['family_id']}\n"
-            f"TypName: {self.type_name}\n"
-            f"TypeId: {self.type_id}\n"
-            f"SoftwareVersion: {self.software_version}\n"
+        output = super().__str__() + (
             f"LastUpdate: {self.date_of_update}\n"
-            f"SerialNumber: {self.serial_number}\n"
             f"DateOfManufacture: {self.date_of_manufacture}\n"
             f"Address: {self.address}\n"
             f"LastConfig: {self.date_of_config}\n"
@@ -359,6 +341,7 @@ class DacmInst(SaradInst):
         logger().debug("Get info about cycle interval failed.")
         return False
 
+    @overrides
     def set_real_time_clock(self, date_time):
         """Set the instrument time."""
         ok_byte = self.family["ok_byte"]
@@ -379,6 +362,7 @@ class DacmInst(SaradInst):
         logger().error("Setting the time on device %s failed.", self.device_id)
         return False
 
+    @overrides
     def stop_cycle(self):
         """Stop the measuring cycle."""
         ok_byte = self.family["ok_byte"]
@@ -389,6 +373,7 @@ class DacmInst(SaradInst):
         logger().error("stop_cycle() failed at device %s.", self.device_id)
         return False
 
+    @overrides
     def start_cycle(self, cycle_index=0):
         """Start a measuring cycle."""
         logger().debug("Trying to start measuring cycle %d", cycle_index)

@@ -39,10 +39,12 @@ class RscInst(SaradInst):
         self._last_sampling_time = None
         self.__alarm_level = None
         self.lock = None
-        self.__ssid = None
-        self.__password = None
-        self.__server_port = None
-        self.__ip_address = None
+        self.__wifi = {
+            "ssid": None,
+            "password": None,
+            "ip_address": None,
+            "server_port": None,
+        }
         self.__interval = None
 
     def _gather_all_recent_values(self):
@@ -363,10 +365,10 @@ class RscInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             try:
                 logger().debug(reply)
-                self.__ssid = reply[0:33].rstrip(b"0")
-                self.__password = reply[33:97].rstrip(b"0")
-                self.__ip_address = reply[97:121].rstrip(b"0")
-                self.__server_port = int.from_bytes(reply[121:123], "big")
+                self.__wifi["ssid"] = reply[0:33].rstrip(b"0")
+                self.__wifi["password"] = reply[33:97].rstrip(b"0")
+                self.__wifi["ip_address"] = reply[97:121].rstrip(b"0")
+                self.__wifi["server_port"] = int.from_bytes(reply[121:123], "big")
                 return True
             except TypeError:
                 logger().error("TypeError when parsing the payload.")

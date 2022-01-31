@@ -223,17 +223,16 @@ class RscInst(SaradInst):
         return self.get_all_recent_values()
 
     @overrides
-    def set_real_time_clock(self, rtc_datetime: datetime) -> bool:
-        """Set the instrument time."""
+    def set_real_time_clock(self, date_time) -> bool:
         ok_byte = self.family["ok_byte"]
         instr_datetime = bytearray(
             [
-                rtc_datetime.second,
-                rtc_datetime.minute,
-                rtc_datetime.hour,
-                rtc_datetime.day,
-                rtc_datetime.month,
-                rtc_datetime.year - 2000,
+                date_time.second,
+                date_time.minute,
+                date_time.hour,
+                date_time.day,
+                date_time.month,
+                date_time.year - 2000,
             ]
         )
         reply = self.get_reply([b"\x05", instr_datetime], 1)
@@ -255,7 +254,7 @@ class RscInst(SaradInst):
         return False
 
     @overrides
-    def start_cycle(self, _):
+    def start_cycle(self, cycle_index):
         """Start a measurement cycle."""
         self.get_config()  # to set self.__interval
         for component in self.components:

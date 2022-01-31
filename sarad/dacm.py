@@ -342,7 +342,7 @@ class DacmInst(SaradInst):
         return False
 
     @overrides
-    def set_real_time_clock(self, date_time):
+    def set_real_time_clock(self, date_time) -> bool:
         """Set the instrument time."""
         ok_byte = self.family["ok_byte"]
         instr_datetime = bytearray(

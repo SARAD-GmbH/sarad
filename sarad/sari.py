@@ -403,8 +403,7 @@ class SaradInst(Generic[SI]):
     def __init__(self: SI, port=None, family=None) -> None:
         self._port: str = port
         self._family: FamilyDict = family
-        if (port is not None) and (family is not None):
-            self._initialize()
+        self.__ser = None
         self.__components: Collection[Component] = []
         self._type_id: int = 0
         self._type_name: str = ""
@@ -417,8 +416,9 @@ class SaradInst(Generic[SI]):
         self.chamber_size = self.ChamberSize.SMALL
         self.lock = self.Lock.UNLOCKED
         self.__id: str = ""
-        self.__ser = None
         self._valid_family = True
+        if (port is not None) and (family is not None):
+            self._initialize()
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -885,8 +885,8 @@ class SaradInst(Generic[SI]):
     def stop_cycle(self) -> None:
         """Stop measurement cycle.  Place holder for subclasses."""
 
-    def set_real_time_clock(self, _: datetime) -> bool:
-        # pylint: disable=no-self-use
+    def set_real_time_clock(self, date_time: datetime) -> bool:
+        # pylint: disable=no-self-use, unused-argument
         """Set RTC of instrument to datetime.  Place holder for subclasses."""
         return False
 

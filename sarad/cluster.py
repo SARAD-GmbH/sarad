@@ -119,7 +119,6 @@ class SaradCluster(Generic[SI]):
             except Exception:  # pylint: disable=broad-except
                 logger().error("Not all instruments have been stopped as intended.")
                 raise
-                return False
         self.__start_time = datetime.utcnow()
         for instrument in self.connected_instruments:
             try:
@@ -146,7 +145,6 @@ class SaradCluster(Generic[SI]):
                     "Failed to set time and start cycles on all instruments."
                 )
                 raise
-                return False
         return True
 
     def update_connected_instruments(
@@ -174,10 +172,10 @@ class SaradCluster(Generic[SI]):
             connected_instruments = []
         else:
             connected_instruments = self.__connected_instruments
+            logger().debug("Already connected: %s", connected_instruments)
         if ports_to_skip is not None:
             connected_instruments = self.__connected_instruments
-            logger().debug("Ports to test: %s", ports_to_test)
-            logger().debug("Ports to skip: %s", ports_to_skip)
+            logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
             ports_to_test = list(
                 set(ports_to_test).symmetric_difference(set(ports_to_skip))
             )
@@ -188,15 +186,9 @@ class SaradCluster(Generic[SI]):
                     "Set of serial ports to skip is equal to set of active ports."
                 )
                 return []
-        logger().debug("Connected instruments: %s", connected_instruments)
         added_instruments = []
-        logger().debug("%d port(s) to test", len(ports_to_test))
-        # We check every active port and try for a connected SARAD instrument.
-        # If ports_to_test is specified, only that list of ports
-        # will be checked for instruments,
-        # otherwise all available ports will be scanned.
-        if ports_to_test != []:
-            logger().debug(ports_to_test)
+        logger().debug("%d port(s) to test: %s", len(ports_to_test), ports_to_test)
+        # We check every port in ports_to_test and try for a connected SARAD instrument.
         for port in ports_to_test:
             for family in reversed(SaradInst.products):
                 if family["family_id"] == 1:
@@ -232,22 +224,21 @@ class SaradCluster(Generic[SI]):
                             test_instrument.family = family
                         break
                 except serial.serialutil.SerialException:
-                    logger().warning("Tested serial interface not available.")
+                    logger().error("%s not accessible.", port)
                 except OSError:
                     logger().critical("OSError -- exiting for a restart")
                     os._exit(1)  # pylint: disable=protected-access
-        # remove instruments from self.__connected_instruments
-        logger().debug("Remove %s", ports_to_test)
-        for instrument in self.__connected_instruments:
-            if instrument.port in ports_to_test:
-                self.__connected_instruments.remove(instrument)
         # remove duplicates
         self.__connected_instruments = list(
             set(added_instruments).union(set(connected_instruments))
         )
         logger().debug("Connected instruments: %s", self.__connected_instruments)
         for instr in self.__connected_instruments:
-            instr.release_instrument()
+            try:
+                instr.release_instrument()
+            except serial.serialutil.SerialException:
+                logger().critical("Cannot release %s", instr.port)
+                raise
         return list(set(added_instruments))
 
     def dump(self, file: IO[bytes]) -> None:

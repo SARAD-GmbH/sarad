@@ -778,10 +778,14 @@ class SaradInst(Generic[SI]):
     @staticmethod
     def _close_serial(serial, keep):
         if serial is not None and serial.is_open:
-            serial.flush()
-            if not keep:
-                serial.close()
-                logger().debug("Serial interface closed.")
+            try:
+                serial.flush()
+                if not keep:
+                    serial.close()
+                    logger().debug("Serial interface closed.")
+                    return None
+            except Exception:  # pylint: disable=broad-except
+                logger().error("Serial interface not available.")
                 return None
             logger().debug("Keeping serial interface open.")
             return serial

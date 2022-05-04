@@ -77,7 +77,7 @@ class DosemanInst(SaradInst):
         return False
 
     @overrides
-    def start_cycle(self, _):
+    def start_cycle(self, cycle_index):
         """Start a measuring cycle.
         TODO: rewrite or remove
         self.get_config()  # to set self.__interval

@@ -119,7 +119,6 @@ class SaradCluster(Generic[SI]):
             except Exception:  # pylint: disable=broad-except
                 logger().error("Not all instruments have been stopped as intended.")
                 raise
-                return False
         self.__start_time = datetime.utcnow()
         for instrument in self.connected_instruments:
             try:
@@ -146,7 +145,6 @@ class SaradCluster(Generic[SI]):
                     "Failed to set time and start cycles on all instruments."
                 )
                 raise
-                return False
         return True
 
     def update_connected_instruments(
@@ -177,8 +175,7 @@ class SaradCluster(Generic[SI]):
             logger().debug("Already connected: %s", connected_instruments)
         if ports_to_skip is not None:
             connected_instruments = self.__connected_instruments
-            logger().debug("Ports to test: %s", ports_to_test)
-            logger().debug("Ports to skip: %s", ports_to_skip)
+            logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
             ports_to_test = list(
                 set(ports_to_test).symmetric_difference(set(ports_to_skip))
             )
@@ -227,7 +224,7 @@ class SaradCluster(Generic[SI]):
                             test_instrument.family = family
                         break
                 except serial.serialutil.SerialException:
-                    logger().warning("Tested serial interface not available.")
+                    logger().error("%s not accessible.", port)
                 except OSError:
                     logger().critical("OSError -- exiting for a restart")
                     os._exit(1)  # pylint: disable=protected-access
@@ -237,7 +234,11 @@ class SaradCluster(Generic[SI]):
         )
         logger().debug("Connected instruments: %s", self.__connected_instruments)
         for instr in self.__connected_instruments:
-            instr.release_instrument()
+            try:
+                instr.release_instrument()
+            except serial.serialutil.SerialException:
+                logger().critical("Cannot release %s", instr.port)
+                raise
         return list(set(added_instruments))
 
     def dump(self, file: IO[bytes]) -> None:
@@ -253,7 +254,7 @@ class SaradCluster(Generic[SI]):
         3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
         if sys.platform.startswith("win"):
-            ports = [f"COM{(i + 1) for i in range(256)}"]
+            ports = [f"COM{i + 1}" for i in range(256)]
             result = []
             for port in ports:
                 try:

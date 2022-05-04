@@ -819,16 +819,36 @@ class SaradInst(Generic[SI]):
 
     def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
         """Returns the raw bytestring of the instruments reply"""
+
+        def _open_serial():
+            retry = True
+            for _i in range(0, 2):
+                while retry:
+                    try:
+                        ser = Serial(
+                            self._port,
+                            self._family["baudrate"],
+                            bytesize=8,
+                            xonxoff=0,
+                            parity=self._family["parity"],
+                            rtscts=0,
+                            stopbits=STOPBITS_ONE,
+                        )
+                        retry = False
+                    except BlockingIOError as exception:
+                        logger().error(
+                            "%s. Waiting 2 s and retrying to connect.", exception
+                        )
+                        time.sleep(2)
+                    except Exception as exception:  # pylint: disable=broad-except
+                        logger().critical(exception)
+                        raise
+            if retry:
+                raise BlockingIOError
+            return ser
+
         if not keep:
-            ser = Serial(
-                self._port,
-                self._family["baudrate"],
-                bytesize=8,
-                xonxoff=0,
-                parity=self._family["parity"],
-                rtscts=0,
-                stopbits=STOPBITS_ONE,
-            )
+            ser = _open_serial()
             time.sleep(0.5)
             logger().debug("Open serial, don't keep.")
         else:
@@ -846,16 +866,7 @@ class SaradInst(Generic[SI]):
                     )
                     self.__ser = None
             if self.__ser is None:
-                ser = Serial(
-                    self._port,
-                    self._family["baudrate"],
-                    bytesize=8,
-                    xonxoff=0,
-                    parity=self._family["parity"],
-                    rtscts=0,
-                    stopbits=STOPBITS_ONE,
-                    exclusive=True,
-                )
+                ser = _open_serial()
                 logger().debug("Open serial")
                 time.sleep(0.5)
         ser.timeout = timeout

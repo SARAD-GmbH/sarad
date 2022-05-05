@@ -190,6 +190,13 @@ class SaradCluster(Generic[SI]):
         logger().debug("%d port(s) to test: %s", len(ports_to_test), ports_to_test)
         # We check every port in ports_to_test and try for a connected SARAD instrument.
         for port in ports_to_test:
+            # remove an instrument maybe preexisting on this port
+            for instrument in self.__connected_instruments:
+                if instrument.port == port:
+                    logger().debug(
+                        "Remove %s on %s from instrument list", instrument, port
+                    )
+                    self.__connected_instruments.remove(instrument)
             for family in reversed(SaradInst.products):
                 if family["family_id"] == 1:
                     family_class: Any = DosemanInst

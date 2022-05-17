@@ -525,10 +525,12 @@ class SaradInst(Generic[SI]):
             raw: The raw byte string from _get_transparent_reply.
         """
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-        if answer == b"":
+        retry_counter = 5
+        while (answer == b"") and retry_counter:
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
-            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+            retry_counter = retry_counter - 1
         checked_answer = self._check_message(answer, False)
         return {
             "is_valid": checked_answer["is_valid"],

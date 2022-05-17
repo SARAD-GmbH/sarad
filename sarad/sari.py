@@ -507,7 +507,7 @@ class SaradInst(Generic[SI]):
             "raw": answer,
         }
 
-    def get_message_payload(self, message: bytes, timeout: float) -> CheckedAnswerDict:
+    def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
 
         Args:
@@ -539,7 +539,7 @@ class SaradInst(Generic[SI]):
             "raw": answer,
         }
 
-    def get_next_payload(self, timeout: int) -> CheckedAnswerDict:
+    def get_next_payload(self, timeout=0.1) -> CheckedAnswerDict:
         """Delivers a follow-up B-E frame without sending a command to the instr.
 
         Only for multi B-E frame replies (CMD_GetSumSpectrum (\x60) and

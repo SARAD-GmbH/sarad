@@ -160,6 +160,10 @@ class SaradCluster(Generic[SI]):
                 and add newly detected instruments to self.__connected_instruments.
                 If no instrument can be found on one of the ports, the instrument
                 will be removed from self.__connected_instruments.
+            ports_to_skip (List[str]): list of serial device ids that shall be skipped.
+                The difference between ports_to_test and ports_to_skip
+                gives the list of ports that will be used
+                to look for newly connected instruments.
 
         Returns:
             List of instruments added to self.__connected_instruments.
@@ -189,7 +193,7 @@ class SaradCluster(Generic[SI]):
         added_instruments = []
         logger().debug("%d port(s) to test: %s", len(ports_to_test), ports_to_test)
         # We check every port in ports_to_test and try for a connected SARAD instrument.
-        for port in ports_to_test:
+        for port in reversed(ports_to_test):
             # remove an instrument maybe preexisting on this port
             for instrument in self.__connected_instruments:
                 if instrument.port == port:

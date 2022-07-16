@@ -850,9 +850,9 @@ class SaradInst(Generic[SI]):
             return ser
 
         if not keep:
+            logger().debug("Open serial, don't keep.")
             ser = _open_serial()
             time.sleep(0.5)
-            logger().debug("Open serial, don't keep.")
         else:
             if self.__ser is not None:
                 try:
@@ -868,8 +868,8 @@ class SaradInst(Generic[SI]):
                     )
                     self.__ser = None
             if self.__ser is None:
-                ser = _open_serial()
                 logger().debug("Open serial")
+                ser = _open_serial()
                 time.sleep(0.5)
         ser.timeout = timeout
         ser.inter_byte_timeout = timeout
@@ -903,7 +903,7 @@ class SaradInst(Generic[SI]):
         """Stop measurement cycle.  Place holder for subclasses."""
 
     def set_real_time_clock(self, date_time: datetime) -> bool:
-        # pylint: disable=no-self-use, unused-argument
+        # pylint: disable=unused-argument
         """Set RTC of instrument to datetime.  Place holder for subclasses."""
         return False
 

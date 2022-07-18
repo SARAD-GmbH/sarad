@@ -826,6 +826,7 @@ class SaradInst(Generic[SI]):
             retry = True
             for _i in range(0, 2):
                 while retry:
+                    perf_time_0 = perf_counter()
                     try:
                         ser = Serial(
                             self._port,
@@ -845,6 +846,11 @@ class SaradInst(Generic[SI]):
                     except Exception as exception:  # pylint: disable=broad-except
                         logger().critical(exception)
                         raise
+                    perf_time_1 = perf_counter()
+                    logger().debug(
+                        "Creating serial interface took me %f s",
+                        perf_time_1 - perf_time_0,
+                    )
             if retry:
                 raise BlockingIOError
             return ser
@@ -854,6 +860,7 @@ class SaradInst(Generic[SI]):
                 logger().debug("Open serial")
                 ser = _open_serial()
                 time.sleep(0.5)
+                logger().debug("Serial ready")
             else:
                 try:
                     ser = self.__ser

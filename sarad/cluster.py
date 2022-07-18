@@ -264,7 +264,8 @@ class SaradCluster(Generic[SI]):
         2. via their built in FT232R USB-serial converter
         3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
         4. via the SARAD ZigBee coordinator with FT232R"""
-        if sys.platform.startswith("win"):
+        if False:
+        # if sys.platform.startswith("win"):
             ports = [f"COM{i + 1}" for i in range(256)]
             result = []
             for port in ports:

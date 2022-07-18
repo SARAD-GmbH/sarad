@@ -849,12 +849,12 @@ class SaradInst(Generic[SI]):
                 raise BlockingIOError
             return ser
 
-        if not keep:
-            ser = _open_serial()
-            time.sleep(0.5)
-            logger().debug("Open serial, don't keep.")
-        else:
-            if self.__ser is not None:
+        if keep:
+            if self.__ser is None:
+                logger().debug("Open serial")
+                ser = _open_serial()
+                time.sleep(0.5)
+            else:
                 try:
                     ser = self.__ser
                     if not ser.is_open:
@@ -867,10 +867,11 @@ class SaradInst(Generic[SI]):
                         "Something went wrong with reopening -> Re-initialize"
                     )
                     self.__ser = None
-            if self.__ser is None:
-                ser = _open_serial()
-                logger().debug("Open serial")
-                time.sleep(0.5)
+        else:
+            logger().debug("Open serial, don't keep.")
+            ser = _open_serial()
+            time.sleep(0.5)
+
         ser.timeout = timeout
         ser.inter_byte_timeout = timeout
         perf_time_0 = perf_counter()

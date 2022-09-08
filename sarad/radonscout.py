@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from overrides import overrides  # type: ignore
 
-from sarad.sari import Component, Measurand, Route, SaradInst, Sensor, logger
+from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
 
 
 class RscInst(SaradInst):
@@ -32,14 +32,9 @@ class RscInst(SaradInst):
 
     version = "0.1"
 
-    def __init__(
-        self,
-        route=Route(port=None, rs485_address=None, zigbee_address=None),
-        family=None,
-    ):
-        if family is None:
-            family = SaradInst.products[1]
-        SaradInst.__init__(self, route, family)
+    @overrides
+    def __init__(self, family=SaradInst.products[1]):
+        super().__init__(family)
         self._last_sampling_time = None
         self.__alarm_level = None
         self.lock = None

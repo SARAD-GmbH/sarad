@@ -2,7 +2,7 @@
 
 from overrides import overrides  # type: ignore
 
-from sarad.sari import CheckedAnswerDict, Route, SaradInst, logger
+from sarad.sari import CheckedAnswerDict, SaradInst, logger
 
 
 class DosemanInst(SaradInst):
@@ -22,14 +22,9 @@ class DosemanInst(SaradInst):
 
     version = "0.2"
 
-    def __init__(
-        self,
-        route=Route(port=None, rs485_address=None, zigbee_address=None),
-        family=None,
-    ):
-        if family is None:
-            family = SaradInst.products[0]
-        SaradInst.__init__(self, route, family)
+    @overrides
+    def __init__(self, family=SaradInst.products[0]):
+        super().__init__(family)
         self._last_sampling_time = None
 
     @overrides

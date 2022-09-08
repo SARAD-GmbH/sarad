@@ -1240,5 +1240,4 @@
         - measurand_id: 3
           measurand_name: maximum
           measurand_unit: Bq/m³
-  - type_id: 200
-    type_name: NETmonitors Coordinator
+  - {type_id: 200, type_name: NETmonitors Coordinator}

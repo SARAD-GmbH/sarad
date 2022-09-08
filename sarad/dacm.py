@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
 
-from sarad.sari import Component, Measurand, Route, SaradInst, Sensor, logger
+from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
 
 
 class DacmInst(SaradInst):
@@ -31,14 +31,9 @@ class DacmInst(SaradInst):
 
     version = "0.2"
 
-    def __init__(
-        self,
-        route=Route(port=None, rs485_address=None, zigbee_address=None),
-        family=None,
-    ):
-        if family is None:
-            family = SaradInst.products[2]
-        SaradInst.__init__(self, route, family)
+    @overrides
+    def __init__(self, family=SaradInst.products[2]):
+        super().__init__(family)
         self._date_of_manufacture = None
         self._date_of_update = None
         self._module_blocksize = None
@@ -558,4 +553,9 @@ class DacmInst(SaradInst):
     @property
     def type_name(self) -> str:
         """Return the device type name."""
+        if self.module_name is None:
+            for type_in_family in self.family["types"]:
+                if type_in_family["type_id"] == self.type_id:
+                    return type_in_family["type_name"]
+            return "unknown"
         return self.module_name

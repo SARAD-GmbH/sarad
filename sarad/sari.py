@@ -420,17 +420,12 @@ class SaradInst(Generic[SI]):
     ) as __f:
         products = yaml.safe_load(__f)
 
-    def __init__(
-        self: SI,
-        route=Route(port=None, rs485_address=None, zigbee_address=None),
-        family=None,
-    ) -> None:
-        self._route: Route = route
+    def __init__(self: SI, family: FamilyDict) -> None:
+        self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
         self._family: FamilyDict = family
         self.__ser = None
         self.__components: Collection[Component] = []
         self._type_id: int = 0
-        self._type_name: str = ""
         self._software_version: int = 0
         self._serial_number: int = 0
         self.signal = self.Signal.OFF
@@ -441,8 +436,6 @@ class SaradInst(Generic[SI]):
         self.lock = self.Lock.UNLOCKED
         self.__id: str = ""
         self._valid_family = True
-        if (route.port is not None) and (family is not None):
-            self._initialize()
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)

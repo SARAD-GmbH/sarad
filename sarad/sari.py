@@ -7,6 +7,7 @@ import logging
 import os
 import struct
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from time import perf_counter, sleep
@@ -28,6 +29,24 @@ def logger():
 
 
 SI = TypeVar("SI", bound="SaradInst")
+
+
+@dataclass
+class Route:
+    """Class to store the route directing to a SaradInst. rs485_address and
+    zigbee_address are optional and may be None for the simple case that
+    SardInst is directly and exclusively connected to a serial port.
+
+    Args:
+        port (str): Name of the serial port
+        rs485_address (int): RS-485 bus address. None, if RS-485 addressing is not used.
+        zigbee_address (int): Address of instrument on NETmonitors coordinator.
+                              None, if ZigBee is not used.
+    """
+
+    port: Optional[str]
+    rs485_address: Optional[int]
+    zigbee_address: Optional[int]
 
 
 class MeasurandDict(TypedDict):
@@ -339,7 +358,8 @@ class SaradInst(Generic[SI]):
              of all SARAD products that cannot be gained from the instrument itself.
 
     Properties:
-        port: String containing the serial communication port
+        route: Route dataclass object containing the serial communication port,
+               RS-485 bus address and ZigBee address if applicable
         family: Device family of the instrument expected to be at this port
         device_id: Identifier for an individual instrument in a cluster
         type_id: Together with family, this Id identifys the instrument type.
@@ -349,7 +369,7 @@ class SaradInst(Generic[SI]):
         components: List of sensor or actor components
     """
 
-    version = "1.0"
+    version = "2.0"
 
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
@@ -400,8 +420,12 @@ class SaradInst(Generic[SI]):
     ) as __f:
         products = yaml.safe_load(__f)
 
-    def __init__(self: SI, port=None, family=None) -> None:
-        self._port: str = port
+    def __init__(
+        self: SI,
+        route=Route(port=None, rs485_address=None, zigbee_address=None),
+        family=None,
+    ) -> None:
+        self._route: Route = route
         self._family: FamilyDict = family
         self.__ser = None
         self.__components: Collection[Component] = []
@@ -417,7 +441,7 @@ class SaradInst(Generic[SI]):
         self.lock = self.Lock.UNLOCKED
         self.__id: str = ""
         self._valid_family = True
-        if (port is not None) and (family is not None):
+        if (route.port is not None) and (family is not None):
             self._initialize()
 
     def __iter__(self) -> Iterator[Component]:
@@ -829,7 +853,7 @@ class SaradInst(Generic[SI]):
                     perf_time_0 = perf_counter()
                     try:
                         ser = Serial(
-                            self._port,
+                            self._route.port,
                             self._family["baudrate"],
                             bytesize=8,
                             xonxoff=0,
@@ -911,20 +935,20 @@ class SaradInst(Generic[SI]):
         """Stop measurement cycle.  Place holder for subclasses."""
 
     def set_real_time_clock(self, date_time: datetime) -> bool:
-        # pylint: disable=no-self-use, unused-argument
+        # pylint: disable= unused-argument
         """Set RTC of instrument to datetime.  Place holder for subclasses."""
         return False
 
     @property
-    def port(self) -> str:
+    def port(self) -> Optional[str]:
         """Return serial port."""
-        return self._port
+        return self._route.port
 
     @port.setter
     def port(self, port: str):
         """Set serial port."""
-        self._port = port
-        if (self.port is not None) and (self.family is not None):
+        self._route.port = port
+        if (self._route.port is not None) and (self._family is not None):
             self._initialize()
 
     @property
@@ -946,7 +970,7 @@ class SaradInst(Generic[SI]):
     def family(self, family: FamilyDict):
         """Set the instrument family."""
         self._family = family
-        if (self.port is not None) and (self.family is not None):
+        if (self._route.port is not None) and (self._family is not None):
             self._initialize()
 
     @property

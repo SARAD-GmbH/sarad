@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
 
-from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
+from sarad.sari import Component, Measurand, Route, SaradInst, Sensor, logger
 
 
 class DacmInst(SaradInst):
@@ -29,12 +29,16 @@ class DacmInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
-    version = "0.1"
+    version = "0.2"
 
-    def __init__(self, port=None, family=None):
+    def __init__(
+        self,
+        route=Route(port=None, rs485_address=None, zigbee_address=None),
+        family=None,
+    ):
         if family is None:
             family = SaradInst.products[2]
-        SaradInst.__init__(self, port, family)
+        SaradInst.__init__(self, route, family)
         self._date_of_manufacture = None
         self._date_of_update = None
         self._module_blocksize = None

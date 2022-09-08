@@ -46,6 +46,7 @@
   - {type_id: 4, type_name: RTM 1688}
   - {type_id: 5, type_name: Analog Radon Sensor}
   - {type_id: 6, type_name: Analog Progeny Sensor}
+  - {type_id: 200, type_name: NETmonitors Coordinator}
 - family_id: 2
   family_name: Radon Scout family
   family_class: RscInst
@@ -1239,3 +1240,5 @@
         - measurand_id: 3
           measurand_name: maximum
           measurand_unit: Bq/m³
+  - type_id: 200
+    type_name: NETmonitors Coordinator

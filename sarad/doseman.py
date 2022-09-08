@@ -2,7 +2,7 @@
 
 from overrides import overrides  # type: ignore
 
-from sarad.sari import CheckedAnswerDict, SaradInst, logger
+from sarad.sari import CheckedAnswerDict, Route, SaradInst, logger
 
 
 class DosemanInst(SaradInst):
@@ -20,16 +20,20 @@ class DosemanInst(SaradInst):
     Inherited Public methods:
         get_reply()"""
 
-    version = "0.1"
+    version = "0.2"
 
-    def __init__(self, port=None, family=None):
+    def __init__(
+        self,
+        route=Route(port=None, rs485_address=None, zigbee_address=None),
+        family=None,
+    ):
         if family is None:
             family = SaradInst.products[0]
-        SaradInst.__init__(self, port, family)
+        SaradInst.__init__(self, route, family)
         self._last_sampling_time = None
 
     @overrides
-    def get_message_payload(self, message, timeout) -> CheckedAnswerDict:
+    def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
 
         Args:

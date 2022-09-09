@@ -16,7 +16,7 @@ from hashids import Hashids  # type: ignore
 from sarad.dacm import DacmInst
 from sarad.doseman import DosemanInst
 from sarad.radonscout import RscInst
-from sarad.sari import SI, SaradInst
+from sarad.sari import SI, Route, SaradInst
 
 _LOGGER = None
 
@@ -50,15 +50,15 @@ class SaradCluster(Generic[SI]):
     version: str = "3.0"
 
     @staticmethod
-    def get_instrument(device_id, port) -> Optional[SI]:
+    def get_instrument(device_id, route: Route) -> Optional[SaradInst]:
         """Get the instrument object for an instrument
-        with know device_id that is connected to a known port
+        with know device_id that can be reached over a known route
 
         Args:
             device_id (str): device id of the instrument encoding
                 family, type and serial number
-            port (str): id of the serial device the instrument is
-                connected to
+            route (Route): serial interface, RS-485 address, ZigBee address
+                the instrument is connected to
 
         Returns:
             SaradInst object
@@ -86,7 +86,7 @@ class SaradCluster(Generic[SI]):
         instrument = family_class()
         instrument.device_id = device_id
         instrument.family = family
-        instrument.port = port
+        instrument.route = route
         return instrument
 
     def __init__(
@@ -101,10 +101,10 @@ class SaradCluster(Generic[SI]):
             ignore_ports = []
         self.__ignore_ports = set(ignore_ports)
         self.__start_time = datetime.min
-        self.__connected_instruments: List[SI] = []
+        self.__connected_instruments: List[SaradInst] = []
         self.__active_ports: Set[str] = set()
 
-    def __iter__(self) -> Iterator[SI]:
+    def __iter__(self) -> Iterator[SaradInst]:
         return iter(self.__connected_instruments)
 
     def synchronize(self, cycles_dict: Dict[str, int]) -> bool:
@@ -153,16 +153,16 @@ class SaradCluster(Generic[SI]):
             ports_to_test: List of serial ports
 
         Returns:
-            List[SaradInst]: List of detected SARAD instruments
+            Set[SaradInst]: Set of detected SARAD instruments
         """
         hid = Hashids()
-        added_instruments = []
+        added_instruments = set()
         logger().debug("%d port(s) to test: %s", len(ports_to_test), ports_to_test)
         # We check every port in ports_to_test and try for a connected SARAD instrument.
         for port in reversed(ports_to_test):
             # remove an instrument maybe preexisting on this port
             for instrument in self.__connected_instruments:
-                if instrument.port == port:
+                if instrument.route.port == port:
                     logger().debug(
                         "Remove %s on %s from instrument list", instrument, port
                     )
@@ -180,7 +180,9 @@ class SaradCluster(Generic[SI]):
                 test_instrument.family = family
                 logger().debug("Testing port %s for %s.", port, family["family_name"])
                 try:
-                    test_instrument.port = port
+                    test_instrument.route = Route(
+                        port=port, rs485_address=None, zigbee_address=None
+                    )
                     if not test_instrument.valid_family:
                         continue
                     if test_instrument.type_id and test_instrument.serial_number:
@@ -195,7 +197,7 @@ class SaradCluster(Generic[SI]):
                             test_instrument.family["family_name"],
                             port,
                         )
-                        added_instruments.append(test_instrument)
+                        added_instruments.add(test_instrument)
                         if (ports_to_test.index(port) + 1) < len(ports_to_test):
                             test_instrument = family_class()
                             test_instrument.family = family
@@ -207,9 +209,85 @@ class SaradCluster(Generic[SI]):
                     os._exit(1)  # pylint: disable=protected-access
         return added_instruments
 
+    def _test_rs485(self, ports_to_test):
+        """Take a list of ports and test them for SARAD instruments connected
+        via addressable RS-485.
+
+        Args:
+            ports_to_test: List of serial ports
+
+        Returns:
+            Set[SaradInst]: Set of detected SARAD instruments
+
+        """
+        hid = Hashids()
+        added_instruments = set()
+        logger().debug("%d port(s) to test: %s", len(ports_to_test), ports_to_test)
+        # We check every port in ports_to_test and try for a connected SARAD instrument.
+        for port in reversed(ports_to_test):
+            for rs485_address in [0, 1]:
+                # remove an instrument maybe preexisting on this port
+                for instrument in self.__connected_instruments:
+                    if instrument.route.port == port:
+                        logger().debug(
+                            "Remove %s on %s from instrument list", instrument, port
+                        )
+                        self.__connected_instruments.remove(instrument)
+                for family in reversed(SaradInst.products):
+                    if family["family_id"] == 1:
+                        family_class: Any = DosemanInst
+                    elif family["family_id"] == 2:
+                        family_class = RscInst
+                    elif family["family_id"] == 5:
+                        family_class = DacmInst
+                    else:
+                        continue
+                    test_instrument = family_class()
+                    test_instrument.family = family
+                    logger().debug(
+                        "Testing port %s for %s.", port, family["family_name"]
+                    )
+                    try:
+                        test_instrument.route = Route(
+                            port=port, rs485_address=rs485_address, zigbee_address=None
+                        )
+                        if not test_instrument.valid_family:
+                            continue
+                        if test_instrument.type_id and test_instrument.serial_number:
+                            device_id = hid.encode(
+                                test_instrument.family["family_id"],
+                                test_instrument.type_id,
+                                test_instrument.serial_number,
+                            )
+                            test_instrument.device_id = device_id
+                            logger().debug(
+                                "%s found on port %s.",
+                                test_instrument.family["family_name"],
+                                port,
+                            )
+                            added_instruments.add(test_instrument)
+                            if (ports_to_test.index(port) + 1) < len(ports_to_test):
+                                test_instrument = family_class()
+                                test_instrument.family = family
+                            break
+                    except serial.serialutil.SerialException:
+                        logger().error("%s not accessible.", port)
+                    except OSError:
+                        logger().critical("OSError -- exiting for a restart")
+                        os._exit(1)  # pylint: disable=protected-access
+        return added_instruments
+
+    def _remove_occupied_ports(self, ports_to_test, active_instruments):
+        """Return a new list of ports_to_test where all ports of
+        active_instruments are removed."""
+        active_ports = []
+        for instrument in active_instruments:
+            active_ports.append(instrument.route.port)
+        return list(set(ports_to_test).difference(set(active_ports)))
+
     def update_connected_instruments(
         self, ports_to_test=None, ports_to_skip=None
-    ) -> List[SI]:
+    ) -> List[SaradInst]:
         """Update the list of connected instruments
         in self.__connected_instruments and return this list.
 
@@ -232,12 +310,12 @@ class SaradCluster(Generic[SI]):
         logger().debug("[update_connected_instruments]")
         if ports_to_test is None:
             ports_to_test = self.active_ports
-            connected_instruments = []
+            connected_instruments = set()
         else:
-            connected_instruments = self.__connected_instruments
+            connected_instruments = set(self.__connected_instruments)
             logger().debug("Already connected: %s", connected_instruments)
         if ports_to_skip is not None:
-            connected_instruments = self.__connected_instruments
+            connected_instruments = set(self.__connected_instruments)
             logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
             ports_to_test = list(
                 set(ports_to_test).symmetric_difference(set(ports_to_skip))
@@ -250,18 +328,27 @@ class SaradCluster(Generic[SI]):
                 )
                 return []
         added_instruments = self._test_ports(ports_to_test)
+        ports_to_test = self._remove_occupied_ports(ports_to_test, added_instruments)
+        lagged_instruments = self._test_ports(ports_to_test)
+        added_instruments = added_instruments.union(lagged_instruments)
+        ports_to_test_for_rs485 = self._remove_occupied_ports(
+            ports_to_test, added_instruments
+        )
+        added_rs485_instruments = self._test_rs485(ports_to_test_for_rs485)
         # remove duplicates
         self.__connected_instruments = list(
-            set(added_instruments).union(set(connected_instruments))
+            added_instruments.union(connected_instruments).union(
+                added_rs485_instruments
+            )
         )
         logger().debug("Connected instruments: %s", self.__connected_instruments)
-        for instr in self.__connected_instruments:
+        for instrument in self.__connected_instruments:
             try:
-                instr.release_instrument()
+                instrument.release_instrument()
             except serial.serialutil.SerialException:
-                logger().critical("Cannot release %s", instr.port)
+                logger().critical("Cannot release %s", instrument.route.port)
                 raise
-        return list(set(added_instruments))
+        return list(added_instruments)
 
     def dump(self, file: IO[bytes]) -> None:
         """Save the cluster information to a file."""
@@ -298,7 +385,7 @@ class SaradCluster(Generic[SI]):
         return list(self.__active_ports)
 
     @property
-    def connected_instruments(self) -> List[SI]:
+    def connected_instruments(self) -> List[SaradInst]:
         """Return list of connected instruments."""
         return self.__connected_instruments
 

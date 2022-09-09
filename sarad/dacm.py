@@ -502,7 +502,7 @@ class DacmInst(SaradInst):
     def set_address(self, address):
         """Set the address of the DACM module."""
         self._address = address
-        if (self.port is not None) and (self.address is not None):
+        if (self._route.port is not None) and (self.address is not None):
             self._initialize()
 
     def get_date_of_config(self):
@@ -512,7 +512,7 @@ class DacmInst(SaradInst):
     def set_date_of_config(self, date_of_config):
         """Set the date of the configuration."""
         self._date_of_config = date_of_config
-        if (self.port is not None) and (self.date_of_config is not None):
+        if (self._route.port is not None) and (self.date_of_config is not None):
             self._initialize()
 
     def get_module_name(self):
@@ -522,7 +522,7 @@ class DacmInst(SaradInst):
     def set_module_name(self, module_name):
         """Set the name of the DACM module."""
         self._module_name = module_name
-        if (self.port is not None) and (self.module_name is not None):
+        if (self._route.port is not None) and (self.module_name is not None):
             self._initialize()
 
     def get_config_name(self):
@@ -532,7 +532,7 @@ class DacmInst(SaradInst):
     def set_config_name(self, config_name):
         """Set the name of the configuration."""
         self._config_name = config_name
-        if (self.port is not None) and (self.config_name is not None):
+        if (self._route.port is not None) and (self.config_name is not None):
             self._initialize()
 
     def get_date_of_manufacture(self):

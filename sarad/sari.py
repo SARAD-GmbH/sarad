@@ -421,7 +421,7 @@ class SaradInst(Generic[SI]):
         products = yaml.safe_load(__f)
 
     def __init__(self: SI, family: FamilyDict) -> None:
-        self.route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
+        self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
         self._family: FamilyDict = family
         self.__ser = None
         self.__components: Collection[Component] = []
@@ -478,7 +478,7 @@ class SaradInst(Generic[SI]):
         else:
             output = (
                 b"b"
-                + bytes(self.route.rs485_address)
+                + bytes([self.route.rs485_address])
                 + bytes([control_byte])
                 + bytes([neg_control_byte])
                 + payload
@@ -674,7 +674,7 @@ class SaradInst(Generic[SI]):
     def __str__(self) -> str:
         output = (
             f"Id: {self.device_id}\n"
-            f"SerialDevice: {self.port}\n"
+            f"SerialDevice: {self._route.port}\n"
             f"Baudrate: {self.family['baudrate']}\n"
             f"FamilyName: {self.family['family_name']}\n"
             f"FamilyId: {self.family['family_id']}\n"
@@ -1017,15 +1017,15 @@ class SaradInst(Generic[SI]):
         return False
 
     @property
-    def port(self) -> Optional[str]:
-        """Return serial port."""
-        return self.route.port
+    def route(self) -> Route:
+        """Return route to instrument (ser. port, RS-485 address, ZigBee address)."""
+        return self._route
 
-    @port.setter
-    def port(self, port: str):
-        """Set serial port."""
-        self.route.port = port
-        if (self.route.port is not None) and (self._family is not None):
+    @route.setter
+    def route(self, route: Route):
+        """Set route to instrument."""
+        self._route = route
+        if (self._route.port is not None) and (self._family is not None):
             self._initialize()
 
     @property

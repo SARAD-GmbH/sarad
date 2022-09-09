@@ -146,49 +146,16 @@ class SaradCluster(Generic[SI]):
                 raise
         return True
 
-    def update_connected_instruments(
-        self, ports_to_test=None, ports_to_skip=None
-    ) -> List[SI]:
-        """Update the list of connected instruments
-        in self.__connected_instruments and return this list.
+    def _test_ports(self, ports_to_test):
+        """Take a list of ports and test them for connected SARAD instruments.
 
         Args:
-            ports_to_test (List[str]): list of serial device ids to test.
-                If None, the function will test all serial devices in self.active_ports.
-                If given, the function will test serial devices in ports_to_test
-                and add newly detected instruments to self.__connected_instruments.
-                If no instrument can be found on one of the ports, the instrument
-                will be removed from self.__connected_instruments.
-            ports_to_skip (List[str]): list of serial device ids that shall be skipped.
-                The difference between ports_to_test and ports_to_skip
-                gives the list of ports that will be used
-                to look for newly connected instruments.
+            ports_to_test: List of serial ports
 
         Returns:
-            List of instruments added to self.__connected_instruments.
-            [] if instruments have been removed.
+            List[SaradInst]: List of detected SARAD instruments
         """
-        logger().debug("[update_connected_instruments]")
         hid = Hashids()
-        if ports_to_test is None:
-            ports_to_test = self.active_ports
-            connected_instruments = []
-        else:
-            connected_instruments = self.__connected_instruments
-            logger().debug("Already connected: %s", connected_instruments)
-        if ports_to_skip is not None:
-            connected_instruments = self.__connected_instruments
-            logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
-            ports_to_test = list(
-                set(ports_to_test).symmetric_difference(set(ports_to_skip))
-            )
-            logger().debug("Symmetric difference: %s", ports_to_test)
-            if not ports_to_test:
-                logger().warning(
-                    "Nothing to do. "
-                    "Set of serial ports to skip is equal to set of active ports."
-                )
-                return []
         added_instruments = []
         logger().debug("%d port(s) to test: %s", len(ports_to_test), ports_to_test)
         # We check every port in ports_to_test and try for a connected SARAD instrument.
@@ -238,6 +205,51 @@ class SaradCluster(Generic[SI]):
                 except OSError:
                     logger().critical("OSError -- exiting for a restart")
                     os._exit(1)  # pylint: disable=protected-access
+        return added_instruments
+
+    def update_connected_instruments(
+        self, ports_to_test=None, ports_to_skip=None
+    ) -> List[SI]:
+        """Update the list of connected instruments
+        in self.__connected_instruments and return this list.
+
+        Args:
+            ports_to_test (List[str]): list of serial device ids to test.
+                If None, the function will test all serial devices in self.active_ports.
+                If given, the function will test serial devices in ports_to_test
+                and add newly detected instruments to self.__connected_instruments.
+                If no instrument can be found on one of the ports, the instrument
+                will be removed from self.__connected_instruments.
+            ports_to_skip (List[str]): list of serial device ids that shall be skipped.
+                The difference between ports_to_test and ports_to_skip
+                gives the list of ports that will be used
+                to look for newly connected instruments.
+
+        Returns:
+            List of instruments added to self.__connected_instruments.
+            [] if instruments have been removed.
+        """
+        logger().debug("[update_connected_instruments]")
+        if ports_to_test is None:
+            ports_to_test = self.active_ports
+            connected_instruments = []
+        else:
+            connected_instruments = self.__connected_instruments
+            logger().debug("Already connected: %s", connected_instruments)
+        if ports_to_skip is not None:
+            connected_instruments = self.__connected_instruments
+            logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
+            ports_to_test = list(
+                set(ports_to_test).symmetric_difference(set(ports_to_skip))
+            )
+            logger().debug("Symmetric difference: %s", ports_to_test)
+            if not ports_to_test:
+                logger().warning(
+                    "Nothing to do. "
+                    "Set of serial ports to skip is equal to set of active ports."
+                )
+                return []
+        added_instruments = self._test_ports(ports_to_test)
         # remove duplicates
         self.__connected_instruments = list(
             set(added_instruments).union(set(connected_instruments))

@@ -421,7 +421,7 @@ class SaradInst(Generic[SI]):
         products = yaml.safe_load(__f)
 
     def __init__(self: SI, family: FamilyDict) -> None:
-        self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
+        self.route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
         self._family: FamilyDict = family
         self.__ser = None
         self.__components: Collection[Component] = []
@@ -436,6 +436,7 @@ class SaradInst(Generic[SI]):
         self.lock = self.Lock.UNLOCKED
         self.__id: str = ""
         self._valid_family = True
+        self._last_sampling_time = None
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -450,8 +451,7 @@ class SaradInst(Generic[SI]):
             return other == self.device_id
         return False
 
-    @staticmethod
-    def _make_command_msg(cmd_data: List[bytes]) -> bytes:
+    def _make_command_msg(self, cmd_data: List[bytes]) -> bytes:
         """Encode the message to be sent to the SARAD instrument.
         Arguments are the one byte long command
         and the data bytes to be sent."""
@@ -466,14 +466,26 @@ class SaradInst(Generic[SI]):
         for byte in payload:
             checksum = checksum + byte
         checksum_bytes = (checksum).to_bytes(2, byteorder="little")
-        output = (
-            b"B"
-            + bytes([control_byte])
-            + bytes([neg_control_byte])
-            + payload
-            + checksum_bytes
-            + b"E"
-        )
+        if self.route.rs485_address is None:
+            output = (
+                b"B"
+                + bytes([control_byte])
+                + bytes([neg_control_byte])
+                + payload
+                + checksum_bytes
+                + b"E"
+            )
+        else:
+            output = (
+                b"b"
+                + bytes(self.route.rs485_address)
+                + bytes([control_byte])
+                + bytes([neg_control_byte])
+                + payload
+                + checksum_bytes
+                + b"E"
+            )
+
         return output
 
     @staticmethod
@@ -524,6 +536,58 @@ class SaradInst(Generic[SI]):
             "raw": answer,
         }
 
+    @staticmethod
+    def _check_rs485_message(
+        answer: bytes, multiframe: bool, rs485_address
+    ) -> CheckedAnswerDict:
+        # pylint: disable=too-many-locals
+        """Returns a dictionary of:
+        is_valid: True if answer is valid, False otherwise
+        is_control_message: True if control message
+        payload: Payload of answer
+        number_of_bytes_in_payload
+        """
+        logger().debug("Checking answer from serial port:")
+        logger().debug("Raw answer: %s", answer)
+        if answer.startswith(b"b") and answer.endswith(b"E"):
+            address_ok = bool(answer[1] == rs485_address)
+            control_byte = answer[2]
+            control_byte_ok = bool((control_byte ^ 0xFF) == answer[3])
+            number_of_bytes_in_payload = (control_byte & 0x7F) + 1
+            is_control = bool(control_byte & 0x80)
+            logger().debug("Status byte: %s", answer[4])
+            payload = answer[4 : 4 + number_of_bytes_in_payload]
+            calculated_checksum = 0
+            for byte in payload:
+                calculated_checksum = calculated_checksum + byte
+            received_checksum_bytes = answer[
+                4 + number_of_bytes_in_payload : 6 + number_of_bytes_in_payload
+            ]
+            received_checksum = int.from_bytes(
+                received_checksum_bytes, byteorder="little", signed=False
+            )
+            checksum_ok = bool(received_checksum == calculated_checksum)
+            is_valid = bool(control_byte_ok and checksum_ok and address_ok)
+        else:
+            logger().debug("Invalid b-E frame")
+            is_valid = False
+        if not is_valid:
+            is_control = False
+            payload = b""
+            number_of_bytes_in_payload = 0
+        # is_rend is True if that this is the last frame of a multiframe reply
+        # (DOSEman data download)
+        is_rend = bool(is_valid and is_control and (payload == b"\x04"))
+        logger().debug("Payload: %s", payload)
+        return {
+            "is_valid": is_valid,
+            "is_control": is_control,
+            "is_last_frame": (not multiframe) or is_rend,
+            "payload": payload,
+            "number_of_bytes_in_payload": number_of_bytes_in_payload,
+            "raw": answer,
+        }
+
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
 
@@ -548,7 +612,12 @@ class SaradInst(Generic[SI]):
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
             retry_counter = retry_counter - 1
-        checked_answer = self._check_message(answer, False)
+        if self.route.rs485_address is None:
+            checked_answer = self._check_message(answer, False)
+        else:
+            checked_answer = self._check_rs485_message(
+                answer, False, self.route.rs485_address
+            )
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],
@@ -587,7 +656,12 @@ class SaradInst(Generic[SI]):
                 "number_of_bytes_in_payload": 0,
                 "raw": answer,
             }
-        checked_answer = self._check_message(answer, True)
+        if self.route.rs485_address is None:
+            checked_answer = self._check_message(answer, True)
+        else:
+            checked_answer = self._check_rs485_message(
+                answer, True, self.route.rs485_address
+            )
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],
@@ -749,13 +823,19 @@ class SaradInst(Generic[SI]):
         return False
 
     def _get_control_bytes(self, serial):
-        """Read 3 Bytes from serial interface"""
+        """Read 3 or 4 Bytes from serial interface resp."""
+        if self.route.rs485_address is None:
+            offset = 3
+            start_byte = b"B"
+        else:
+            offset = 4
+            start_byte = b"b"
         perf_time_0 = perf_counter()
-        answer = serial.read(3)
+        answer = serial.read(offset)
         if answer:
-            while len(answer) < 3:
+            while len(answer) < offset:
                 sleep(0.1)
-                answer_left = serial.read(3 - len(answer))
+                answer_left = serial.read(offset - len(answer))
                 answer = answer + answer_left
         perf_time_1 = perf_counter()
         logger().debug(
@@ -763,7 +843,7 @@ class SaradInst(Generic[SI]):
             answer,
             perf_time_1 - perf_time_0,
         )
-        if not answer.startswith(b"B"):
+        if not answer.startswith(start_byte):
             if answer == b"":
                 logger().debug(
                     "No reply in _get_control_bytes(%s, %s)",
@@ -777,8 +857,8 @@ class SaradInst(Generic[SI]):
             )
             self._valid_family = False
             return b""
-        control_byte = answer[1]
-        neg_control_byte = answer[2]
+        control_byte = answer[-2]
+        neg_control_byte = answer[-1]
         if (control_byte ^ 0xFF) != neg_control_byte:
             logger().error("Message corrupted.")
             return answer
@@ -791,7 +871,7 @@ class SaradInst(Generic[SI]):
     def _get_payload_length(first_bytes):
         """Read 3 Bytes from serial interface
         to get the length of payload from the control byte."""
-        control_byte = first_bytes[1]
+        control_byte = first_bytes[-2]
         return (control_byte & 0x7F) + 1
 
     @staticmethod
@@ -817,12 +897,16 @@ class SaradInst(Generic[SI]):
         self.__ser = self._close_serial(self.__ser, False)
 
     def _get_be_frame(self, serial, keep):
-        """Get one Rx B-E frame"""
+        """Get one Rx B-E frame or one b-E frame resp."""
         first_bytes = self._get_control_bytes(serial)
         if first_bytes == b"":
             self.__ser = self._close_serial(serial, keep)
             return b""
-        number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
+        if self.route.rs485_address is None:
+            offset = 3
+        else:
+            offset = 4
+        number_of_remaining_bytes = self._get_payload_length(first_bytes) + offset
         logger().debug(
             "Expecting %d bytes at timeouts of %f %f",
             number_of_remaining_bytes,
@@ -846,7 +930,7 @@ class SaradInst(Generic[SI]):
                     perf_time_0 = perf_counter()
                     try:
                         ser = Serial(
-                            self._route.port,
+                            self.route.port,
                             self._family["baudrate"],
                             bytesize=8,
                             xonxoff=0,
@@ -935,13 +1019,13 @@ class SaradInst(Generic[SI]):
     @property
     def port(self) -> Optional[str]:
         """Return serial port."""
-        return self._route.port
+        return self.route.port
 
     @port.setter
     def port(self, port: str):
         """Set serial port."""
-        self._route.port = port
-        if (self._route.port is not None) and (self._family is not None):
+        self.route.port = port
+        if (self.route.port is not None) and (self._family is not None):
             self._initialize()
 
     @property
@@ -963,7 +1047,7 @@ class SaradInst(Generic[SI]):
     def family(self, family: FamilyDict):
         """Set the instrument family."""
         self._family = family
-        if (self._route.port is not None) and (self._family is not None):
+        if (self.route.port is not None) and (self._family is not None):
             self._initialize()
 
     @property

@@ -90,6 +90,7 @@ class CheckedAnswerDict(TypedDict):
     payload: bytes
     number_of_bytes_in_payload: int
     raw: bytes
+    standard_frame: bytes
 
 
 class Measurand:  # pylint: disable=too-many-instance-attributes
@@ -451,7 +452,8 @@ class SaradInst(Generic[SI]):
             return other == self.device_id
         return False
 
-    def _make_command_msg(self, cmd_data: List[bytes]) -> bytes:
+    @staticmethod
+    def _make_command_msg(cmd_data: List[bytes]) -> bytes:
         """Encode the message to be sent to the SARAD instrument.
         Arguments are the one byte long command
         and the data bytes to be sent."""
@@ -466,35 +468,23 @@ class SaradInst(Generic[SI]):
         for byte in payload:
             checksum = checksum + byte
         checksum_bytes = (checksum).to_bytes(2, byteorder="little")
-        if self.route.rs485_address is None:
-            output = (
-                b"B"
-                + bytes([control_byte])
-                + bytes([neg_control_byte])
-                + payload
-                + checksum_bytes
-                + b"E"
-            )
-        else:
-            output = (
-                b"b"
-                + bytes([self.route.rs485_address])
-                + bytes([control_byte])
-                + bytes([neg_control_byte])
-                + payload
-                + checksum_bytes
-                + b"E"
-            )
+        return (
+            b"B"
+            + bytes([control_byte])
+            + bytes([neg_control_byte])
+            + payload
+            + checksum_bytes
+            + b"E"
+        )
 
-        return output
-
-    @staticmethod
-    def _check_message(answer: bytes, multiframe: bool) -> CheckedAnswerDict:
-        # Returns a dictionary of:
-        #     is_valid: True if answer is valid, False otherwise
-        #     is_control_message: True if control message
-        #     payload: Payload of answer
-        #     number_of_bytes_in_payload
+    def _check_message(self, answer: bytes, multiframe: bool) -> CheckedAnswerDict:
+        # pylint: disable=too-many-locals
+        """Returns a dictionary of:
+        is_valid: True if answer is valid, False otherwise
+        is_control_message: True if control message
+        payload: Payload of answer
+        number_of_bytes_in_payload
+        """
         logger().debug("Checking answer from serial port:")
         logger().debug("Raw answer: %s", answer)
         if answer.startswith(b"B") and answer.endswith(b"E"):
@@ -534,11 +524,11 @@ class SaradInst(Generic[SI]):
             "payload": payload,
             "number_of_bytes_in_payload": number_of_bytes_in_payload,
             "raw": answer,
+            "standard_frame": self._rs485_filter(answer),
         }
 
-    @staticmethod
     def _check_rs485_message(
-        answer: bytes, multiframe: bool, rs485_address
+        self, answer: bytes, multiframe: bool, rs485_address
     ) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
         """Returns a dictionary of:
@@ -586,7 +576,26 @@ class SaradInst(Generic[SI]):
             "payload": payload,
             "number_of_bytes_in_payload": number_of_bytes_in_payload,
             "raw": answer,
+            "standard_frame": self._rs485_filter(answer),
         }
+
+    def _rs485_filter(self, frame):
+        """Convert an addressed RS-485 'b-E' frame into a normal 'B-E' frame
+        by simply replacing the first two bytes with 'B'."""
+        if self.route.rs485_address is None:
+            return frame
+        frame_list = list(frame)
+        frame_list[0:2] = [66]  # replace "bx\??" by "B"
+        return bytes(frame_list)
+
+    def _make_rs485(self, frame):
+        """Convert a normal 'B-E' frame into an addressed 'b-E' frame
+        for RS-485"""
+        if self.route.rs485_address is None:
+            return frame
+        frame_list = list(frame)
+        frame_list[0:1] = [98, self.route.rs485_address]  # replace "B by ""bx\??"
+        return bytes(frame_list)
 
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
@@ -605,6 +614,7 @@ class SaradInst(Generic[SI]):
             number_of_bytes_in_payload,
             raw: The raw byte string from _get_transparent_reply.
         """
+        message = self._make_rs485(message)
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         retry_counter = 5
         while (answer == b"") and retry_counter:
@@ -624,7 +634,8 @@ class SaradInst(Generic[SI]):
             "is_last_frame": checked_answer["is_last_frame"],
             "payload": checked_answer["payload"],
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
-            "raw": answer,
+            "raw": checked_answer["raw"],
+            "standard_frame": checked_answer["standard_frame"],
         }
 
     def get_next_payload(self, timeout=0.1) -> CheckedAnswerDict:
@@ -654,7 +665,8 @@ class SaradInst(Generic[SI]):
                 "is_last_frame": True,
                 "payload": b"",
                 "number_of_bytes_in_payload": 0,
-                "raw": answer,
+                "raw": b"",
+                "standard_frame": b"",
             }
         if self.route.rs485_address is None:
             checked_answer = self._check_message(answer, True)
@@ -668,7 +680,8 @@ class SaradInst(Generic[SI]):
             "is_last_frame": checked_answer["is_last_frame"],
             "payload": checked_answer["payload"],
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
-            "raw": answer,
+            "raw": checked_answer["raw"],
+            "standard_frame": checked_answer["standard_frame"],
         }
 
     def __str__(self) -> str:

@@ -1002,6 +1002,8 @@ class SaradInst(Generic[SI]):
             raw_cmd,
             perf_time_1 - perf_time_0,
         )
+        new_rs485_address = self._new_rs485_address(raw_cmd)
+        self.route.rs485_address = new_rs485_address
         sleep(self._family["wait_for_reply"])
         be_frame = self._get_be_frame(ser, True)
         answer = bytearray(be_frame)
@@ -1013,6 +1015,19 @@ class SaradInst(Generic[SI]):
         )
         self.__ser = self._close_serial(ser, keep)
         return bytes(answer)
+
+    def _new_rs485_address(self, raw_cmd):
+        # pylint: disable = unused-argument
+        """Check whether raw_cmd changed the RS-485 bus address of the Instrument.
+        This function must be overriden in the instrumen family dependent implementations.
+
+        Args:
+            raw_cmd (bytes): Command message to be analyzed.
+
+        Returns:
+            int: New bus address that shall be used to check the reply
+        """
+        return self.route.rs485_address
 
     def start_cycle(self, cycle_index: int) -> None:
         """Start measurement cycle.  Place holder for subclasses."""

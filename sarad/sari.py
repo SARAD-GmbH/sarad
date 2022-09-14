@@ -915,11 +915,7 @@ class SaradInst(Generic[SI]):
         if first_bytes == b"":
             self.__ser = self._close_serial(serial, keep)
             return b""
-        if self.route.rs485_address is None:
-            offset = 3
-        else:
-            offset = 4
-        number_of_remaining_bytes = self._get_payload_length(first_bytes) + offset
+        number_of_remaining_bytes = self._get_payload_length(first_bytes) + 3
         logger().debug(
             "Expecting %d bytes at timeouts of %f %f",
             number_of_remaining_bytes,

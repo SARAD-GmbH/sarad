@@ -49,6 +49,13 @@ class Route:
     zigbee_address: Optional[int]
 
 
+class CmdDict(TypedDict):
+    """Type declaration for the result of the analysis of a binary command message."""
+
+    cmd: bytes
+    data: bytes
+
+
 class MeasurandDict(TypedDict):
     # pylint: disable=inherit-non-class, too-few-public-methods
     """Type declaration for Measurand dictionary."""
@@ -477,6 +484,16 @@ class SaradInst(Generic[SI]):
             + b"E"
         )
 
+    @staticmethod
+    def _analyze_cmd_data(payload: bytes) -> CmdDict:
+        payload_list = list(payload)
+        logger().info("Analyzing %s", payload_list)
+        if len(payload_list) > 1:
+            data = bytes(payload_list[1:])
+        else:
+            data = b""
+        return {"cmd": bytes(payload_list[0:1]), "data": data}
+
     def _check_message(self, answer: bytes, multiframe: bool) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
         """Returns a dictionary of:
@@ -487,6 +504,13 @@ class SaradInst(Generic[SI]):
         """
         logger().debug("Checking answer from serial port:")
         logger().debug("Raw answer: %s", answer)
+        if self._route.rs485_address is None:
+            return self._check_standard_message(answer, multiframe)
+        return self._check_rs485_message(answer, multiframe, self._route.rs485_address)
+
+    def _check_standard_message(
+        self, answer: bytes, multiframe: bool
+    ) -> CheckedAnswerDict:
         if answer.startswith(b"B") and answer.endswith(b"E"):
             control_byte = answer[1]
             control_byte_ok = bool((control_byte ^ 0xFF) == answer[2])
@@ -537,8 +561,6 @@ class SaradInst(Generic[SI]):
         payload: Payload of answer
         number_of_bytes_in_payload
         """
-        logger().debug("Checking answer from serial port:")
-        logger().debug("Raw answer: %s", answer)
         if answer.startswith(b"b") and answer.endswith(b"E"):
             address_ok = bool(answer[1] == rs485_address)
             control_byte = answer[2]
@@ -622,12 +644,7 @@ class SaradInst(Generic[SI]):
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
             retry_counter = retry_counter - 1
-        if self.route.rs485_address is None:
-            checked_answer = self._check_message(answer, False)
-        else:
-            checked_answer = self._check_rs485_message(
-                answer, False, self.route.rs485_address
-            )
+        checked_answer = self._check_message(answer, False)
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],
@@ -668,12 +685,7 @@ class SaradInst(Generic[SI]):
                 "raw": b"",
                 "standard_frame": b"",
             }
-        if self.route.rs485_address is None:
-            checked_answer = self._check_message(answer, True)
-        else:
-            checked_answer = self._check_rs485_message(
-                answer, True, self.route.rs485_address
-            )
+        checked_answer = self._check_message(answer, True)
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],
@@ -1002,8 +1014,7 @@ class SaradInst(Generic[SI]):
             raw_cmd,
             perf_time_1 - perf_time_0,
         )
-        new_rs485_address = self._new_rs485_address(raw_cmd)
-        self.route.rs485_address = new_rs485_address
+        self._new_rs485_address(raw_cmd)
         sleep(self._family["wait_for_reply"])
         be_frame = self._get_be_frame(ser, True)
         answer = bytearray(be_frame)
@@ -1019,15 +1030,12 @@ class SaradInst(Generic[SI]):
     def _new_rs485_address(self, raw_cmd):
         # pylint: disable = unused-argument
         """Check whether raw_cmd changed the RS-485 bus address of the Instrument.
+        If this is the case, self._route will be changed.
         This function must be overriden in the instrumen family dependent implementations.
 
         Args:
             raw_cmd (bytes): Command message to be analyzed.
-
-        Returns:
-            int: New bus address that shall be used to check the reply
         """
-        return self.route.rs485_address
 
     def start_cycle(self, cycle_index: int) -> None:
         """Start measurement cycle.  Place holder for subclasses."""

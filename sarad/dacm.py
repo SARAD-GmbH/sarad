@@ -45,7 +45,6 @@ class DacmInst(SaradInst):
         self._cycle_count_limit = None
         self._step_count_limit = None
         self._language = None
-        self._address = None
         self._date_of_config = None
         self._module_name = None
         self._config_name = None
@@ -155,7 +154,7 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get module information successful.")
             try:
-                self._address = reply[1]
+                self._route.rs485_address = reply[1]
                 config_day = reply[2]
                 config_month = reply[3]
                 config_year = int.from_bytes(reply[4:6], byteorder="big", signed=False)
@@ -392,6 +391,31 @@ class DacmInst(SaradInst):
             logger().error("DACM instrument replied with error code %s.", reply[1])
         return False
 
+    @overrides
+    def _new_rs485_address(self, raw_cmd):
+        """Check whether raw_cmd changed the RS-485 bus address of the instrument.
+        If this is the case, self._route will be changed.
+
+        Args:
+            raw_cmd (bytes): Command message to be analyzed.
+        """
+        cmd_dict = self._analyze_cmd_data(
+            payload=self._check_message(
+                answer=raw_cmd,
+                multiframe=False,
+            )["payload"]
+        )
+        logger().info("cmd_dict = %s", cmd_dict)
+        if cmd_dict["cmd"] == b"\x02":  # set_module_information
+            data_list = list(cmd_dict["data"])
+            old_rs485_address = self._route.rs485_address
+            self._route.rs485_address = data_list[0]
+            logger().info(
+                "Change RS-485 bus address from %d into %d",
+                old_rs485_address,
+                self._route.rs485_address,
+            )
+
     @staticmethod
     def set_lock():
         """Lock the hardware button or switch at the device.
@@ -497,12 +521,12 @@ class DacmInst(SaradInst):
 
     def get_address(self):
         """Return the address of the DACM module."""
-        return self._address
+        return self._route.rs485_address
 
     def set_address(self, address):
         """Set the address of the DACM module."""
-        self._address = address
-        if (self._route.port is not None) and (self.address is not None):
+        self.route.rs485_address = address
+        if (self._route.port is not None) and (self._route.rs485_address is not None):
             self._initialize()
 
     def get_date_of_config(self):

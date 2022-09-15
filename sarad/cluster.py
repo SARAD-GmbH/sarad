@@ -334,11 +334,10 @@ class SaradCluster(Generic[SI]):
         lagged_instruments = self._test_ports(ports_to_test)
         added_instruments = added_instruments.union(lagged_instruments)
         added_rs485_instruments = self._test_rs485()
+        added_instruments = added_instruments.union(added_rs485_instruments)
         # remove duplicates
         self.__connected_instruments = list(
-            added_instruments.union(connected_instruments).union(
-                added_rs485_instruments
-            )
+            added_instruments.union(connected_instruments)
         )
         logger().debug("Connected instruments: %s", self.__connected_instruments)
         for instrument in self.__connected_instruments:

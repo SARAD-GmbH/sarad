@@ -487,7 +487,7 @@ class SaradInst(Generic[SI]):
     @staticmethod
     def _analyze_cmd_data(payload: bytes) -> CmdDict:
         payload_list = list(payload)
-        logger().info("Analyzing %s", payload_list)
+        logger().debug("Analyzing %s", payload_list)
         if len(payload_list) > 1:
             data = bytes(payload_list[1:])
         else:

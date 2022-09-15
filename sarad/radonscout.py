@@ -60,7 +60,7 @@ class RscInst(SaradInst):
                 multiframe=False,
             )["payload"]
         )
-        logger().info("cmd_dict = %s", cmd_dict)
+        logger().debug("cmd_dict = %s", cmd_dict)
         if cmd_dict["cmd"] == b"\x09":  # C_SetParameter
             data_list = list(cmd_dict["data"])
             old_rs485_address = self._route.rs485_address

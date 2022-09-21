@@ -377,7 +377,7 @@ class SaradInst(Generic[SI]):
         components: List of sensor or actor components
     """
 
-    version = "2.0"
+    version = "3.0"
 
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
@@ -711,12 +711,12 @@ class SaradInst(Generic[SI]):
         return output
 
     def _initialize(self) -> None:
-        self._get_description()
+        self.get_description()
         if self._valid_family:
             self._build_component_list()
             self._last_sampling_time = None
 
-    def _get_description(self) -> bool:
+    def get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
         id_cmd = self.family["get_id_cmd"]
         length_of_reply = self.family["length_of_reply"]

@@ -29,7 +29,7 @@ class DacmInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
-    version = "0.2"
+    version = "0.3"
 
     @overrides
     def __init__(self, family=SaradInst.products[2]):
@@ -97,7 +97,8 @@ class DacmInst(SaradInst):
             self.components += [component_object]
         return len(self.components)
 
-    def _get_description(self):
+    @overrides
+    def get_description(self) -> bool:
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family["ok_byte"]
         id_cmd = self.family["get_id_cmd"]

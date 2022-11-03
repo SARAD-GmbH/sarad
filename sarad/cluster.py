@@ -312,12 +312,7 @@ class SaradCluster(Generic[SI]):
         logger().debug("[update_connected_instruments]")
         if ports_to_test is None:
             ports_to_test = self.active_ports
-            connected_instruments = set()
-        else:
-            connected_instruments = set(self.__connected_instruments)
-            logger().debug("Already connected: %s", connected_instruments)
         if ports_to_skip is not None:
-            connected_instruments = set(self.__connected_instruments)
             logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
             ports_to_test = list(
                 set(ports_to_test).symmetric_difference(set(ports_to_skip))
@@ -337,7 +332,7 @@ class SaradCluster(Generic[SI]):
         added_instruments = added_instruments.union(added_rs485_instruments)
         # remove duplicates
         self.__connected_instruments = list(
-            added_instruments.union(connected_instruments)
+            added_instruments.union(self.__connected_instruments)
         )
         logger().debug("Connected instruments: %s", self.__connected_instruments)
         for instrument in self.__connected_instruments:

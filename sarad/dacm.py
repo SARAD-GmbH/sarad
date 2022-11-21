@@ -434,7 +434,7 @@ class DacmInst(SaradInst):
                 list_of_outputs.append(output)
         return list_of_outputs
 
-    def get_recent_value(self, component, sensor=0, measurand=0):
+    def get_recent_value(self, component_id, sensor_id=0, measurand_id=0):
         """Get a dictionaries with recent measuring values from one sensor.
         component_id: one of the 34 sensor/actor modules of the DACM system
         measurand_id:
@@ -443,14 +443,7 @@ class DacmInst(SaradInst):
         2 = minimum of last completed interval,
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
-        component_id = self.components[component].component_id
-        sensor_id = self.components[component].sensors[sensor].sensor_id
-        measurand_id = (
-            self.components[component]
-            .sensors[sensor]
-            .measurands[measurand]
-            .measurand_id
-        )
+        measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
         reply = self.get_reply(
             [
                 b"\x1a",
@@ -461,7 +454,7 @@ class DacmInst(SaradInst):
         if reply and (reply[0] > 0):
             output = {}
             output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
-            output["measurand_id"] = measurand_id
+            output["measurand_name"] = measurand_names[measurand_id]
             output["sensor_name"] = reply[18:34].split(b"\x00")[0].decode("cp1252")
             output["measurand"] = (
                 reply[35:51].split(b"\x00")[0].strip().decode("cp1252")
@@ -505,14 +498,6 @@ class DacmInst(SaradInst):
                     "altitude": None,
                     "deviation": None,
                 }
-            this_measurand = (
-                self.components[component].sensors[sensor].measurands[measurand]
-            )
-            this_measurand.operator = measurand_dict["measurand_operator"]
-            this_measurand.value = measurand_dict["measurand_value"]
-            this_measurand.unit = measurand_dict["measurand_unit"]
-            this_measurand.time = output["datetime"]
-            this_measurand.gps = gps_dict
             return output
         if reply[0] == 0:
             logger().error("Measurand not available.")

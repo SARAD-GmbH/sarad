@@ -1,7 +1,7 @@
 """Module for the communication with instruments of the DACM family."""
 
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
@@ -97,6 +97,26 @@ class DacmInst(SaradInst):
             self.components += [component_object]
         return len(self.components)
 
+    def _sanitize_date(self, year, month, day):
+        """This is to handle date entries that don't exist."""
+        try:
+            return date(year, month, day)
+        except ValueError as exception:
+            logger().warning(exception)
+            first_word = str(exception).split(" ", maxsplit=1)[0]
+            if first_word == "year":
+                self._sanitize_date(1971, month, day)
+            elif first_word == "month":
+                if 1 <= day <= 12:
+                    sanitized_month = day
+                    sanitized_day = month
+                    self._sanitize_date(year, sanitized_month, sanitized_day)
+                else:
+                    self._sanitize_date(year, 1, day)
+            elif first_word == "day":
+                self._sanitize_date(year, month, 1)
+        return None
+
     @overrides
     def get_description(self) -> bool:
         """Get descriptive data about DACM instrument."""
@@ -115,11 +135,25 @@ class DacmInst(SaradInst):
                 manu_day = reply[5]
                 manu_month = reply[6]
                 manu_year = int.from_bytes(reply[7:9], byteorder="big", signed=False)
-                self._date_of_manufacture = datetime(manu_year, manu_month, manu_day)
+                logger().debug(
+                    "manu_year: %d, manu_month: %d, manu_day: %d",
+                    manu_year,
+                    manu_month,
+                    manu_day,
+                )
+                self._date_of_manufacture = self._sanitize_date(
+                    manu_year, manu_month, manu_day
+                )
                 upd_day = reply[9]
                 upd_month = reply[10]
                 upd_year = int.from_bytes(reply[11:13], byteorder="big", signed=False)
-                self._date_of_update = datetime(upd_year, upd_month, upd_day)
+                logger().debug(
+                    "upd_year: %d, upd_month: %d, upd_day: %d",
+                    upd_year,
+                    upd_month,
+                    upd_day,
+                )
+                self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
                 self._component_count = reply[15]
@@ -139,13 +173,14 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger().error("LookupError when parsing the payload.")
                 return False
-            except Exception:  # pylint: disable=broad-except
+            except Exception as exception:  # pylint: disable=broad-except
                 logger().debug(
                     "The connected instrument does not belong to the DACM family."
                 )
+                logger().debug(exception)
                 self._valid_family = False
                 return False
-        logger().debug("Get description failed.")
+        # logger().debug("Get description failed.")
         return False
 
     def _get_module_information(self):
@@ -159,7 +194,9 @@ class DacmInst(SaradInst):
                 config_day = reply[2]
                 config_month = reply[3]
                 config_year = int.from_bytes(reply[4:6], byteorder="big", signed=False)
-                self._date_of_config = datetime(config_year, config_month, config_day)
+                self._date_of_config = self._sanitize_date(
+                    config_year, config_month, config_day
+                )
                 self._module_name = reply[6:39].split(b"\x00")[0].decode("cp1252")
                 self._config_name = reply[39:].split(b"\x00")[0].decode("cp1252")
                 return True
@@ -463,13 +500,13 @@ class DacmInst(SaradInst):
             output["measurand_operator"] = measurand_dict["measurand_operator"]
             output["value"] = measurand_dict["measurand_value"]
             output["measurand_unit"] = measurand_dict["measurand_unit"]
-            date = reply[52:68].split(b"\x00")[0].split(b"/")
+            meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
             meas_time = reply[69:85].split(b"\x00")[0].split(b":")
-            if date != [b""]:
+            if meas_date != [b""]:
                 output["datetime"] = datetime(
-                    int(date[2]),
-                    int(date[0]),
-                    int(date[1]),
+                    int(meas_date[2]),
+                    int(meas_date[0]),
+                    int(meas_date[1]),
                     int(meas_time[0]),
                     int(meas_time[1]),
                     int(meas_time[2]),

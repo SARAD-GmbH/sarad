@@ -20,16 +20,15 @@ class DosemanInst(SaradInst):
     Inherited Public methods:
         get_reply()"""
 
-    version = "0.1"
+    version = "0.2"
 
-    def __init__(self, port=None, family=None):
-        if family is None:
-            family = SaradInst.products[0]
-        SaradInst.__init__(self, port, family)
+    @overrides
+    def __init__(self, family=SaradInst.products[0]):
+        super().__init__(family)
         self._last_sampling_time = None
 
     @overrides
-    def get_message_payload(self, message, timeout) -> CheckedAnswerDict:
+    def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
 
         Args:

@@ -30,12 +30,11 @@ class RscInst(SaradInst):
         get_config()
         set_config()"""
 
-    version = "0.1"
+    version = "0.2"
 
-    def __init__(self, port=None, family=None):
-        if family is None:
-            family = SaradInst.products[1]
-        SaradInst.__init__(self, port, family)
+    @overrides
+    def __init__(self, family=SaradInst.products[1]):
+        super().__init__(family)
         self._last_sampling_time = None
         self.__alarm_level = None
         self.lock = None
@@ -46,6 +45,40 @@ class RscInst(SaradInst):
             "server_port": None,
         }
         self.__interval = None
+
+    @overrides
+    def _new_rs485_address(self, raw_cmd):
+        """Check whether raw_cmd changed the RS-485 bus address of the instrument.
+        If this is the case, self._route will be changed.
+
+        Args:
+            raw_cmd (bytes): Command message to be analyzed.
+        """
+        cmd_dict = self._analyze_cmd_data(
+            payload=self._check_message(
+                answer=raw_cmd,
+                multiframe=False,
+            )["payload"]
+        )
+        logger().debug("cmd_dict = %s", cmd_dict)
+        if cmd_dict["cmd"] == b"\x09":  # C_SetParameter
+            data_list = list(cmd_dict["data"])
+            old_rs485_address = self._route.rs485_address
+            _device_type = data_list[0]
+            software_version = data_list[1]
+            unicon_4 = data_list[10]
+            if self._type_id in [14, 15, 16]:
+                rs485_address = unicon_4
+            elif self._type_id in [4, 10]:
+                rs485_address = software_version
+            # TODO uncomment the following line as soon as addressable RS-485
+            # with SARAD protocol is supported by Smart Radon Sensor and RTM-1688
+            # self._route.rs485_address = rs485_address
+            logger().info(
+                "Change RS-485 bus address from %d into %d",
+                old_rs485_address,
+                self._route.rs485_address,
+            )
 
     def _gather_all_recent_values(self):
         ok_byte = self.family["ok_byte"]

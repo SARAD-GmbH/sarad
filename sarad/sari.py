@@ -7,6 +7,7 @@ import logging
 import os
 import struct
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from time import perf_counter, sleep
@@ -28,6 +29,31 @@ def logger():
 
 
 SI = TypeVar("SI", bound="SaradInst")
+
+
+@dataclass
+class Route:
+    """Class to store the route directing to a SaradInst. rs485_address and
+    zigbee_address are optional and may be None for the simple case that
+    SardInst is directly and exclusively connected to a serial port.
+
+    Args:
+        port (str): Name of the serial port
+        rs485_address (int): RS-485 bus address. None, if RS-485 addressing is not used.
+        zigbee_address (int): Address of instrument on NETmonitors coordinator.
+                              None, if ZigBee is not used.
+    """
+
+    port: Optional[str]
+    rs485_address: Optional[int]
+    zigbee_address: Optional[int]
+
+
+class CmdDict(TypedDict):
+    """Type declaration for the result of the analysis of a binary command message."""
+
+    cmd: bytes
+    data: bytes
 
 
 class MeasurandDict(TypedDict):
@@ -71,6 +97,7 @@ class CheckedAnswerDict(TypedDict):
     payload: bytes
     number_of_bytes_in_payload: int
     raw: bytes
+    standard_frame: bytes
 
 
 class Measurand:  # pylint: disable=too-many-instance-attributes
@@ -339,7 +366,8 @@ class SaradInst(Generic[SI]):
              of all SARAD products that cannot be gained from the instrument itself.
 
     Properties:
-        port: String containing the serial communication port
+        route: Route dataclass object containing the serial communication port,
+               RS-485 bus address and ZigBee address if applicable
         family: Device family of the instrument expected to be at this port
         device_id: Identifier for an individual instrument in a cluster
         type_id: Together with family, this Id identifys the instrument type.
@@ -349,7 +377,7 @@ class SaradInst(Generic[SI]):
         components: List of sensor or actor components
     """
 
-    version = "1.0"
+    version = "3.0"
 
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
@@ -400,13 +428,12 @@ class SaradInst(Generic[SI]):
     ) as __f:
         products = yaml.safe_load(__f)
 
-    def __init__(self: SI, port=None, family=None) -> None:
-        self._port: str = port
+    def __init__(self: SI, family: FamilyDict) -> None:
+        self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
         self._family: FamilyDict = family
         self.__ser = None
         self.__components: Collection[Component] = []
         self._type_id: int = 0
-        self._type_name: str = ""
         self._software_version: int = 0
         self._serial_number: int = 0
         self.signal = self.Signal.OFF
@@ -417,8 +444,7 @@ class SaradInst(Generic[SI]):
         self.lock = self.Lock.UNLOCKED
         self.__id: str = ""
         self._valid_family = True
-        if (port is not None) and (family is not None):
-            self._initialize()
+        self._last_sampling_time = None
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -449,7 +475,7 @@ class SaradInst(Generic[SI]):
         for byte in payload:
             checksum = checksum + byte
         checksum_bytes = (checksum).to_bytes(2, byteorder="little")
-        output = (
+        return (
             b"B"
             + bytes([control_byte])
             + bytes([neg_control_byte])
@@ -457,17 +483,34 @@ class SaradInst(Generic[SI]):
             + checksum_bytes
             + b"E"
         )
-        return output
 
     @staticmethod
-    def _check_message(answer: bytes, multiframe: bool) -> CheckedAnswerDict:
-        # Returns a dictionary of:
-        #     is_valid: True if answer is valid, False otherwise
-        #     is_control_message: True if control message
-        #     payload: Payload of answer
-        #     number_of_bytes_in_payload
+    def _analyze_cmd_data(payload: bytes) -> CmdDict:
+        payload_list = list(payload)
+        logger().debug("Analyzing %s", payload_list)
+        if len(payload_list) > 1:
+            data = bytes(payload_list[1:])
+        else:
+            data = b""
+        return {"cmd": bytes(payload_list[0:1]), "data": data}
+
+    def _check_message(self, answer: bytes, multiframe: bool) -> CheckedAnswerDict:
+        # pylint: disable=too-many-locals
+        """Returns a dictionary of:
+        is_valid: True if answer is valid, False otherwise
+        is_control_message: True if control message
+        payload: Payload of answer
+        number_of_bytes_in_payload
+        """
         logger().debug("Checking answer from serial port:")
         logger().debug("Raw answer: %s", answer)
+        if self._route.rs485_address is None:
+            return self._check_standard_message(answer, multiframe)
+        return self._check_rs485_message(answer, multiframe, self._route.rs485_address)
+
+    def _check_standard_message(
+        self, answer: bytes, multiframe: bool
+    ) -> CheckedAnswerDict:
         if answer.startswith(b"B") and answer.endswith(b"E"):
             control_byte = answer[1]
             control_byte_ok = bool((control_byte ^ 0xFF) == answer[2])
@@ -505,7 +548,76 @@ class SaradInst(Generic[SI]):
             "payload": payload,
             "number_of_bytes_in_payload": number_of_bytes_in_payload,
             "raw": answer,
+            "standard_frame": self._rs485_filter(answer),
         }
+
+    def _check_rs485_message(
+        self, answer: bytes, multiframe: bool, rs485_address
+    ) -> CheckedAnswerDict:
+        # pylint: disable=too-many-locals
+        """Returns a dictionary of:
+        is_valid: True if answer is valid, False otherwise
+        is_control_message: True if control message
+        payload: Payload of answer
+        number_of_bytes_in_payload
+        """
+        if answer.startswith(b"b") and answer.endswith(b"E"):
+            address_ok = bool(answer[1] == rs485_address)
+            control_byte = answer[2]
+            control_byte_ok = bool((control_byte ^ 0xFF) == answer[3])
+            number_of_bytes_in_payload = (control_byte & 0x7F) + 1
+            is_control = bool(control_byte & 0x80)
+            logger().debug("Status byte: %s", answer[4])
+            payload = answer[4 : 4 + number_of_bytes_in_payload]
+            calculated_checksum = 0
+            for byte in payload:
+                calculated_checksum = calculated_checksum + byte
+            received_checksum_bytes = answer[
+                4 + number_of_bytes_in_payload : 6 + number_of_bytes_in_payload
+            ]
+            received_checksum = int.from_bytes(
+                received_checksum_bytes, byteorder="little", signed=False
+            )
+            checksum_ok = bool(received_checksum == calculated_checksum)
+            is_valid = bool(control_byte_ok and checksum_ok and address_ok)
+        else:
+            logger().debug("Invalid b-E frame")
+            is_valid = False
+        if not is_valid:
+            is_control = False
+            payload = b""
+            number_of_bytes_in_payload = 0
+        # is_rend is True if that this is the last frame of a multiframe reply
+        # (DOSEman data download)
+        is_rend = bool(is_valid and is_control and (payload == b"\x04"))
+        logger().debug("Payload: %s", payload)
+        return {
+            "is_valid": is_valid,
+            "is_control": is_control,
+            "is_last_frame": (not multiframe) or is_rend,
+            "payload": payload,
+            "number_of_bytes_in_payload": number_of_bytes_in_payload,
+            "raw": answer,
+            "standard_frame": self._rs485_filter(answer),
+        }
+
+    def _rs485_filter(self, frame):
+        """Convert an addressed RS-485 'b-E' frame into a normal 'B-E' frame
+        by simply replacing the first two bytes with 'B'."""
+        if self.route.rs485_address is None:
+            return frame
+        frame_list = list(frame)
+        frame_list[0:2] = [66]  # replace "bx\??" by "B"
+        return bytes(frame_list)
+
+    def _make_rs485(self, frame):
+        """Convert a normal 'B-E' frame into an addressed 'b-E' frame
+        for RS-485"""
+        if self.route.rs485_address is None:
+            return frame
+        frame_list = list(frame)
+        frame_list[0:1] = [98, self.route.rs485_address]  # replace "B by ""bx\??"
+        return bytes(frame_list)
 
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
@@ -524,6 +636,7 @@ class SaradInst(Generic[SI]):
             number_of_bytes_in_payload,
             raw: The raw byte string from _get_transparent_reply.
         """
+        message = self._make_rs485(message)
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         retry_counter = 5
         while (answer == b"") and retry_counter:
@@ -538,7 +651,8 @@ class SaradInst(Generic[SI]):
             "is_last_frame": checked_answer["is_last_frame"],
             "payload": checked_answer["payload"],
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
-            "raw": answer,
+            "raw": checked_answer["raw"],
+            "standard_frame": checked_answer["standard_frame"],
         }
 
     def get_next_payload(self, timeout=0.1) -> CheckedAnswerDict:
@@ -568,7 +682,8 @@ class SaradInst(Generic[SI]):
                 "is_last_frame": True,
                 "payload": b"",
                 "number_of_bytes_in_payload": 0,
-                "raw": answer,
+                "raw": b"",
+                "standard_frame": b"",
             }
         checked_answer = self._check_message(answer, True)
         return {
@@ -577,13 +692,14 @@ class SaradInst(Generic[SI]):
             "is_last_frame": checked_answer["is_last_frame"],
             "payload": checked_answer["payload"],
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
-            "raw": answer,
+            "raw": checked_answer["raw"],
+            "standard_frame": checked_answer["standard_frame"],
         }
 
     def __str__(self) -> str:
         output = (
             f"Id: {self.device_id}\n"
-            f"SerialDevice: {self.port}\n"
+            f"SerialDevice: {self._route.port}\n"
             f"Baudrate: {self.family['baudrate']}\n"
             f"FamilyName: {self.family['family_name']}\n"
             f"FamilyId: {self.family['family_id']}\n"
@@ -595,12 +711,12 @@ class SaradInst(Generic[SI]):
         return output
 
     def _initialize(self) -> None:
-        self._get_description()
+        self.get_description()
         if self._valid_family:
             self._build_component_list()
             self._last_sampling_time = None
 
-    def _get_description(self) -> bool:
+    def get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
         id_cmd = self.family["get_id_cmd"]
         length_of_reply = self.family["length_of_reply"]
@@ -732,13 +848,19 @@ class SaradInst(Generic[SI]):
         return False
 
     def _get_control_bytes(self, serial):
-        """Read 3 Bytes from serial interface"""
+        """Read 3 or 4 Bytes from serial interface resp."""
+        if self.route.rs485_address is None:
+            offset = 3
+            start_byte = b"B"
+        else:
+            offset = 4
+            start_byte = b"b"
         perf_time_0 = perf_counter()
-        answer = serial.read(3)
+        answer = serial.read(offset)
         if answer:
-            while len(answer) < 3:
+            while len(answer) < offset:
                 sleep(0.1)
-                answer_left = serial.read(3 - len(answer))
+                answer_left = serial.read(offset - len(answer))
                 answer = answer + answer_left
         perf_time_1 = perf_counter()
         logger().debug(
@@ -746,7 +868,7 @@ class SaradInst(Generic[SI]):
             answer,
             perf_time_1 - perf_time_0,
         )
-        if not answer.startswith(b"B"):
+        if not answer.startswith(start_byte):
             if answer == b"":
                 logger().debug(
                     "No reply in _get_control_bytes(%s, %s)",
@@ -760,8 +882,8 @@ class SaradInst(Generic[SI]):
             )
             self._valid_family = False
             return b""
-        control_byte = answer[1]
-        neg_control_byte = answer[2]
+        control_byte = answer[-2]
+        neg_control_byte = answer[-1]
         if (control_byte ^ 0xFF) != neg_control_byte:
             logger().error("Message corrupted.")
             return answer
@@ -774,7 +896,7 @@ class SaradInst(Generic[SI]):
     def _get_payload_length(first_bytes):
         """Read 3 Bytes from serial interface
         to get the length of payload from the control byte."""
-        control_byte = first_bytes[1]
+        control_byte = first_bytes[-2]
         return (control_byte & 0x7F) + 1
 
     @staticmethod
@@ -800,7 +922,7 @@ class SaradInst(Generic[SI]):
         self.__ser = self._close_serial(self.__ser, False)
 
     def _get_be_frame(self, serial, keep):
-        """Get one Rx B-E frame"""
+        """Get one Rx B-E frame or one b-E frame resp."""
         first_bytes = self._get_control_bytes(serial)
         if first_bytes == b"":
             self.__ser = self._close_serial(serial, keep)
@@ -826,9 +948,10 @@ class SaradInst(Generic[SI]):
             retry = True
             for _i in range(0, 2):
                 while retry:
+                    perf_time_0 = perf_counter()
                     try:
                         ser = Serial(
-                            self._port,
+                            self.route.port,
                             self._family["baudrate"],
                             bytesize=8,
                             xonxoff=0,
@@ -845,16 +968,22 @@ class SaradInst(Generic[SI]):
                     except Exception as exception:  # pylint: disable=broad-except
                         logger().critical(exception)
                         raise
+                    perf_time_1 = perf_counter()
+                    logger().debug(
+                        "Creating serial interface took me %f s",
+                        perf_time_1 - perf_time_0,
+                    )
             if retry:
                 raise BlockingIOError
             return ser
 
-        if not keep:
-            logger().debug("Open serial, don't keep.")
-            ser = _open_serial()
-            time.sleep(0.5)
-        else:
-            if self.__ser is not None:
+        if keep:
+            if self.__ser is None:
+                logger().debug("Open serial")
+                ser = _open_serial()
+                time.sleep(0.5)
+                logger().debug("Serial ready")
+            else:
                 try:
                     ser = self.__ser
                     if not ser.is_open:
@@ -867,10 +996,11 @@ class SaradInst(Generic[SI]):
                         "Something went wrong with reopening -> Re-initialize"
                     )
                     self.__ser = None
-            if self.__ser is None:
-                logger().debug("Open serial")
-                ser = _open_serial()
-                time.sleep(0.5)
+        else:
+            logger().debug("Open serial, don't keep.")
+            ser = _open_serial()
+            time.sleep(0.5)
+
         ser.timeout = timeout
         ser.inter_byte_timeout = timeout
         perf_time_0 = perf_counter()
@@ -884,6 +1014,7 @@ class SaradInst(Generic[SI]):
             raw_cmd,
             perf_time_1 - perf_time_0,
         )
+        self._new_rs485_address(raw_cmd)
         sleep(self._family["wait_for_reply"])
         be_frame = self._get_be_frame(ser, True)
         answer = bytearray(be_frame)
@@ -895,6 +1026,16 @@ class SaradInst(Generic[SI]):
         )
         self.__ser = self._close_serial(ser, keep)
         return bytes(answer)
+
+    def _new_rs485_address(self, raw_cmd):
+        # pylint: disable = unused-argument
+        """Check whether raw_cmd changed the RS-485 bus address of the Instrument.
+        If this is the case, self._route will be changed.
+        This function must be overriden in the instrumen family dependent implementations.
+
+        Args:
+            raw_cmd (bytes): Command message to be analyzed.
+        """
 
     def start_cycle(self, cycle_index: int) -> None:
         """Start measurement cycle.  Place holder for subclasses."""
@@ -908,15 +1049,15 @@ class SaradInst(Generic[SI]):
         return False
 
     @property
-    def port(self) -> str:
-        """Return serial port."""
-        return self._port
+    def route(self) -> Route:
+        """Return route to instrument (ser. port, RS-485 address, ZigBee address)."""
+        return self._route
 
-    @port.setter
-    def port(self, port: str):
-        """Set serial port."""
-        self._port = port
-        if (self.port is not None) and (self.family is not None):
+    @route.setter
+    def route(self, route: Route):
+        """Set route to instrument."""
+        self._route = route
+        if (self._route.port is not None) and (self._family is not None):
             self._initialize()
 
     @property
@@ -938,7 +1079,7 @@ class SaradInst(Generic[SI]):
     def family(self, family: FamilyDict):
         """Set the instrument family."""
         self._family = family
-        if (self.port is not None) and (self.family is not None):
+        if (self.route.port is not None) and (self._family is not None):
             self._initialize()
 
     @property

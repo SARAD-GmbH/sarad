@@ -1,7 +1,7 @@
 """Module for the communication with instruments of the DACM family."""
 
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
@@ -29,12 +29,11 @@ class DacmInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
-    version = "0.1"
+    version = "0.3"
 
-    def __init__(self, port=None, family=None):
-        if family is None:
-            family = SaradInst.products[2]
-        SaradInst.__init__(self, port, family)
+    @overrides
+    def __init__(self, family=SaradInst.products[2]):
+        super().__init__(family)
         self._date_of_manufacture = None
         self._date_of_update = None
         self._module_blocksize = None
@@ -46,7 +45,6 @@ class DacmInst(SaradInst):
         self._cycle_count_limit = None
         self._step_count_limit = None
         self._language = None
-        self._address = None
         self._date_of_config = None
         self._module_name = None
         self._config_name = None
@@ -99,7 +97,28 @@ class DacmInst(SaradInst):
             self.components += [component_object]
         return len(self.components)
 
-    def _get_description(self):
+    def _sanitize_date(self, year, month, day):
+        """This is to handle date entries that don't exist."""
+        try:
+            return date(year, month, day)
+        except ValueError as exception:
+            logger().warning(exception)
+            first_word = str(exception).split(" ", maxsplit=1)[0]
+            if first_word == "year":
+                self._sanitize_date(1971, month, day)
+            elif first_word == "month":
+                if 1 <= day <= 12:
+                    sanitized_month = day
+                    sanitized_day = month
+                    self._sanitize_date(year, sanitized_month, sanitized_day)
+                else:
+                    self._sanitize_date(year, 1, day)
+            elif first_word == "day":
+                self._sanitize_date(year, month, 1)
+        return None
+
+    @overrides
+    def get_description(self) -> bool:
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family["ok_byte"]
         id_cmd = self.family["get_id_cmd"]
@@ -116,11 +135,25 @@ class DacmInst(SaradInst):
                 manu_day = reply[5]
                 manu_month = reply[6]
                 manu_year = int.from_bytes(reply[7:9], byteorder="big", signed=False)
-                self._date_of_manufacture = datetime(manu_year, manu_month, manu_day)
+                logger().debug(
+                    "manu_year: %d, manu_month: %d, manu_day: %d",
+                    manu_year,
+                    manu_month,
+                    manu_day,
+                )
+                self._date_of_manufacture = self._sanitize_date(
+                    manu_year, manu_month, manu_day
+                )
                 upd_day = reply[9]
                 upd_month = reply[10]
                 upd_year = int.from_bytes(reply[11:13], byteorder="big", signed=False)
-                self._date_of_update = datetime(upd_year, upd_month, upd_day)
+                logger().debug(
+                    "upd_year: %d, upd_month: %d, upd_day: %d",
+                    upd_year,
+                    upd_month,
+                    upd_day,
+                )
+                self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
                 self._component_count = reply[15]
@@ -140,13 +173,14 @@ class DacmInst(SaradInst):
             except LookupError:
                 logger().error("LookupError when parsing the payload.")
                 return False
-            except Exception:  # pylint: disable=broad-except
+            except Exception as exception:  # pylint: disable=broad-except
                 logger().debug(
                     "The connected instrument does not belong to the DACM family."
                 )
+                logger().debug(exception)
                 self._valid_family = False
                 return False
-        logger().debug("Get description failed.")
+        # logger().debug("Get description failed.")
         return False
 
     def _get_module_information(self):
@@ -156,11 +190,13 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get module information successful.")
             try:
-                self._address = reply[1]
+                self._route.rs485_address = reply[1]
                 config_day = reply[2]
                 config_month = reply[3]
                 config_year = int.from_bytes(reply[4:6], byteorder="big", signed=False)
-                self._date_of_config = datetime(config_year, config_month, config_day)
+                self._date_of_config = self._sanitize_date(
+                    config_year, config_month, config_day
+                )
                 self._module_name = reply[6:39].split(b"\x00")[0].decode("cp1252")
                 self._config_name = reply[39:].split(b"\x00")[0].decode("cp1252")
                 return True
@@ -393,6 +429,31 @@ class DacmInst(SaradInst):
             logger().error("DACM instrument replied with error code %s.", reply[1])
         return False
 
+    @overrides
+    def _new_rs485_address(self, raw_cmd):
+        """Check whether raw_cmd changed the RS-485 bus address of the instrument.
+        If this is the case, self._route will be changed.
+
+        Args:
+            raw_cmd (bytes): Command message to be analyzed.
+        """
+        cmd_dict = self._analyze_cmd_data(
+            payload=self._check_message(
+                answer=raw_cmd,
+                multiframe=False,
+            )["payload"]
+        )
+        logger().debug("cmd_dict = %s", cmd_dict)
+        if cmd_dict["cmd"] == b"\x02":  # set_module_information
+            data_list = list(cmd_dict["data"])
+            old_rs485_address = self._route.rs485_address
+            self._route.rs485_address = data_list[0]
+            logger().info(
+                "Change RS-485 bus address from %d into %d",
+                old_rs485_address,
+                self._route.rs485_address,
+            )
+
     @staticmethod
     def set_lock():
         """Lock the hardware button or switch at the device.
@@ -410,7 +471,7 @@ class DacmInst(SaradInst):
                 list_of_outputs.append(output)
         return list_of_outputs
 
-    def get_recent_value(self, component, sensor=0, measurand=0):
+    def get_recent_value(self, component_id, sensor_id=0, measurand_id=0):
         """Get a dictionaries with recent measuring values from one sensor.
         component_id: one of the 34 sensor/actor modules of the DACM system
         measurand_id:
@@ -419,14 +480,7 @@ class DacmInst(SaradInst):
         2 = minimum of last completed interval,
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
-        component_id = self.components[component].component_id
-        sensor_id = self.components[component].sensors[sensor].sensor_id
-        measurand_id = (
-            self.components[component]
-            .sensors[sensor]
-            .measurands[measurand]
-            .measurand_id
-        )
+        measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
         reply = self.get_reply(
             [
                 b"\x1a",
@@ -437,7 +491,7 @@ class DacmInst(SaradInst):
         if reply and (reply[0] > 0):
             output = {}
             output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
-            output["measurand_id"] = measurand_id
+            output["measurand_name"] = measurand_names[measurand_id]
             output["sensor_name"] = reply[18:34].split(b"\x00")[0].decode("cp1252")
             output["measurand"] = (
                 reply[35:51].split(b"\x00")[0].strip().decode("cp1252")
@@ -446,13 +500,13 @@ class DacmInst(SaradInst):
             output["measurand_operator"] = measurand_dict["measurand_operator"]
             output["value"] = measurand_dict["measurand_value"]
             output["measurand_unit"] = measurand_dict["measurand_unit"]
-            date = reply[52:68].split(b"\x00")[0].split(b"/")
+            meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
             meas_time = reply[69:85].split(b"\x00")[0].split(b":")
-            if date != [b""]:
+            if meas_date != [b""]:
                 output["datetime"] = datetime(
-                    int(date[2]),
-                    int(date[0]),
-                    int(date[1]),
+                    int(meas_date[2]),
+                    int(meas_date[0]),
+                    int(meas_date[1]),
                     int(meas_time[0]),
                     int(meas_time[1]),
                     int(meas_time[2]),
@@ -481,14 +535,6 @@ class DacmInst(SaradInst):
                     "altitude": None,
                     "deviation": None,
                 }
-            this_measurand = (
-                self.components[component].sensors[sensor].measurands[measurand]
-            )
-            this_measurand.operator = measurand_dict["measurand_operator"]
-            this_measurand.value = measurand_dict["measurand_value"]
-            this_measurand.unit = measurand_dict["measurand_unit"]
-            this_measurand.time = output["datetime"]
-            this_measurand.gps = gps_dict
             return output
         if reply[0] == 0:
             logger().error("Measurand not available.")
@@ -498,12 +544,12 @@ class DacmInst(SaradInst):
 
     def get_address(self):
         """Return the address of the DACM module."""
-        return self._address
+        return self._route.rs485_address
 
     def set_address(self, address):
         """Set the address of the DACM module."""
-        self._address = address
-        if (self.port is not None) and (self.address is not None):
+        self.route.rs485_address = address
+        if (self._route.port is not None) and (self._route.rs485_address is not None):
             self._initialize()
 
     def get_date_of_config(self):
@@ -513,7 +559,7 @@ class DacmInst(SaradInst):
     def set_date_of_config(self, date_of_config):
         """Set the date of the configuration."""
         self._date_of_config = date_of_config
-        if (self.port is not None) and (self.date_of_config is not None):
+        if (self._route.port is not None) and (self.date_of_config is not None):
             self._initialize()
 
     def get_module_name(self):
@@ -523,7 +569,7 @@ class DacmInst(SaradInst):
     def set_module_name(self, module_name):
         """Set the name of the DACM module."""
         self._module_name = module_name
-        if (self.port is not None) and (self.module_name is not None):
+        if (self._route.port is not None) and (self.module_name is not None):
             self._initialize()
 
     def get_config_name(self):
@@ -533,7 +579,7 @@ class DacmInst(SaradInst):
     def set_config_name(self, config_name):
         """Set the name of the configuration."""
         self._config_name = config_name
-        if (self.port is not None) and (self.config_name is not None):
+        if (self._route.port is not None) and (self.config_name is not None):
             self._initialize()
 
     def get_date_of_manufacture(self):
@@ -554,4 +600,9 @@ class DacmInst(SaradInst):
     @property
     def type_name(self) -> str:
         """Return the device type name."""
+        if self.module_name is None:
+            for type_in_family in self.family["types"]:
+                if type_in_family["type_id"] == self.type_id:
+                    return type_in_family["type_name"]
+            return "unknown"
         return self.module_name

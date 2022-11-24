@@ -163,21 +163,20 @@ class DacmInst(SaradInst):
                 self._cycle_count_limit = reply[25]
                 self._step_count_limit = reply[26]
                 self._language = reply[27]
-                return True and self._get_module_information()
-            except TypeError:
-                logger().error("TypeError when parsing the payload.")
-                return False
-            except ReferenceError:
-                logger().error("ReferenceError when parsing the payload.")
-                return False
-            except LookupError:
-                logger().error("LookupError when parsing the payload.")
-                return False
-            except Exception as exception:  # pylint: disable=broad-except
                 logger().debug(
+                    "type_id: %d, sw_ver: %d, sn: %d, manu: %s, update: %s",
+                    self._type_id,
+                    self._software_version,
+                    self._serial_number,
+                    self._date_of_manufacture,
+                    self._date_of_update,
+                )
+                return True and self._get_module_information()
+            except Exception as exception:  # pylint: disable=broad-except
+                logger().debug(exception)
+                logger().info(
                     "The connected instrument does not belong to the DACM family."
                 )
-                logger().debug(exception)
                 self._valid_family = False
                 return False
         # logger().debug("Get description failed.")

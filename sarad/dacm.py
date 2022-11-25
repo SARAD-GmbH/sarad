@@ -135,24 +135,16 @@ class DacmInst(SaradInst):
                 manu_day = reply[5]
                 manu_month = reply[6]
                 manu_year = int.from_bytes(reply[7:9], byteorder="big", signed=False)
-                logger().debug(
-                    "manu_year: %d, manu_month: %d, manu_day: %d",
-                    manu_year,
-                    manu_month,
-                    manu_day,
-                )
+                if manu_year == 65535:
+                    raise ValueError("Manufacturing year corrupted.")
                 self._date_of_manufacture = self._sanitize_date(
                     manu_year, manu_month, manu_day
                 )
                 upd_day = reply[9]
                 upd_month = reply[10]
                 upd_year = int.from_bytes(reply[11:13], byteorder="big", signed=False)
-                logger().debug(
-                    "upd_year: %d, upd_month: %d, upd_day: %d",
-                    upd_year,
-                    upd_month,
-                    upd_day,
-                )
+                if upd_year == 65535:
+                    raise ValueError("Last Update year corrupted.")
                 self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
@@ -173,9 +165,9 @@ class DacmInst(SaradInst):
                 )
                 return True and self._get_module_information()
             except Exception as exception:  # pylint: disable=broad-except
-                logger().debug(exception)
                 logger().info(
-                    "The connected instrument does not belong to the DACM family."
+                    "Instrument doesn't belong to DACM family or %s",
+                    exception,
                 )
                 self._valid_family = False
                 return False

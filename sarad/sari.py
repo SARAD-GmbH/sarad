@@ -621,6 +621,12 @@ class SaradInst(Generic[SI]):
         frame_list[0:1] = [98, self.route.rs485_address]  # replace "B by ""bx\??"
         return bytes(frame_list)
 
+    def check_cmd(self, raw_cmd) -> bool:
+        """Check an incomming command frame for validity"""
+        checked_dict = self._check_message(raw_cmd, False)
+        cmd_is_valid = bool(checked_dict["payload"][0] in self.ALLOWED_CMDS)
+        return cmd_is_valid and checked_dict["is_valid"]
+
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
 
@@ -640,12 +646,7 @@ class SaradInst(Generic[SI]):
             standard_frame: standard B-E frame derived from b-e frame
         """
 
-        def _check_cmd(raw_cmd) -> bool:
-            checked_dict = self._check_message(raw_cmd, False)
-            cmd_is_valid = bool(checked_dict["payload"][0] in self.ALLOWED_CMDS)
-            return cmd_is_valid and checked_dict["is_valid"]
-
-        if not _check_cmd(message):
+        if not self.check_cmd(message):
             logger().error("Received invalid command %s", message)
             return {
                 "is_valid": False,

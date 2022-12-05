@@ -41,8 +41,11 @@ class DacmInst(SaradInst):
         0x07,
         0x08,
         0x09,
+        0x0a,
+        0x0b,
         0x0c,
         0x0d,
+        0x0e,
         0x0f,
         0x10,
         0x11,
@@ -53,6 +56,14 @@ class DacmInst(SaradInst):
         0x16,
         0x17,
         0x18,
+        0x19,
+        0x1a,
+        0x1b,
+        0x1c,
+        0x1d,
+        0x1e,
+        0x1f,
+        0x20,
     ]
 
     @overrides

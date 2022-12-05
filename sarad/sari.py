@@ -377,7 +377,9 @@ class SaradInst(Generic[SI]):
         components: List of sensor or actor components
     """
 
-    version = "3.0"
+    version = "3.1"
+
+    ALLOWED_CMDS: List[int] = []
 
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
@@ -635,7 +637,25 @@ class SaradInst(Generic[SI]):
             payload: Payload of answer,
             number_of_bytes_in_payload,
             raw: The raw byte string from _get_transparent_reply.
+            standard_frame: standard B-E frame derived from b-e frame
         """
+
+        def _check_cmd(raw_cmd) -> bool:
+            checked_dict = self._check_message(raw_cmd, False)
+            cmd_is_valid = bool(checked_dict["payload"][0] in self.ALLOWED_CMDS)
+            return cmd_is_valid and checked_dict["is_valid"]
+
+        if not _check_cmd(message):
+            logger().error("Received invalid command %s", message)
+            return {
+                "is_valid": False,
+                "is_control": False,
+                "is_last_frame": True,
+                "payload": b"",
+                "number_of_bytes_in_payload": 0,
+                "raw": b"",
+                "standard_frame": b"",
+            }
         message = self._make_rs485(message)
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         retry_counter = 5

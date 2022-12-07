@@ -503,7 +503,7 @@ class SaradInst(Generic[SI]):
         payload: Payload of message
         number_of_bytes_in_payload
         """
-        if self._route.rs485_address is None:
+        if (self._route.rs485_address is None) or (self._route.rs485_address == 0):
             return self._check_standard_message(message, multiframe)
         return self._check_rs485_message(message, multiframe, self._route.rs485_address)
 

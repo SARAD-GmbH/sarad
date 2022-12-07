@@ -224,7 +224,9 @@ class SaradCluster(Generic[SI]):
         hid = Hashids()
         added_instruments = set()
         logger().debug(
-            "%d port(s) to test: %s", len(self.__rs485_ports), self.__rs485_ports
+            "%d port(s) to test for RS-485: %s",
+            len(self.__rs485_ports),
+            self.__rs485_ports,
         )
         # We check every port in ports_to_test and try for a connected SARAD instrument.
         for port in self.__rs485_ports:

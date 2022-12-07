@@ -599,7 +599,7 @@ class SaradInst(Generic[SI]):
     def _rs485_filter(self, frame):
         """Convert an addressed RS-485 'b-E' frame into a normal 'B-E' frame
         by simply replacing the first two bytes with 'B'."""
-        if self.route.rs485_address is None:
+        if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
             return frame
         frame_list = list(frame)
         frame_list[0:2] = [66]  # replace "bx\??" by "B"
@@ -608,7 +608,7 @@ class SaradInst(Generic[SI]):
     def _make_rs485(self, frame):
         """Convert a normal 'B-E' frame into an addressed 'b-E' frame
         for RS-485"""
-        if self.route.rs485_address is None:
+        if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
             return frame
         frame_list = list(frame)
         frame_list[0:1] = [98, self.route.rs485_address]  # replace "B by ""bx\??"
@@ -863,7 +863,7 @@ class SaradInst(Generic[SI]):
 
     def _get_control_bytes(self, serial):
         """Read 3 or 4 Bytes from serial interface resp."""
-        if self.route.rs485_address is None:
+        if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
             offset = 3
             start_byte = b"B"
         else:

@@ -87,7 +87,7 @@ class RscInst(SaradInst):
         """
         cmd_dict = self._analyze_cmd_data(
             payload=self._check_message(
-                answer=raw_cmd,
+                message=raw_cmd,
                 multiframe=False,
             )["payload"]
         )

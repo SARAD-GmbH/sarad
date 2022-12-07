@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from time import perf_counter, sleep
+from time import sleep
 from typing import (Any, Collection, Dict, Generic, Iterator, List, Optional,
                     TypedDict, TypeVar)
 
@@ -489,26 +489,23 @@ class SaradInst(Generic[SI]):
     @staticmethod
     def _analyze_cmd_data(payload: bytes) -> CmdDict:
         payload_list = list(payload)
-        logger().debug("Analyzing %s", payload_list)
         if len(payload_list) > 1:
             data = bytes(payload_list[1:])
         else:
             data = b""
         return {"cmd": bytes(payload_list[0:1]), "data": data}
 
-    def _check_message(self, answer: bytes, multiframe: bool) -> CheckedAnswerDict:
+    def _check_message(self, message: bytes, multiframe: bool) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
         """Returns a dictionary of:
-        is_valid: True if answer is valid, False otherwise
+        is_valid: True if message is valid, False otherwise
         is_control_message: True if control message
-        payload: Payload of answer
+        payload: Payload of message
         number_of_bytes_in_payload
         """
-        logger().debug("Checking answer from serial port:")
-        logger().debug("Raw answer: %s", answer)
         if self._route.rs485_address is None:
-            return self._check_standard_message(answer, multiframe)
-        return self._check_rs485_message(answer, multiframe, self._route.rs485_address)
+            return self._check_standard_message(message, multiframe)
+        return self._check_rs485_message(message, multiframe, self._route.rs485_address)
 
     def _check_standard_message(
         self, answer: bytes, multiframe: bool
@@ -518,8 +515,7 @@ class SaradInst(Generic[SI]):
             control_byte_ok = bool((control_byte ^ 0xFF) == answer[2])
             number_of_bytes_in_payload = (control_byte & 0x7F) + 1
             is_control = bool(control_byte & 0x80)
-            status_byte = answer[3]
-            logger().debug("Status byte: %s", status_byte)
+            _status_byte = answer[3]
             payload = answer[3 : 3 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
@@ -542,7 +538,6 @@ class SaradInst(Generic[SI]):
         # is_rend is True if that this is the last frame of a multiframe reply
         # (DOSEman data download)
         is_rend = bool(is_valid and is_control and (payload == b"\x04"))
-        logger().debug("Payload: %s", payload)
         return {
             "is_valid": is_valid,
             "is_control": is_control,
@@ -569,7 +564,6 @@ class SaradInst(Generic[SI]):
             control_byte_ok = bool((control_byte ^ 0xFF) == answer[3])
             number_of_bytes_in_payload = (control_byte & 0x7F) + 1
             is_control = bool(control_byte & 0x80)
-            logger().debug("Status byte: %s", answer[4])
             payload = answer[4 : 4 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
@@ -592,7 +586,6 @@ class SaradInst(Generic[SI]):
         # is_rend is True if that this is the last frame of a multiframe reply
         # (DOSEman data download)
         is_rend = bool(is_valid and is_control and (payload == b"\x04"))
-        logger().debug("Payload: %s", payload)
         return {
             "is_valid": is_valid,
             "is_control": is_control,
@@ -624,8 +617,10 @@ class SaradInst(Generic[SI]):
     def check_cmd(self, raw_cmd) -> bool:
         """Check an incomming command frame for validity"""
         checked_dict = self._check_message(raw_cmd, False)
-        cmd_is_valid = bool(checked_dict["payload"][0] in self.ALLOWED_CMDS)
-        return cmd_is_valid and checked_dict["is_valid"]
+        logger().debug("Checked dict: %s)", checked_dict)
+        if checked_dict["is_valid"] and (len(checked_dict["payload"]) > 0):
+            return bool(checked_dict["payload"][0] in self.ALLOWED_CMDS)
+        return False
 
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
         """Send a message to the instrument and give back the payload of the reply.
@@ -645,7 +640,6 @@ class SaradInst(Generic[SI]):
             raw: The raw byte string from _get_transparent_reply.
             standard_frame: standard B-E frame derived from b-e frame
         """
-
         if not self.check_cmd(message):
             logger().error("Received invalid command %s", message)
             return {
@@ -865,7 +859,6 @@ class SaradInst(Generic[SI]):
         checked_payload = self.get_message_payload(msg, timeout)
         if checked_payload["is_valid"]:
             return checked_payload["payload"]
-        logger().debug(checked_payload["payload"])
         return False
 
     def _get_control_bytes(self, serial):
@@ -876,19 +869,12 @@ class SaradInst(Generic[SI]):
         else:
             offset = 4
             start_byte = b"b"
-        perf_time_0 = perf_counter()
         answer = serial.read(offset)
         if answer:
             while len(answer) < offset:
                 sleep(0.1)
                 answer_left = serial.read(offset - len(answer))
                 answer = answer + answer_left
-        perf_time_1 = perf_counter()
-        logger().debug(
-            "Receiving %s from serial took me %f s",
-            answer,
-            perf_time_1 - perf_time_0,
-        )
         if not answer.startswith(start_byte):
             if answer == b"":
                 logger().debug(
@@ -908,8 +894,7 @@ class SaradInst(Generic[SI]):
         if (control_byte ^ 0xFF) != neg_control_byte:
             logger().error("Message corrupted.")
             return answer
-        is_control = bool(control_byte & 0x80)
-        logger().debug("is_control: %s, control_byte: %s", is_control, control_byte)
+        _is_control = bool(control_byte & 0x80)
         self._valid_family = True
         return answer
 
@@ -969,7 +954,6 @@ class SaradInst(Generic[SI]):
             retry = True
             for _i in range(0, 2):
                 while retry:
-                    perf_time_0 = perf_counter()
                     try:
                         ser = Serial(
                             self.route.port,
@@ -989,18 +973,12 @@ class SaradInst(Generic[SI]):
                     except Exception as exception:  # pylint: disable=broad-except
                         logger().critical(exception)
                         raise
-                    perf_time_1 = perf_counter()
-                    logger().debug(
-                        "Creating serial interface took me %f s",
-                        perf_time_1 - perf_time_0,
-                    )
             if retry:
                 raise BlockingIOError
             return ser
 
         if keep:
             if self.__ser is None:
-                logger().debug("Open serial")
                 ser = _open_serial()
                 time.sleep(0.5)
                 logger().debug("Serial ready")
@@ -1024,27 +1002,14 @@ class SaradInst(Generic[SI]):
 
         ser.timeout = timeout
         ser.inter_byte_timeout = timeout
-        perf_time_0 = perf_counter()
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")
             ser.write(byte)
             sleep(self._family["write_sleeptime"])
-        perf_time_1 = perf_counter()
-        logger().debug(
-            "Writing command %s to serial took me %f s",
-            raw_cmd,
-            perf_time_1 - perf_time_0,
-        )
         self._new_rs485_address(raw_cmd)
         sleep(self._family["wait_for_reply"])
         be_frame = self._get_be_frame(ser, True)
         answer = bytearray(be_frame)
-        perf_time_2 = perf_counter()
-        logger().debug(
-            "Receiving %s from serial took me %f s",
-            bytes(answer),
-            perf_time_2 - perf_time_1,
-        )
         self.__ser = self._close_serial(ser, keep)
         return bytes(answer)
 

@@ -758,7 +758,7 @@ class SaradInst(Generic[SI]):
             except Exception:  # pylint: disable=broad-except
                 logger().error("Unknown error when parsing the payload.")
                 return False
-        logger().debug("Get description failed.")
+        logger().debug("Get description failed. Instrument replied = %s", reply)
         return False
 
     def _build_component_list(self) -> int:
@@ -977,11 +977,12 @@ class SaradInst(Generic[SI]):
                 raise BlockingIOError
             return ser
 
+        logger().debug("Tx to instrument: %s", raw_cmd)
         if keep:
             if self.__ser is None:
                 ser = _open_serial()
                 time.sleep(0.5)
-                logger().debug("Serial ready")
+                logger().debug("Serial ready @ %d baud", ser.baudrate)
             else:
                 try:
                     ser = self.__ser
@@ -1011,6 +1012,7 @@ class SaradInst(Generic[SI]):
         be_frame = self._get_be_frame(ser, True)
         answer = bytearray(be_frame)
         self.__ser = self._close_serial(ser, keep)
+        logger().debug("Rx from instrument: %s", bytes(answer))
         return bytes(answer)
 
     def _new_rs485_address(self, raw_cmd):

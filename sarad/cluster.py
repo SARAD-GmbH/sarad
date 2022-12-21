@@ -181,7 +181,6 @@ class SaradCluster(Generic[SI]):
                 else:
                     continue
                 test_instrument = family_class()
-                test_instrument.family = family
                 logger().debug("Testing port %s for %s.", port, family["family_name"])
                 try:
                     test_instrument.route = Route(

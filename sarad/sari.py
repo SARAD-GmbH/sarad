@@ -653,7 +653,7 @@ class SaradInst(Generic[SI]):
             }
         message = self._make_rs485(message)
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-        retry_counter = 5
+        retry_counter = 2
         while (answer == b"") and retry_counter:
             answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
             # Workaround for firmware bug in SARAD instruments.
@@ -1012,8 +1012,11 @@ class SaradInst(Generic[SI]):
         be_frame = self._get_be_frame(ser, True)
         answer = bytearray(be_frame)
         self.__ser = self._close_serial(ser, keep)
-        logger().debug("Rx from instrument: %s", bytes(answer))
-        return bytes(answer)
+        b_answer = bytes(answer)
+        logger().debug("Rx from instrument: %s", b_answer)
+        if b_answer == raw_cmd:
+            return b""
+        return b_answer
 
     def _new_rs485_address(self, raw_cmd):
         # pylint: disable = unused-argument

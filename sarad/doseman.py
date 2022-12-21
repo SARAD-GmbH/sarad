@@ -89,6 +89,7 @@ class DosemanInst(SaradInst):
             payload: Payload of answer,
             number_of_bytes_in_payload,
             raw: The raw byte string from _get_transparent_reply.
+            standard_frame: standard B-E frame derived from b-e frame
         """
         # Run _check_message to get the payload of the sent message.
         checked_message = self._check_message(message, False)
@@ -107,6 +108,7 @@ class DosemanInst(SaradInst):
             "payload": checked_answer["payload"],
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
             "raw": answer,
+            "standard_frame": checked_answer["standard_frame"],
         }
 
     @overrides

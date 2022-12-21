@@ -315,10 +315,8 @@ class SaradCluster(Generic[SI]):
             ports_to_test = self.active_ports
         if ports_to_skip is not None:
             logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
-            ports_to_test = list(
-                set(ports_to_test).symmetric_difference(set(ports_to_skip))
-            )
-            logger().debug("Symmetric difference: %s", ports_to_test)
+            ports_to_test = list(set(ports_to_test).difference(set(ports_to_skip)))
+            logger().debug("Difference: %s", ports_to_test)
             if not ports_to_test:
                 logger().warning(
                     "Nothing to do. "

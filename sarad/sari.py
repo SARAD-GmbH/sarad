@@ -965,7 +965,7 @@ class SaradInst(Generic[SI]):
                             stopbits=STOPBITS_ONE,
                         )
                         retry = False
-                    except BlockingIOError as exception:
+                    except (BlockingIOError, SerialException) as exception:
                         logger().error(
                             "%s. Waiting 2 s and retrying to connect.", exception
                         )
@@ -1000,8 +1000,11 @@ class SaradInst(Generic[SI]):
             logger().debug("Open serial, don't keep.")
             ser = _open_serial()
             time.sleep(0.5)
-
-        ser.timeout = timeout
+        try:
+            ser.timeout = timeout
+        except SerialException as exception:
+            logger().error(exception)
+            return b""
         ser.inter_byte_timeout = timeout
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")

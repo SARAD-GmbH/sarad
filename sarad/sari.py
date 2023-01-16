@@ -535,7 +535,7 @@ class SaradInst(Generic[SI]):
             is_control = False
             payload = b""
             number_of_bytes_in_payload = 0
-        # is_rend is True if that this is the last frame of a multiframe reply
+        # is_rend is True if this is the last frame of a multiframe reply
         # (DOSEman data download)
         is_rend = bool(is_valid and is_control and (payload == b"\x04"))
         return {

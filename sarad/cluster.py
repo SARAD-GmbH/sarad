@@ -187,7 +187,13 @@ class SaradCluster(Generic[SI]):
                         port=port, rs485_address=None, zigbee_address=None
                     )
                     if not test_instrument.valid_family:
+                        logger().debug("Family not valid")
                         continue
+                    logger().debug(
+                        "type_id = %d, serial_number = %d",
+                        test_instrument.type_id,
+                        test_instrument.serial_number,
+                    )
                     if test_instrument.type_id and test_instrument.serial_number:
                         device_id = hid.encode(
                             test_instrument.family["family_id"],

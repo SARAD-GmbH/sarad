@@ -727,6 +727,7 @@ class SaradInst(Generic[SI]):
 
     def _initialize(self) -> None:
         self.get_description()
+        logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
             self._build_component_list()
             self._last_sampling_time = None
@@ -1018,6 +1019,7 @@ class SaradInst(Generic[SI]):
         b_answer = bytes(answer)
         logger().debug("Rx from instrument: %s", b_answer)
         if b_answer == raw_cmd:
+            logger().warning("Received only an echo")
             return b""
         return b_answer
 

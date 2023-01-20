@@ -91,6 +91,17 @@ class DosemanInst(SaradInst):
             raw: The raw byte string from _get_transparent_reply.
             standard_frame: standard B-E frame derived from b-e frame
         """
+        if not self.check_cmd(message):
+            logger().error("Received invalid command %s", message)
+            return {
+                "is_valid": False,
+                "is_control": False,
+                "is_last_frame": True,
+                "payload": b"",
+                "number_of_bytes_in_payload": 0,
+                "raw": b"",
+                "standard_frame": b"",
+            }
         # Run _check_message to get the payload of the sent message.
         checked_message = self._check_message(message, False)
         # If this is a get-data command, we expect multiple B-E frames.
@@ -101,6 +112,11 @@ class DosemanInst(SaradInst):
             logger().debug("Play it again, Sam!")
             answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         checked_answer = self._check_message(answer, multiframe)
+        logger().debug(checked_answer)
+        if answer == message:
+            logger().debug("Echo. Get next frame!")
+            answer = self._get_transparent_reply(b"", timeout=timeout, keep=True)
+            checked_answer = self._check_message(answer, multiframe)
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],

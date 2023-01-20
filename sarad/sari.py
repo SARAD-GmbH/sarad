@@ -1018,9 +1018,6 @@ class SaradInst(Generic[SI]):
         self.__ser = self._close_serial(ser, keep)
         b_answer = bytes(answer)
         logger().debug("Rx from instrument: %s", b_answer)
-        if b_answer == raw_cmd:
-            logger().warning("Received only an echo")
-            return b""
         return b_answer
 
     def _new_rs485_address(self, raw_cmd):

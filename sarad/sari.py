@@ -870,7 +870,10 @@ class SaradInst(Generic[SI]):
         else:
             offset = 4
             start_byte = b"b"
-        answer = serial.read(offset)
+        try:
+            answer = serial.read(offset)
+        except SerialException:
+            return b""
         if answer:
             while len(answer) < offset:
                 sleep(0.1)

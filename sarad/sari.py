@@ -956,7 +956,7 @@ class SaradInst(Generic[SI]):
 
         def _open_serial():
             retry = True
-            for _i in range(0, 2):
+            for _i in range(0, 1):
                 while retry:
                     try:
                         ser = Serial(
@@ -969,12 +969,15 @@ class SaradInst(Generic[SI]):
                             stopbits=STOPBITS_ONE,
                         )
                         retry = False
-                    except (BlockingIOError, SerialException) as exception:
+                    except BlockingIOError as exception:
                         logger().error(
-                            "%s. Waiting 2 s and retrying to connect.", exception
+                            "%s. Waiting 1 s and retrying to connect.", exception
                         )
-                        time.sleep(2)
-                    except Exception as exception:  # pylint: disable=broad-except
+                        time.sleep(1)
+                    except (
+                        Exception,
+                        SerialException,
+                    ) as exception:  # pylint: disable=broad-except
                         logger().critical(exception)
                         raise
             if retry:

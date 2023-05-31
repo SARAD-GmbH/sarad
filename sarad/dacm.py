@@ -41,12 +41,12 @@ class DacmInst(SaradInst):
         0x07,
         0x08,
         0x09,
-        0x0a,
-        0x0b,
-        0x0c,
-        0x0d,
-        0x0e,
-        0x0f,
+        0x0A,
+        0x0B,
+        0x0C,
+        0x0D,
+        0x0E,
+        0x0F,
         0x10,
         0x11,
         0x12,
@@ -57,12 +57,12 @@ class DacmInst(SaradInst):
         0x17,
         0x18,
         0x19,
-        0x1a,
-        0x1b,
-        0x1c,
-        0x1d,
-        0x1e,
-        0x1f,
+        0x1A,
+        0x1B,
+        0x1C,
+        0x1D,
+        0x1E,
+        0x1F,
         0x20,
         0x22,
         0x23,
@@ -91,6 +91,7 @@ class DacmInst(SaradInst):
         self._module_name = None
         self._config_name = None
         self.__interval = 0
+        self._byte_order = "big"
 
     def __str__(self):
         output = super().__str__() + (
@@ -169,14 +170,20 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
+                if reply[28]:
+                    self._byte_order = "little"
+                else:
+                    self._byte_order = "big"
                 self._type_id = reply[1]
                 self._software_version = reply[2]
                 self._serial_number = int.from_bytes(
-                    reply[3:5], byteorder="big", signed=False
+                    reply[3:5], byteorder=self._byte_order, signed=False
                 )
                 manu_day = reply[5]
                 manu_month = reply[6]
-                manu_year = int.from_bytes(reply[7:9], byteorder="big", signed=False)
+                manu_year = int.from_bytes(
+                    reply[7:9], byteorder=self._byte_order, signed=False
+                )
                 if manu_year == 65535:
                     raise ValueError("Manufacturing year corrupted.")
                 self._date_of_manufacture = self._sanitize_date(
@@ -184,7 +191,9 @@ class DacmInst(SaradInst):
                 )
                 upd_day = reply[9]
                 upd_month = reply[10]
-                upd_year = int.from_bytes(reply[11:13], byteorder="big", signed=False)
+                upd_year = int.from_bytes(
+                    reply[11:13], byteorder=self._byte_order, signed=False
+                )
                 if upd_year == 65535:
                     raise ValueError("Last Update year corrupted.")
                 self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
@@ -226,7 +235,9 @@ class DacmInst(SaradInst):
                 self._route.rs485_address = reply[1]
                 config_day = reply[2]
                 config_month = reply[3]
-                config_year = int.from_bytes(reply[4:6], byteorder="big", signed=False)
+                config_year = int.from_bytes(
+                    reply[4:6], byteorder=self._byte_order, signed=False
+                )
                 self._date_of_config = self._sanitize_date(
                     config_year, config_month, config_day
                 )
@@ -261,7 +272,7 @@ class DacmInst(SaradInst):
                 ctrl_format = reply[4]
                 conf_block_size = reply[5]
                 data_record_size = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 name = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 hw_capability = BitVector(rawbytes=reply[16:20])
@@ -301,18 +312,20 @@ class DacmInst(SaradInst):
                 sensor_name = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 sensor_value = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 sensor_unit = reply[8:16].split(b"\x00")[0].decode("cp1252")
-                input_config = int.from_bytes(reply[6:8], byteorder="big", signed=False)
+                input_config = int.from_bytes(
+                    reply[6:8], byteorder=self._byte_order, signed=False
+                )
                 alert_level_lo = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 alert_level_hi = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 alert_output_lo = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 alert_output_hi = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 return {
                     "sensor_name": sensor_name,
@@ -353,7 +366,7 @@ class DacmInst(SaradInst):
                     )
                 )
                 cycle_steps = int.from_bytes(
-                    reply[21:24], byteorder="big", signed=False
+                    reply[21:24], byteorder=self._byte_order, signed=False
                 )
                 cycle_repetitions = int.from_bytes(
                     reply[24:28], byteorder="little", signed=False
@@ -423,7 +436,7 @@ class DacmInst(SaradInst):
                 date_time.month,
             ]
         )
-        instr_datetime.extend((date_time.year).to_bytes(2, byteorder="big"))
+        instr_datetime.extend((date_time.year).to_bytes(2, byteorder=self._byte_order))
         reply = self.get_reply([b"\x10", instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
             logger().debug("Time on device %s set to UTC.", self.device_id)

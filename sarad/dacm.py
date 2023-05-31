@@ -29,7 +29,7 @@ class DacmInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
-    version = "0.4"
+    version = "0.5"
 
     ALLOWED_CMDS = [
         0x01,
@@ -64,6 +64,13 @@ class DacmInst(SaradInst):
         0x1e,
         0x1f,
         0x20,
+        0x22,
+        0x23,
+        0x24,
+        0x25,
+        0x26,
+        0x27,
+        0x28,
     ]
 
     @overrides

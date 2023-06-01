@@ -2,6 +2,7 @@
 
 import re
 from datetime import date, datetime, timedelta
+from typing import Literal
 
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
@@ -10,6 +11,7 @@ from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
 
 
 class DacmInst(SaradInst):
+    # pylint: disable=too-many-instance-attributes
     """Instrument with DACM communication protocol
 
     Inherited properties:
@@ -91,7 +93,7 @@ class DacmInst(SaradInst):
         self._module_name = None
         self._config_name = None
         self.__interval = 0
-        self._byte_order = "big"
+        self._byte_order: Literal["little", "big"] = "big"
 
     def __str__(self):
         output = super().__str__() + (
@@ -172,8 +174,10 @@ class DacmInst(SaradInst):
             try:
                 if reply[28]:
                     self._byte_order = "little"
+                    logger().info("DACM-32 with Little-Endian")
                 else:
                     self._byte_order = "big"
+                    logger().info("DACM-8 with Big-Endian")
                 self._type_id = reply[1]
                 self._software_version = reply[2]
                 self._serial_number = int.from_bytes(

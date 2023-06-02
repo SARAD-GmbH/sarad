@@ -172,7 +172,7 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
-                if reply[28]:
+                if reply[29]:
                     self._byte_order = "little"
                     logger().info("DACM-32 with Little-Endian")
                 else:

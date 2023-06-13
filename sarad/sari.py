@@ -619,6 +619,8 @@ class SaradInst(Generic[SI]):
         checked_dict = self._check_message(raw_cmd, False)
         logger().debug("Checked dict: %s)", checked_dict)
         if checked_dict["is_valid"] and (len(checked_dict["payload"]) > 0):
+            if not checked_dict["is_control"]:
+                return True
             return bool(checked_dict["payload"][0] in self.ALLOWED_CMDS)
         return False
 

@@ -5,7 +5,7 @@ with open("README.org", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="data_collector",
+    name="datacollector",
     version="0.2",
     author="Michael Strey",
     author_email="strey@sarad.de",

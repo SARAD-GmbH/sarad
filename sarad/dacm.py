@@ -1,7 +1,8 @@
 """Module for the communication with instruments of the DACM family."""
 
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
+from typing import Literal
 
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
@@ -10,6 +11,7 @@ from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
 
 
 class DacmInst(SaradInst):
+    # pylint: disable=too-many-instance-attributes
     """Instrument with DACM communication protocol
 
     Inherited properties:
@@ -29,7 +31,49 @@ class DacmInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
-    version = "0.3"
+    version = "0.5"
+
+    ALLOWED_CMDS = [
+        0x01,
+        0x02,
+        0x03,
+        0x04,
+        0x05,
+        0x06,
+        0x07,
+        0x08,
+        0x09,
+        0x0A,
+        0x0B,
+        0x0C,
+        0x0D,
+        0x0E,
+        0x0F,
+        0x10,
+        0x11,
+        0x12,
+        0x13,
+        0x14,
+        0x15,
+        0x16,
+        0x17,
+        0x18,
+        0x19,
+        0x1A,
+        0x1B,
+        0x1C,
+        0x1D,
+        0x1E,
+        0x1F,
+        0x20,
+        0x22,
+        0x23,
+        0x24,
+        0x25,
+        0x26,
+        0x27,
+        0x28,
+    ]
 
     @overrides
     def __init__(self, family=SaradInst.products[2]):
@@ -49,6 +93,7 @@ class DacmInst(SaradInst):
         self._module_name = None
         self._config_name = None
         self.__interval = 0
+        self._byte_order: Literal["little", "big"] = "big"
 
     def __str__(self):
         output = super().__str__() + (
@@ -97,6 +142,26 @@ class DacmInst(SaradInst):
             self.components += [component_object]
         return len(self.components)
 
+    def _sanitize_date(self, year, month, day):
+        """This is to handle date entries that don't exist."""
+        try:
+            return date(year, month, day)
+        except ValueError as exception:
+            logger().warning(exception)
+            first_word = str(exception).split(" ", maxsplit=1)[0]
+            if first_word == "year":
+                self._sanitize_date(1971, month, day)
+            elif first_word == "month":
+                if 1 <= day <= 12:
+                    sanitized_month = day
+                    sanitized_day = month
+                    self._sanitize_date(year, sanitized_month, sanitized_day)
+                else:
+                    self._sanitize_date(year, 1, day)
+            elif first_word == "day":
+                self._sanitize_date(year, month, 1)
+        return None
+
     @overrides
     def get_description(self) -> bool:
         """Get descriptive data about DACM instrument."""
@@ -107,19 +172,35 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
+                if reply[29]:
+                    self._byte_order = "little"
+                    logger().info("DACM-32 with Little-Endian")
+                else:
+                    self._byte_order = "big"
+                    logger().info("DACM-8 with Big-Endian")
                 self._type_id = reply[1]
                 self._software_version = reply[2]
                 self._serial_number = int.from_bytes(
-                    reply[3:5], byteorder="big", signed=False
+                    reply[3:5], byteorder=self._byte_order, signed=False
                 )
                 manu_day = reply[5]
                 manu_month = reply[6]
-                manu_year = int.from_bytes(reply[7:9], byteorder="big", signed=False)
-                self._date_of_manufacture = datetime(manu_year, manu_month, manu_day)
+                manu_year = int.from_bytes(
+                    reply[7:9], byteorder=self._byte_order, signed=False
+                )
+                if manu_year == 65535:
+                    raise ValueError("Manufacturing year corrupted.")
+                self._date_of_manufacture = self._sanitize_date(
+                    manu_year, manu_month, manu_day
+                )
                 upd_day = reply[9]
                 upd_month = reply[10]
-                upd_year = int.from_bytes(reply[11:13], byteorder="big", signed=False)
-                self._date_of_update = datetime(upd_year, upd_month, upd_day)
+                upd_year = int.from_bytes(
+                    reply[11:13], byteorder=self._byte_order, signed=False
+                )
+                if upd_year == 65535:
+                    raise ValueError("Last Update year corrupted.")
+                self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
                 self._component_count = reply[15]
@@ -129,23 +210,23 @@ class DacmInst(SaradInst):
                 self._cycle_count_limit = reply[25]
                 self._step_count_limit = reply[26]
                 self._language = reply[27]
-                return True and self._get_module_information()
-            except TypeError:
-                logger().error("TypeError when parsing the payload.")
-                return False
-            except ReferenceError:
-                logger().error("ReferenceError when parsing the payload.")
-                return False
-            except LookupError:
-                logger().error("LookupError when parsing the payload.")
-                return False
-            except Exception:  # pylint: disable=broad-except
                 logger().debug(
-                    "The connected instrument does not belong to the DACM family."
+                    "type_id: %d, sw_ver: %d, sn: %d, manu: %s, update: %s",
+                    self._type_id,
+                    self._software_version,
+                    self._serial_number,
+                    self._date_of_manufacture,
+                    self._date_of_update,
+                )
+                return True and self._get_module_information()
+            except Exception as exception:  # pylint: disable=broad-except
+                logger().info(
+                    "Instrument doesn't belong to DACM family or %s",
+                    exception,
                 )
                 self._valid_family = False
                 return False
-        logger().debug("Get description failed.")
+        # logger().debug("Get description failed.")
         return False
 
     def _get_module_information(self):
@@ -158,8 +239,12 @@ class DacmInst(SaradInst):
                 self._route.rs485_address = reply[1]
                 config_day = reply[2]
                 config_month = reply[3]
-                config_year = int.from_bytes(reply[4:6], byteorder="big", signed=False)
-                self._date_of_config = datetime(config_year, config_month, config_day)
+                config_year = int.from_bytes(
+                    reply[4:6], byteorder=self._byte_order, signed=False
+                )
+                self._date_of_config = self._sanitize_date(
+                    config_year, config_month, config_day
+                )
                 self._module_name = reply[6:39].split(b"\x00")[0].decode("cp1252")
                 self._config_name = reply[39:].split(b"\x00")[0].decode("cp1252")
                 return True
@@ -191,7 +276,7 @@ class DacmInst(SaradInst):
                 ctrl_format = reply[4]
                 conf_block_size = reply[5]
                 data_record_size = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 name = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 hw_capability = BitVector(rawbytes=reply[16:20])
@@ -231,18 +316,20 @@ class DacmInst(SaradInst):
                 sensor_name = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 sensor_value = reply[8:16].split(b"\x00")[0].decode("cp1252")
                 sensor_unit = reply[8:16].split(b"\x00")[0].decode("cp1252")
-                input_config = int.from_bytes(reply[6:8], byteorder="big", signed=False)
+                input_config = int.from_bytes(
+                    reply[6:8], byteorder=self._byte_order, signed=False
+                )
                 alert_level_lo = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 alert_level_hi = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 alert_output_lo = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 alert_output_hi = int.from_bytes(
-                    reply[6:8], byteorder="big", signed=False
+                    reply[6:8], byteorder=self._byte_order, signed=False
                 )
                 return {
                     "sensor_name": sensor_name,
@@ -283,7 +370,7 @@ class DacmInst(SaradInst):
                     )
                 )
                 cycle_steps = int.from_bytes(
-                    reply[21:24], byteorder="big", signed=False
+                    reply[21:24], byteorder=self._byte_order, signed=False
                 )
                 cycle_repetitions = int.from_bytes(
                     reply[24:28], byteorder="little", signed=False
@@ -353,7 +440,7 @@ class DacmInst(SaradInst):
                 date_time.month,
             ]
         )
-        instr_datetime.extend((date_time.year).to_bytes(2, byteorder="big"))
+        instr_datetime.extend((date_time.year).to_bytes(2, byteorder=self._byte_order))
         reply = self.get_reply([b"\x10", instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
             logger().debug("Time on device %s set to UTC.", self.device_id)
@@ -402,7 +489,7 @@ class DacmInst(SaradInst):
         """
         cmd_dict = self._analyze_cmd_data(
             payload=self._check_message(
-                answer=raw_cmd,
+                message=raw_cmd,
                 multiframe=False,
             )["payload"]
         )
@@ -434,7 +521,7 @@ class DacmInst(SaradInst):
                 list_of_outputs.append(output)
         return list_of_outputs
 
-    def get_recent_value(self, component, sensor=0, measurand=0):
+    def get_recent_value(self, component_id, sensor_id=0, measurand_id=0):
         """Get a dictionaries with recent measuring values from one sensor.
         component_id: one of the 34 sensor/actor modules of the DACM system
         measurand_id:
@@ -443,14 +530,7 @@ class DacmInst(SaradInst):
         2 = minimum of last completed interval,
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
-        component_id = self.components[component].component_id
-        sensor_id = self.components[component].sensors[sensor].sensor_id
-        measurand_id = (
-            self.components[component]
-            .sensors[sensor]
-            .measurands[measurand]
-            .measurand_id
-        )
+        measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
         reply = self.get_reply(
             [
                 b"\x1a",
@@ -461,7 +541,7 @@ class DacmInst(SaradInst):
         if reply and (reply[0] > 0):
             output = {}
             output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
-            output["measurand_id"] = measurand_id
+            output["measurand_name"] = measurand_names[measurand_id]
             output["sensor_name"] = reply[18:34].split(b"\x00")[0].decode("cp1252")
             output["measurand"] = (
                 reply[35:51].split(b"\x00")[0].strip().decode("cp1252")
@@ -470,13 +550,13 @@ class DacmInst(SaradInst):
             output["measurand_operator"] = measurand_dict["measurand_operator"]
             output["value"] = measurand_dict["measurand_value"]
             output["measurand_unit"] = measurand_dict["measurand_unit"]
-            date = reply[52:68].split(b"\x00")[0].split(b"/")
+            meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
             meas_time = reply[69:85].split(b"\x00")[0].split(b":")
-            if date != [b""]:
+            if meas_date != [b""]:
                 output["datetime"] = datetime(
-                    int(date[2]),
-                    int(date[0]),
-                    int(date[1]),
+                    int(meas_date[2]),
+                    int(meas_date[0]),
+                    int(meas_date[1]),
                     int(meas_time[0]),
                     int(meas_time[1]),
                     int(meas_time[2]),
@@ -505,14 +585,6 @@ class DacmInst(SaradInst):
                     "altitude": None,
                     "deviation": None,
                 }
-            this_measurand = (
-                self.components[component].sensors[sensor].measurands[measurand]
-            )
-            this_measurand.operator = measurand_dict["measurand_operator"]
-            this_measurand.value = measurand_dict["measurand_value"]
-            this_measurand.unit = measurand_dict["measurand_unit"]
-            this_measurand.time = output["datetime"]
-            this_measurand.gps = gps_dict
             return output
         if reply[0] == 0:
             logger().error("Measurand not available.")

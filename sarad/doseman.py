@@ -20,7 +20,52 @@ class DosemanInst(SaradInst):
     Inherited Public methods:
         get_reply()"""
 
-    version = "0.2"
+    version = "0.3"
+
+    ALLOWED_CMDS = [
+        0x10,
+        0x11,
+        0x12,
+        0x13,
+        0x14,
+        0x15,
+        0x20,
+        0x21,
+        0x22,
+        0x23,
+        0x24,
+        0x25,
+        0x25,
+        0x26,
+        0x30,
+        0x31,
+        0x32,
+        0x33,
+        0x34,
+        0x35,
+        0x40,
+        0x41,
+        0x42,
+        0x43,
+        0x44,
+        0x45,
+        0x50,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        0x55,
+        0x60,
+        0x61,
+        0x62,
+        0x63,
+        0x64,
+        0x65,
+        0x70,
+        0x71,
+        0x72,
+        0x73,
+    ]
 
     @overrides
     def __init__(self, family=SaradInst.products[0]):
@@ -44,17 +89,34 @@ class DosemanInst(SaradInst):
             payload: Payload of answer,
             number_of_bytes_in_payload,
             raw: The raw byte string from _get_transparent_reply.
+            standard_frame: standard B-E frame derived from b-e frame
         """
+        if not self.check_cmd(message):
+            logger().error("Received invalid command %s", message)
+            return {
+                "is_valid": False,
+                "is_control": False,
+                "is_last_frame": True,
+                "payload": b"",
+                "number_of_bytes_in_payload": 0,
+                "raw": b"",
+                "standard_frame": b"",
+            }
         # Run _check_message to get the payload of the sent message.
         checked_message = self._check_message(message, False)
         # If this is a get-data command, we expect multiple B-E frames.
-        _multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
+        multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
             answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-        checked_answer = self._check_message(answer, True)
+        checked_answer = self._check_message(answer, multiframe)
+        logger().debug(checked_answer)
+        if answer == message:
+            logger().debug("Echo. Get next frame!")
+            answer = self._get_transparent_reply(b"", timeout=timeout, keep=True)
+            checked_answer = self._check_message(answer, multiframe)
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],
@@ -62,6 +124,7 @@ class DosemanInst(SaradInst):
             "payload": checked_answer["payload"],
             "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
             "raw": answer,
+            "standard_frame": checked_answer["standard_frame"],
         }
 
     @overrides

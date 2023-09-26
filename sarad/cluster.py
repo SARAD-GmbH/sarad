@@ -181,14 +181,19 @@ class SaradCluster(Generic[SI]):
                 else:
                     continue
                 test_instrument = family_class()
-                test_instrument.family = family
                 logger().debug("Testing port %s for %s.", port, family["family_name"])
                 try:
                     test_instrument.route = Route(
                         port=port, rs485_address=None, zigbee_address=None
                     )
                     if not test_instrument.valid_family:
+                        logger().debug("Family not valid")
                         continue
+                    logger().debug(
+                        "type_id = %d, serial_number = %d",
+                        test_instrument.type_id,
+                        test_instrument.serial_number,
+                    )
                     if test_instrument.type_id and test_instrument.serial_number:
                         device_id = hid.encode(
                             test_instrument.family["family_id"],
@@ -224,7 +229,9 @@ class SaradCluster(Generic[SI]):
         hid = Hashids()
         added_instruments = set()
         logger().debug(
-            "%d port(s) to test: %s", len(self.__rs485_ports), self.__rs485_ports
+            "%d port(s) to test for RS-485: %s",
+            len(self.__rs485_ports),
+            self.__rs485_ports,
         )
         # We check every port in ports_to_test and try for a connected SARAD instrument.
         for port in self.__rs485_ports:
@@ -314,10 +321,8 @@ class SaradCluster(Generic[SI]):
             ports_to_test = self.active_ports
         if ports_to_skip is not None:
             logger().debug("Test: %s, Skip: %s", ports_to_test, ports_to_skip)
-            ports_to_test = list(
-                set(ports_to_test).symmetric_difference(set(ports_to_skip))
-            )
-            logger().debug("Symmetric difference: %s", ports_to_test)
+            ports_to_test = list(set(ports_to_test).difference(set(ports_to_skip)))
+            logger().debug("Difference: %s", ports_to_test)
             if not ports_to_test:
                 logger().warning(
                     "Nothing to do. "

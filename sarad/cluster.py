@@ -422,6 +422,7 @@ if __name__ == "__main__":
 
     for connected_instrument in mycluster:
         print(connected_instrument)
+        print(connected_instrument._get_component_configuration(0))
 
     # Example access on first device
     if len(mycluster.connected_instruments) > 0:

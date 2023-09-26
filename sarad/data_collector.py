@@ -223,6 +223,8 @@ def cluster(lock_path):
         with lock.acquire(timeout=10):
             for instrument in mycluster:
                 click.echo(instrument)
+                for component in instrument.components:
+                    click.echo(component)
             return mycluster
     except Timeout:
         click.echo(LOCK_HINT)

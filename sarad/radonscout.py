@@ -42,12 +42,12 @@ class RscInst(SaradInst):
         0x07,
         0x08,
         0x09,
-        0x0a,
-        0x0b,
-        0x0c,
-        0x0d,
-        0x0e,
-        0x0f,
+        0x0A,
+        0x0B,
+        0x0C,
+        0x0D,
+        0x0E,
+        0x0F,
         0x10,
         0x11,
         0x12,
@@ -58,9 +58,9 @@ class RscInst(SaradInst):
         0x17,
         0x18,
         0x19,
-        0x1a,
-        0x1b,
-        0x1c,
+        0x1A,
+        0x1B,
+        0x1C,
     ]
 
     @overrides
@@ -274,17 +274,31 @@ class RscInst(SaradInst):
             return True
         return self._gather_all_recent_values()
 
-    def get_recent_value(self, component_id=None, sensor_id=None, _=None):
+    def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         """Fill component objects with recent measuring values.\
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
-        for measurand in self.components[component_id].sensors[sensor_id].measurands:
-            logger().debug(measurand)
-            if measurand.source == 8:  # battery voltage
-                measurand.value = self._get_battery_voltage()
-                measurand.time = datetime.utcnow().replace(microsecond=0)
-                return measurand.value
-        return self.get_all_recent_values()
+        self.get_all_recent_values()
+        component = self.components[component_id]
+        sensor = component.sensors[sensor_id]
+        measurand = sensor.measurands[measurand_id]
+        return {
+            "component_name": component.name,
+            "sensor_name": sensor.name,
+            "measurand_name": measurand.name,
+            "measurand_operator": measurand.operator,
+            "measurand": f"{measurand.operator} {measurand.value} {measurand.unit}",
+            "value": measurand.value,
+            "measurand_unit": measurand.unit,
+            "datetime": measurand.time,
+            "gps": {
+                "valid": False,
+                "latitude": None,
+                "longitude": None,
+                "altitude": None,
+                "deviation": None,
+            },
+        }
 
     @overrides
     def set_real_time_clock(self, date_time) -> bool:
@@ -324,8 +338,10 @@ class RscInst(SaradInst):
         for component in self.components:
             for sensor in component.sensors:
                 sensor.interval = self.__interval
-        self._last_sampling_time = datetime.utcnow()
-        return self.stop_cycle() and self._push_button()
+        success = self.stop_cycle() and self._push_button()
+        if success:
+            self._last_sampling_time = datetime.utcnow()
+        return success
 
     def get_config(self):
         """Get configuration from device."""

@@ -301,7 +301,7 @@ class RscInst(SaradInst):
         )
         reply = self.get_reply([b"\x05", instr_datetime], 1)
         if reply and (reply[0] == ok_byte):
-            logger().debug("Time on device %s set to UTC.", self.device_id)
+            logger().debug("Time on device %s set.", self.device_id)
             return True
         logger().error("Setting the time on device %s failed.", {self.device_id})
         return False

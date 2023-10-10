@@ -7,6 +7,7 @@ import logging
 import os
 import struct
 import time
+from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -378,7 +379,7 @@ class SaradInst(Generic[SI]):
         components: List of sensor or actor components
     """
 
-    version = "3.1"
+    version = "3.2"
 
     ALLOWED_CMDS: List[int] = []
 
@@ -448,6 +449,7 @@ class SaradInst(Generic[SI]):
         self.__id: str = ""
         self._valid_family = True
         self._last_sampling_time = None
+        self._possible_baudrates: deque = deque(family["baudrate"])
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -922,9 +924,9 @@ class SaradInst(Generic[SI]):
                     logger().debug("Serial interface closed.")
                     return None
             except Exception:  # pylint: disable=broad-except
-                logger().error("Serial interface not available.")
+                logger().warning("Serial interface not available.")
                 return None
-            logger().debug("Keeping serial interface open.")
+            logger().debug("Keeping serial interface %s open.", serial)
             return serial
         logger().debug("Tried to close %s but nothing to do.", serial)
         return None
@@ -957,7 +959,7 @@ class SaradInst(Generic[SI]):
     def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
         """Returns the raw bytestring of the instruments reply"""
 
-        def _open_serial():
+        def _open_serial(baudrate):
             retry = True
             parity_options = {"N": PARITY_NONE, "E": PARITY_EVEN}
             logger().debug("Parity = %s", parity_options[self._family["parity"]])
@@ -966,7 +968,7 @@ class SaradInst(Generic[SI]):
                     try:
                         ser = Serial(
                             self.route.port,
-                            self._family["baudrate"],
+                            baudrate=baudrate,
                             bytesize=8,
                             xonxoff=0,
                             parity=parity_options[self._family["parity"]],
@@ -990,44 +992,60 @@ class SaradInst(Generic[SI]):
             logger().debug("Serial ready @ %d baud", ser.baudrate)
             return ser
 
-        if keep:
-            if self.__ser is None:
-                ser = _open_serial()
+        def _try_baudrate(baudrate, keep_serial_open):
+            if keep_serial_open:
+                if self.__ser is None:
+                    ser = _open_serial(baudrate)
+                else:
+                    try:
+                        ser = self.__ser
+                        ser.baudrate = baudrate
+                        if not ser.is_open:
+                            logger().debug("Serial interface is closed. Reopen.")
+                            ser.open()
+                            time.sleep(0.5)
+                        logger().debug("Reuse stored serial interface")
+                    except (AttributeError, SerialException, OSError):
+                        logger().warning(
+                            "Something went wrong with reopening -> Re-initialize"
+                        )
+                        self.__ser = None
             else:
-                try:
-                    ser = self.__ser
-                    if not ser.is_open:
-                        logger().debug("Serial interface is closed. Reopen.")
-                        ser.open()
-                        time.sleep(0.5)
-                    logger().debug("Reuse stored serial interface")
-                except (AttributeError, SerialException, OSError):
-                    logger().warning(
-                        "Something went wrong with reopening -> Re-initialize"
-                    )
-                    self.__ser = None
-        else:
-            logger().debug("Open serial, don't keep.")
-            ser = _open_serial()
-        try:
-            ser.timeout = timeout
-        except SerialException as exception:
-            logger().error(exception)
-            return b""
-        logger().info("Tx to %s: %s", ser.port, raw_cmd)
-        ser.inter_byte_timeout = timeout
-        for element in raw_cmd:
-            byte = (element).to_bytes(1, "big")
-            ser.write(byte)
-            sleep(self._family["write_sleeptime"])
-        self._new_rs485_address(raw_cmd)
-        sleep(self._family["wait_for_reply"])
-        be_frame = self._get_be_frame(ser, True)
-        answer = bytearray(be_frame)
-        self.__ser = self._close_serial(ser, keep)
-        b_answer = bytes(answer)
-        logger().debug("Rx from %s: %s", ser.port, b_answer)
-        return b_answer
+                logger().debug("Open serial, don't keep.")
+                ser = _open_serial(baudrate)
+            try:
+                ser.timeout = timeout
+            except SerialException as exception:
+                logger().error(exception)
+                return b""
+            logger().debug("Tx to %s: %s", ser.port, raw_cmd)
+            ser.inter_byte_timeout = timeout
+            for element in raw_cmd:
+                byte = (element).to_bytes(1, "big")
+                ser.write(byte)
+                sleep(self._family["write_sleeptime"])
+            self._new_rs485_address(raw_cmd)
+            sleep(self._family["wait_for_reply"])
+            be_frame = self._get_be_frame(ser, True)
+            answer = bytearray(be_frame)
+            self.__ser = self._close_serial(ser, keep)
+            b_answer = bytes(answer)
+            logger().debug("Rx from %s: %s", ser.port, b_answer)
+            return b_answer
+
+        logger().debug("Possible baudrates: %s", self._possible_baudrates)
+        result = b""
+        for _i in range(len(self._possible_baudrates)):
+            baudrate = self._possible_baudrates[0]
+            logger().debug("Trying with %s baud", baudrate)
+            result = _try_baudrate(baudrate, keep)
+            if result:
+                logger().debug("Working with %s baud", baudrate)
+                return result
+            self.__ser = self._close_serial(self.__ser, False)
+            self._possible_baudrates.rotate(-1)
+            sleep(1)
+        return result
 
     def _new_rs485_address(self, raw_cmd):
         # pylint: disable = unused-argument

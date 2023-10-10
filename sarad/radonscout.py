@@ -48,7 +48,7 @@ class RscInst(SaradInst):
         0x0D,
         0x0E,
         0x0F,
-        0x10,
+        0x10,  # GetSetup
         0x11,
         0x12,
         0x13,

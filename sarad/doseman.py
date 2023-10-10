@@ -23,7 +23,7 @@ class DosemanInst(SaradInst):
     version = "0.3"
 
     ALLOWED_CMDS = [
-        0x10,
+        0x10,  # SetDeviceId
         0x11,
         0x12,
         0x13,
@@ -37,8 +37,8 @@ class DosemanInst(SaradInst):
         0x25,
         0x25,
         0x26,
-        0x30,
-        0x31,
+        0x30,  # SetTime
+        0x31,  # DeviceSetup
         0x32,
         0x33,
         0x34,

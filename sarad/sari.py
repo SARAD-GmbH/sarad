@@ -16,7 +16,8 @@ from typing import (Any, Collection, Dict, Generic, Iterator, List, Optional,
 
 import yaml
 from BitVector import BitVector  # type: ignore
-from serial import STOPBITS_ONE, Serial, SerialException  # type: ignore
+from serial import STOPBITS_ONE  # type: ignore
+from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
 
 _LOGGER = None
 
@@ -958,6 +959,8 @@ class SaradInst(Generic[SI]):
 
         def _open_serial():
             retry = True
+            parity_options = {"N": PARITY_NONE, "E": PARITY_EVEN}
+            logger().debug("Parity = %s", parity_options[self._family["parity"]])
             for _i in range(0, 1):
                 while retry:
                     try:
@@ -966,8 +969,7 @@ class SaradInst(Generic[SI]):
                             self._family["baudrate"],
                             bytesize=8,
                             xonxoff=0,
-                            parity=self._family["parity"],
-                            rtscts=0,
+                            parity=parity_options[self._family["parity"]],
                             stopbits=STOPBITS_ONE,
                         )
                         retry = False
@@ -984,14 +986,13 @@ class SaradInst(Generic[SI]):
                         raise
             if retry:
                 raise BlockingIOError
+            time.sleep(0.5)
+            logger().debug("Serial ready @ %d baud", ser.baudrate)
             return ser
 
-        logger().debug("Tx to instrument: %s", raw_cmd)
         if keep:
             if self.__ser is None:
                 ser = _open_serial()
-                time.sleep(0.5)
-                logger().debug("Serial ready @ %d baud", ser.baudrate)
             else:
                 try:
                     ser = self.__ser
@@ -1008,12 +1009,12 @@ class SaradInst(Generic[SI]):
         else:
             logger().debug("Open serial, don't keep.")
             ser = _open_serial()
-            time.sleep(0.5)
         try:
             ser.timeout = timeout
         except SerialException as exception:
             logger().error(exception)
             return b""
+        logger().info("Tx to %s: %s", ser.port, raw_cmd)
         ser.inter_byte_timeout = timeout
         for element in raw_cmd:
             byte = (element).to_bytes(1, "big")
@@ -1025,7 +1026,7 @@ class SaradInst(Generic[SI]):
         answer = bytearray(be_frame)
         self.__ser = self._close_serial(ser, keep)
         b_answer = bytes(answer)
-        logger().debug("Rx from instrument: %s", b_answer)
+        logger().debug("Rx from %s: %s", ser.port, b_answer)
         return b_answer
 
     def _new_rs485_address(self, raw_cmd):

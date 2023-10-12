@@ -36,6 +36,10 @@ class NetworkInst(SaradInst):
         0xFE,  # CoordinatorReset
     ]
 
+    CHANNELINFO = 0xD0
+    ENDOFCHANNELLIST = 0xD1
+    CHANNELSELECTED = 0xD2
+
     @overrides
     def __init__(self, family=SaradInst.products[2]):
         super().__init__(family)
@@ -95,6 +99,14 @@ class NetworkInst(SaradInst):
                 old_rs485_address,
                 self._route.rs485_address,
             )
+
+    def get_first_channel(self):
+        """Stop a measurement cycle."""
+        ok_byte = self.CHANNELSELECTED
+        reply = self.get_reply([b"\xC0", b""], 1)
+        if reply and (reply[0] == ok_byte):
+            return reply
+        return False
 
     def get_address(self):
         """Return the address of the DACM module."""

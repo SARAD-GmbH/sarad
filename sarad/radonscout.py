@@ -279,6 +279,7 @@ class RscInst(SaradInst):
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
         self.get_all_recent_values()
+        # TODO This is causing too much traffic at the instrument.
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]

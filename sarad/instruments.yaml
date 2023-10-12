@@ -1150,6 +1150,24 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+- family_id: 4
+  family_name: Network family
+  baudrate:
+    - 9600
+    - 115200
+  get_id_cmd:
+  - !!binary |
+    DA==
+  - !!binary |
+    /wAA
+  length_of_reply: 13
+  wait_for_reply: 0
+  write_sleeptime: 0
+  ok_byte: 10
+  parity: N
+  types:
+  - type_id: 200
+    type_name: ZigBee Coordinator
 - family_id: 5
   family_name: DACM family
   baudrate:

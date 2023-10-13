@@ -96,7 +96,17 @@ class NetworkInst(SaradInst):
         """Get information about the instrument connected via next available channel."""
         reply = self.get_reply([b"\xC1", b""], timeout=3)
         if reply and (reply[0] == self.CHANNELINFO):
-            return reply
+            return {
+                "short_address": int.from_bytes(
+                    reply[1:3], byteorder="little", signed=False
+                ),
+                "device_type": reply[3],
+                "firmware_version": reply[4],
+                "serial_number": int.from_bytes(
+                    reply[5:7], byteorder="big", signed=False
+                ),
+                "family_id": reply[7],
+            }
         if reply and (reply[0] == self.ENDOFCHANNELLIST):
             return False
         logger().error("Unexpecte reply to get_next_channel: %s", reply)

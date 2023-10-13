@@ -47,34 +47,6 @@ class NetworkInst(SaradInst):
         self._date_of_update = None
         self._byte_order: Literal["little", "big"] = "big"
 
-    def __str__(self):
-        output = super().__str__() + (
-            f"LastUpdate: {self.date_of_update}\n"
-            f"DateOfManufacture: {self.date_of_manufacture}\n"
-            f"Address: {self.address}\n"
-        )
-        return output
-
-    def _sanitize_date(self, year, month, day):
-        """This is to handle date entries that don't exist."""
-        try:
-            return date(year, month, day)
-        except ValueError as exception:
-            logger().warning(exception)
-            first_word = str(exception).split(" ", maxsplit=1)[0]
-            if first_word == "year":
-                self._sanitize_date(1971, month, day)
-            elif first_word == "month":
-                if 1 <= day <= 12:
-                    sanitized_month = day
-                    sanitized_day = month
-                    self._sanitize_date(year, sanitized_month, sanitized_day)
-                else:
-                    self._sanitize_date(year, 1, day)
-            elif first_word == "day":
-                self._sanitize_date(year, month, 1)
-        return None
-
     @overrides
     def _new_rs485_address(self, raw_cmd):
         """Check whether raw_cmd changed the RS-485 bus address of the instrument.
@@ -101,11 +73,57 @@ class NetworkInst(SaradInst):
             )
 
     def get_first_channel(self):
-        """Stop a measurement cycle."""
-        ok_byte = self.CHANNELSELECTED
-        reply = self.get_reply([b"\xC0", b""], 1)
-        if reply and (reply[0] == ok_byte):
+        """Get information about the instrument connected via first available channel."""
+        reply = self.get_reply([b"\xC0", b""], timeout=3)
+        if reply and (reply[0] == self.CHANNELINFO):
+            return {
+                "short_address": int.from_bytes(
+                    reply[1:3], byteorder="little", signed=False
+                ),
+                "device_type": reply[3],
+                "firmware_version": reply[4],
+                "serial_number": int.from_bytes(
+                    reply[5:7], byteorder="big", signed=False
+                ),
+                "family_id": reply[7],
+            }
+        if reply and (reply[0] == self.ENDOFCHANNELLIST):
+            return False
+        logger().error("Unexpecte reply to get_first_channel: %s", reply)
+        return False
+
+    def get_next_channel(self):
+        """Get information about the instrument connected via next available channel."""
+        reply = self.get_reply([b"\xC1", b""], timeout=3)
+        if reply and (reply[0] == self.CHANNELINFO):
             return reply
+        if reply and (reply[0] == self.ENDOFCHANNELLIST):
+            return False
+        logger().error("Unexpecte reply to get_next_channel: %s", reply)
+        return False
+
+    def select_channel(self, channel_idx):
+        """Start the transparent mode to given channel."""
+        reply = self.get_reply([b"\xC2", channel_idx.to_bytes(2, "little")], timeout=3)
+        if reply and (reply[0] == self.CHANNELSELECTED):
+            return reply
+        logger().error("Unexpecte reply to select_channel: %s", reply)
+        return False
+
+    def close_channel(self):
+        """Leave the transparent mode."""
+        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=3)
+        if reply and (reply[0] == self.CHANNELSELECTED):
+            return reply
+        logger().error("Unexpecte reply to close_channel: %s", reply)
+        return False
+
+    def coordinator_reset(self):
+        """Restart the coordinator. Same as power off -> on."""
+        reply = self.get_reply([b"\xFE", b"\x00\x00"], timeout=3)
+        if reply and (reply[0] == self.CHANNELSELECTED):
+            return reply
+        logger().error("Unexpecte reply to coordinator_reset: %s", reply)
         return False
 
     def get_address(self):

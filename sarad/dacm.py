@@ -78,7 +78,7 @@ class DacmInst(SaradInst):
     ]
 
     @overrides
-    def __init__(self, family=SaradInst.products[2]):
+    def __init__(self, family=SaradInst.products[3]):
         super().__init__(family)
         self._date_of_manufacture = None
         self._date_of_update = None

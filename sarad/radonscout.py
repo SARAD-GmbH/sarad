@@ -61,6 +61,8 @@ class RscInst(SaradInst):
         0x1A,
         0x1B,
         0x1C,
+        0xC2,  # SelectChannel
+        0xFE,  # CoordinatorReset
     ]
 
     @overrides

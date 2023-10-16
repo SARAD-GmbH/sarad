@@ -65,6 +65,8 @@ class DosemanInst(SaradInst):
         0x71,
         0x72,
         0x73,
+        0xC2,  # SelectChannel
+        0xFE,  # CoordinatorReset
     ]
 
     @overrides

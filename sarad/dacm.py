@@ -73,6 +73,8 @@ class DacmInst(SaradInst):
         0x26,
         0x27,
         0x28,
+        0xC2,  # SelectChannel
+        0xFE,  # CoordinatorReset
     ]
 
     @overrides

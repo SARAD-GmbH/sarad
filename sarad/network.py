@@ -1,6 +1,5 @@
 """Module for the communication with instruments of the Network family."""
 
-from datetime import date
 from typing import Literal
 
 from overrides import overrides  # type: ignore
@@ -89,7 +88,7 @@ class NetworkInst(SaradInst):
             }
         if reply and (reply[0] == self.ENDOFCHANNELLIST):
             return False
-        logger().error("Unexpecte reply to get_first_channel: %s", reply)
+        logger().error("Unexpected reply to get_first_channel: %s", reply)
         return False
 
     def get_next_channel(self):
@@ -109,31 +108,7 @@ class NetworkInst(SaradInst):
             }
         if reply and (reply[0] == self.ENDOFCHANNELLIST):
             return False
-        logger().error("Unexpecte reply to get_next_channel: %s", reply)
-        return False
-
-    def select_channel(self, channel_idx):
-        """Start the transparent mode to given channel."""
-        reply = self.get_reply([b"\xC2", channel_idx.to_bytes(2, "little")], timeout=3)
-        if reply and (reply[0] == self.CHANNELSELECTED):
-            return reply
-        logger().error("Unexpecte reply to select_channel: %s", reply)
-        return False
-
-    def close_channel(self):
-        """Leave the transparent mode."""
-        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=3)
-        if reply and (reply[0] == self.CHANNELSELECTED):
-            return reply
-        logger().error("Unexpecte reply to close_channel: %s", reply)
-        return False
-
-    def coordinator_reset(self):
-        """Restart the coordinator. Same as power off -> on."""
-        reply = self.get_reply([b"\xFE", b"\x00\x00"], timeout=3)
-        if reply and (reply[0] == self.CHANNELSELECTED):
-            return reply
-        logger().error("Unexpecte reply to coordinator_reset: %s", reply)
+        logger().error("Unexpected reply to get_next_channel: %s", reply)
         return False
 
     def get_address(self):
@@ -146,17 +121,7 @@ class NetworkInst(SaradInst):
         if (self._route.port is not None) and (self._route.rs485_address is not None):
             self._initialize()
 
-    def get_date_of_manufacture(self):
-        """Return the date of manufacture."""
-        return self._date_of_manufacture
-
-    def get_date_of_update(self):
-        """Return the date of firmware update."""
-        return self._date_of_update
-
     address = property(get_address, set_address)
-    date_of_manufacture = property(get_date_of_manufacture)
-    date_of_update = property(get_date_of_update)
 
     @property
     def type_name(self) -> str:

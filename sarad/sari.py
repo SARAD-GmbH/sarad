@@ -381,7 +381,11 @@ class SaradInst(Generic[SI]):
 
     version = "3.2"
 
-    ALLOWED_CMDS: List[int] = []
+    ALLOWED_CMDS: List[int] = [
+        0xC2,  # SelectChannel
+        0xFE,  # CoordinatorReset
+    ]
+    CHANNELSELECTED = 0xD2
 
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
@@ -497,6 +501,31 @@ class SaradInst(Generic[SI]):
         else:
             data = b""
         return {"cmd": bytes(payload_list[0:1]), "data": data}
+
+    def select_zigbee_channel(self, channel_idx):
+        """Start the transparent mode to given channel."""
+        reply = self.get_reply([b"\xC2", channel_idx.to_bytes(2, "little")], timeout=3)
+        if reply and (reply[0] == self.CHANNELSELECTED):
+            logger().info("Channel selected: %s", reply)
+            return reply
+        logger().error("Unexpecte reply to select_channel: %s", reply)
+        return False
+
+    def close_zigbee_channel(self):
+        """Leave the transparent mode."""
+        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=3)
+        if reply and (reply[0] == self.CHANNELSELECTED):
+            return reply
+        logger().error("Unexpecte reply to close_channel: %s", reply)
+        return False
+
+    def zigbee_coordinator_reset(self):
+        """Restart the coordinator. Same as power off -> on."""
+        reply = self.get_reply([b"\xFE", b"\x00\x00"], timeout=3)
+        if reply and (reply[0] == self.CHANNELSELECTED):
+            return reply
+        logger().error("Unexpecte reply to coordinator_reset: %s", reply)
+        return False
 
     def _check_message(self, message: bytes, multiframe: bool) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
@@ -731,6 +760,9 @@ class SaradInst(Generic[SI]):
         return output
 
     def _initialize(self) -> None:
+        if self._route.zigbee_address:
+            self.select_zigbee_channel(self._route.zigbee_address)
+            time.sleep(3)
         self.get_description()
         logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
@@ -751,6 +783,10 @@ class SaradInst(Generic[SI]):
                 self._serial_number = int.from_bytes(
                     reply[3:5], byteorder="little", signed=False
                 )
+                if (self._type_id != 200) and (self.family["family_id"] == 4):
+                    logger().info("This seemed like a Network device, but isn't.")
+                    self._valid_family = False
+                    return False
                 return True
             except TypeError:
                 logger().error("TypeError when parsing the payload.")
@@ -967,7 +1003,7 @@ class SaradInst(Generic[SI]):
                 while retry:
                     try:
                         ser = Serial(
-                            self.route.port,
+                            self._route.port,
                             baudrate=baudrate,
                             bytesize=8,
                             xonxoff=0,
@@ -1042,7 +1078,7 @@ class SaradInst(Generic[SI]):
             if result:
                 logger().debug("Working with %s baud", baudrate)
                 return result
-            self.__ser = self._close_serial(self.__ser, False)
+            self.release_instrument()
             self._possible_baudrates.rotate(-1)
             sleep(1)
         return result

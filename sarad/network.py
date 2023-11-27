@@ -27,14 +27,6 @@ class NetworkInst(SaradInst):
 
     version = "1"
 
-    ALLOWED_CMDS = [
-        0x0C,  # GetId
-        0xC0,  # GetFirstChannel
-        0xC1,  # GetNextChannel
-        0xC2,  # SelectChannel
-        0xFE,  # CoordinatorReset
-    ]
-
     CHANNELINFO = 0xD0
     ENDOFCHANNELLIST = 0xD1
     CHANNELSELECTED = 0xD2

@@ -381,10 +381,6 @@ class SaradInst(Generic[SI]):
 
     version = "3.2"
 
-    ALLOWED_CMDS: List[int] = [
-        0xC2,  # SelectChannel
-        0xFE,  # CoordinatorReset
-    ]
     CHANNELSELECTED = 0xD2
 
     class Lock(Enum):
@@ -454,6 +450,7 @@ class SaradInst(Generic[SI]):
         self._valid_family = True
         self._last_sampling_time = None
         self._possible_baudrates: deque = deque(family["baudrate"])
+        self._allowed_cmds = family.get("allowed_cmds", [])
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -653,7 +650,7 @@ class SaradInst(Generic[SI]):
         if checked_dict["is_valid"] and (len(checked_dict["payload"]) > 0):
             if not checked_dict["is_control"]:
                 return True
-            return bool(checked_dict["payload"][0] in self.ALLOWED_CMDS)
+            return bool(checked_dict["payload"][0] in self._allowed_cmds)
         return False
 
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:

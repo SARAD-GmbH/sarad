@@ -1304,11 +1304,10 @@
   - 0x25
   - 0x26
   - 0x27
-  - 0x28
-  - 0x40  # SetResultStyle
-  - 0x41  # GetResultStyle
-  - 0x42  # SetDisplayControl
-  - 0x43  # GetDisplayControl
+  - 0x28  # SetResultStyle
+  - 0x29  # GetResultStyle
+  - 0x3A  # SetDisplayControl
+  - 0x3B  # GetDisplayControl
   - 0xC2  # SelectChannel
   - 0xFE  # CoordinatorReset
   types:

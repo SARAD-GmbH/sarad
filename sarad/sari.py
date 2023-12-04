@@ -686,9 +686,9 @@ class SaradInst(Generic[SI]):
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         retry_counter = 2
         while (answer == b"") and retry_counter:
-            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
             # Workaround for firmware bug in SARAD instruments.
-            logger().debug("Play it again, Sam!")
+            logger().info("Play it again, Sam!")
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
             retry_counter = retry_counter - 1
         checked_answer = self._check_message(answer, False)
         return {
@@ -989,7 +989,7 @@ class SaradInst(Generic[SI]):
             return first_bytes + remaining_bytes + left_bytes
         return first_bytes + remaining_bytes
 
-    def _get_transparent_reply(self, raw_cmd, timeout=0.1, keep=True):
+    def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):
         """Returns the raw bytestring of the instruments reply"""
 
         def _open_serial(baudrate):

@@ -687,7 +687,7 @@ class SaradInst(Generic[SI]):
         retry_counter = 2
         while (answer == b"") and retry_counter:
             # Workaround for firmware bug in SARAD instruments.
-            logger().info("Play it again, Sam!")
+            logger().debug("Play it again, Sam!")
             answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
             retry_counter = retry_counter - 1
         checked_answer = self._check_message(answer, False)

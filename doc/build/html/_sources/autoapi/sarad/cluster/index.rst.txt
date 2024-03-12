@@ -44,7 +44,6 @@ Attributes
 
 
 .. py:data:: _LOGGER
-   
 
    
 
@@ -53,7 +52,8 @@ Attributes
    Returns the logger instance used in this module.
 
 
-.. py:class:: SaradCluster(native_ports: Optional[List[str]] = None, ignore_ports: Optional[List[str]] = None)
+.. py:class:: SaradCluster(native_ports: Optional[List[str]] = None, ignore_ports: Optional[List[str]] = None, rs485_ports: Optional[Dict[str, List[int]]] = None)
+
 
    Bases: :py:obj:`Generic`\ [\ :py:obj:`sarad.sari.SI`\ ]
 
@@ -75,31 +75,63 @@ Attributes
        synchronize(): Stop all instruments, set time, start all measurings
        dump(): Save all properties to a Pickle file
 
+   .. py:property:: active_ports
+      :type: List[str]
+
+      SARAD instruments can be connected:
+      1. by RS232 on a native RS232 interface at the computer
+      2. via their built in FT232R USB-serial converter
+      3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
+      4. via the SARAD ZigBee coordinator with FT232R
+
+   .. py:property:: connected_instruments
+      :type: List[sarad.sari.SaradInst]
+
+      Return list of connected instruments.
+
+   .. py:property:: native_ports
+      :type: Optional[List[str]]
+
+      Return the list of all native serial ports (RS-232 ports)
+      available at the instrument controller.
+
+   .. py:property:: ignore_ports
+      :type: Optional[List[str]]
+
+      Return the list of all serial ports
+      at the instrument controller that shall be ignored.
+
+   .. py:property:: start_time
+      :type: datetime.datetime
+
+      Get a pre-defined start time for all instruments in this cluster.
+
    .. py:attribute:: version
-      :annotation: :str = 3.0
+      :type: str
+      :value: '3.0'
 
       
 
-   .. py:method:: get_instrument(device_id, port) -> Optional[sarad.sari.SI]
+   .. py:method:: get_instrument(device_id, route: sarad.sari.Route) -> Optional[sarad.sari.SaradInst]
       :staticmethod:
 
       Get the instrument object for an instrument
-      with know device_id that is connected to a known port
+      with know device_id that can be reached over a known route
 
       :param device_id: device id of the instrument encoding
                         family, type and serial number
       :type device_id: str
-      :param port: id of the serial device the instrument is
-                   connected to
-      :type port: str
+      :param route: serial interface, RS-485 address, ZigBee address
+                    the instrument is connected to
+      :type route: Route
 
       :returns: SaradInst object
 
 
-   .. py:method:: __iter__(self) -> Iterator[sarad.sari.SI]
+   .. py:method:: __iter__() -> Iterator[sarad.sari.SaradInst]
 
 
-   .. py:method:: synchronize(self, cycles_dict: Dict[str, int]) -> bool
+   .. py:method:: synchronize(cycles_dict: Dict[str, int]) -> bool
 
       Stop measuring cycles of all connected instruments.
       Set instrument time to UTC on all instruments.
@@ -107,7 +139,32 @@ Attributes
       in cycles_dict.
 
 
-   .. py:method:: update_connected_instruments(self, ports_to_test=None, ports_to_skip=None) -> List[sarad.sari.SI]
+   .. py:method:: _test_ports(ports_to_test)
+
+      Take a list of ports and test them for connected SARAD instruments.
+
+      :param ports_to_test: List of serial ports
+
+      :returns: Set of detected SARAD instruments
+      :rtype: Set[SaradInst]
+
+
+   .. py:method:: _test_rs485()
+
+      Take a list of ports from self.__rs485_ports and
+      test them for SARAD instruments connected via addressable RS-485.
+
+      :returns: Set of detected SARAD instruments
+      :rtype: Set[SaradInst]
+
+
+   .. py:method:: _remove_occupied_ports(ports_to_test, active_instruments)
+
+      Return a new list of ports_to_test where all ports of
+      active_instruments are removed.
+
+
+   .. py:method:: update_connected_instruments(ports_to_test=None, ports_to_skip=None) -> List[sarad.sari.SaradInst]
 
       Update the list of connected instruments
       in self.__connected_instruments and return this list.
@@ -119,55 +176,24 @@ Attributes
                             If no instrument can be found on one of the ports, the instrument
                             will be removed from self.__connected_instruments.
       :type ports_to_test: List[str]
+      :param ports_to_skip: list of serial device ids that shall be skipped.
+                            The difference between ports_to_test and ports_to_skip
+                            gives the list of ports that will be used
+                            to look for newly connected instruments.
+      :type ports_to_skip: List[str]
 
       :returns: List of instruments added to self.__connected_instruments.
                 [] if instruments have been removed.
 
 
-   .. py:method:: dump(self, file: IO[bytes]) -> None
+   .. py:method:: dump(file: IO[bytes]) -> None
 
       Save the cluster information to a file.
 
 
-   .. py:method:: active_ports(self) -> List[str]
-      :property:
-
-      SARAD instruments can be connected:
-      1. by RS232 on a native RS232 interface at the computer
-      2. via their built in FT232R USB-serial converter
-      3. via an external USB-serial converter (Prolific, Prolific fake, FTDI)
-      4. via the SARAD ZigBee coordinator with FT232R
-
-
-   .. py:method:: connected_instruments(self) -> List[sarad.sari.SI]
-      :property:
-
-      Return list of connected instruments.
-
-
-   .. py:method:: native_ports(self) -> Optional[List[str]]
-      :property:
-
-      Return the list of all native serial ports (RS-232 ports)
-      available at the instrument controller.
-
-
-   .. py:method:: ignore_ports(self) -> Optional[List[str]]
-      :property:
-
-      Return the list of all serial ports
-      at the instrument controller that shall be ignored.
-
-
-   .. py:method:: start_time(self) -> datetime.datetime
-      :property:
-
-      Get a pre-defined start time for all instruments in this cluster.
-
-
 
 .. py:data:: mycluster
-   :annotation: :SaradCluster
+   :type: SaradCluster
 
    
 

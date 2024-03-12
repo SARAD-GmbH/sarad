@@ -21,34 +21,9 @@ Classes
 
 
 
-Functions
-~~~~~~~~~
 
-.. autoapisummary::
+.. py:class:: DacmInst(family=SaradInst.products[2])
 
-   sarad.dacm.logger
-
-
-
-Attributes
-~~~~~~~~~~
-
-.. autoapisummary::
-
-   sarad.dacm._LOGGER
-
-
-.. py:data:: _LOGGER
-   
-
-   
-
-.. py:function:: logger()
-
-   Returns the logger instance used in this module.
-
-
-.. py:class:: DacmInst(port=None, family=None)
 
    Bases: :py:obj:`sarad.sari.SaradInst`
 
@@ -71,96 +46,115 @@ Attributes
        get_all_recent_values()
        get_recent_value(index)
 
+   .. py:property:: type_name
+      :type: str
+
+      Return the device type name.
+
    .. py:attribute:: version
-      :annotation: = 0.1
+      :value: '0.5'
+
+      
+
+   .. py:attribute:: ALLOWED_CMDS
+      :value: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,...
 
       
 
    .. py:attribute:: module_name
-      
 
       
 
    .. py:attribute:: address
-      
 
       
 
    .. py:attribute:: date_of_config
-      
 
       
 
    .. py:attribute:: config_name
-      
 
       
 
    .. py:attribute:: date_of_manufacture
-      
 
       
 
    .. py:attribute:: date_of_update
-      
 
       
 
-   .. py:method:: __str__(self)
+   .. py:method:: __str__()
 
       Return str(self).
 
 
-   .. py:method:: _build_component_list(self) -> int
+   .. py:method:: _build_component_list() -> int
 
       Build up a list of components with sensors and measurands.
+
       Will be overriden by derived classes.
 
 
-   .. py:method:: _get_description(self)
+   .. py:method:: _sanitize_date(year, month, day)
+
+      This is to handle date entries that don't exist.
+
+
+   .. py:method:: get_description() -> bool
 
       Get descriptive data about DACM instrument.
 
 
-   .. py:method:: _get_module_information(self)
+   .. py:method:: _get_module_information()
 
       Get descriptive data about DACM instrument.
 
 
-   .. py:method:: _get_component_information(self, component_index)
+   .. py:method:: _get_component_information(component_index)
 
       Get information about one component of a DACM instrument.
 
 
-   .. py:method:: _get_component_configuration(self, component_index)
+   .. py:method:: _get_component_configuration(component_index)
 
       Get information about the configuration of a component
       of a DACM instrument.
 
 
-   .. py:method:: _read_cycle_start(self, cycle_index=0)
+   .. py:method:: _read_cycle_start(cycle_index=0)
 
       Get description of a measuring cycle.
 
 
-   .. py:method:: _read_cycle_continue(self)
+   .. py:method:: _read_cycle_continue()
 
       Get description of subsequent cycle intervals.
 
 
-   .. py:method:: set_real_time_clock(self, date_time)
+   .. py:method:: set_real_time_clock(date_time) -> bool
 
       Set the instrument time.
 
 
-   .. py:method:: stop_cycle(self)
+   .. py:method:: stop_cycle()
 
       Stop the measuring cycle.
 
 
-   .. py:method:: start_cycle(self, cycle_index=0)
+   .. py:method:: start_cycle(cycle_index=0)
 
       Start a measuring cycle.
+
+
+   .. py:method:: _new_rs485_address(raw_cmd)
+
+      Check whether raw_cmd changed the RS-485 bus address of the instrument.
+      If this is the case, self._route will be changed.
+
+      :param raw_cmd: Command message to be analyzed.
+      :type raw_cmd: bytes
 
 
    .. py:method:: set_lock()
@@ -171,12 +165,12 @@ Attributes
       on DACM instruments.
 
 
-   .. py:method:: get_all_recent_values(self)
+   .. py:method:: get_all_recent_values()
 
       Get a list of dictionaries with recent measuring values.
 
 
-   .. py:method:: get_recent_value(self, component, sensor=0, measurand=0)
+   .. py:method:: get_recent_value(component_id, sensor_id=0, measurand_id=0)
 
       Get a dictionaries with recent measuring values from one sensor.
       component_id: one of the 34 sensor/actor modules of the DACM system
@@ -188,52 +182,52 @@ Attributes
       sensor_id: only for sensors delivering multiple measurands
 
 
-   .. py:method:: get_address(self)
+   .. py:method:: get_address()
 
       Return the address of the DACM module.
 
 
-   .. py:method:: set_address(self, address)
+   .. py:method:: set_address(address)
 
       Set the address of the DACM module.
 
 
-   .. py:method:: get_date_of_config(self)
+   .. py:method:: get_date_of_config()
 
       Return the date the configuration was made on.
 
 
-   .. py:method:: set_date_of_config(self, date_of_config)
+   .. py:method:: set_date_of_config(date_of_config)
 
       Set the date of the configuration.
 
 
-   .. py:method:: get_module_name(self)
+   .. py:method:: get_module_name()
 
       Return the name of the DACM module.
 
 
-   .. py:method:: set_module_name(self, module_name)
+   .. py:method:: set_module_name(module_name)
 
       Set the name of the DACM module.
 
 
-   .. py:method:: get_config_name(self)
+   .. py:method:: get_config_name()
 
       Return the name of the configuration.
 
 
-   .. py:method:: set_config_name(self, config_name)
+   .. py:method:: set_config_name(config_name)
 
       Set the name of the configuration.
 
 
-   .. py:method:: get_date_of_manufacture(self)
+   .. py:method:: get_date_of_manufacture()
 
       Return the date of manufacture.
 
 
-   .. py:method:: get_date_of_update(self)
+   .. py:method:: get_date_of_update()
 
       Return the date of firmware update.
 

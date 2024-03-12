@@ -1,2 +1,2 @@
 [console_scripts]
-data_collector = sarad.data_collector:cli
+datacollector = sarad.datacollector:cli

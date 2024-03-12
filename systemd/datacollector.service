@@ -3,11 +3,10 @@ Description=Data Collector
 Wants=network-online.target
 
 [Service]
-WorkingDirectory=/etc/data_collector
-ExecStart=/usr/local/bin/data_collector last_session
+WorkingDirectory=/etc/datacollector
+ExecStart=/usr/local/bin/datacollector last_session
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=default.target
-

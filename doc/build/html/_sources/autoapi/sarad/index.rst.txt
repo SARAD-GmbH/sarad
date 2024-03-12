@@ -12,7 +12,7 @@ Submodules
 
    cluster/index.rst
    dacm/index.rst
-   data_collector/index.rst
+   datacollector/index.rst
    doseman/index.rst
    radonscout/index.rst
    sari/index.rst

@@ -4,7 +4,7 @@
 #+STARTUP: indent
 #+DRAWERS: PROPERTIES LOGBOOK
 #+TAGS: noexport(n) export(x)
-#+TITLE: Data collector
+#+TITLE: Datacollector
 #+AUTHOR:    Michael Strey
 #+EMAIL:     strey@sarad.de
 #+LANGUAGE: en
@@ -80,7 +80,7 @@ Every instrument in the cluster is completely defined by the following objects:
 The baud rate is fixed per instrument type and either 9600 or 115200 baud.
 ** Radon Scout family
 - baud rate :: 9600
-- parity :: none 
+- parity :: none
 - byte order :: big endian
 - GetId command :: \x0c
 - C_OK :: \x0a
@@ -100,13 +100,13 @@ The baud rate is fixed per instrument type and either 9600 or 115200 baud.
 - Coefficient to calculate voltage = 3.3/255/2 = 0.00647
 ** DOSEman family
 - baud rate :: 115200 baud
-- parity :: even 
+- parity :: even
 - byte order :: little endian
 - GetId command :: \x40
-- C_OK :: \x00 
+- C_OK :: \x00
 ** DACM family
 - baud rate :: 9600
-- parity :: none 
+- parity :: none
 - byte order :: big endian
 - GetId command :: \x0c, reply > 19 byte
 - C_OK :: \x0a
@@ -118,9 +118,9 @@ of various types as well as of the configuration of individual instruments.
 Instruments, Components, Sensors and Measurands are described in a hierarchical
 tree.
 
-* Example application /data_collector.py/
+* Example application /datacollector.py/
 ** What is it?
-The data_collector application allows to:
+The datacollector application allows to:
 - list all Instruments in a Cluster
 - read measurands from an Instrument
 - run a [[https://www.zabbix.com/documentation/3.4/manual/config/items/itemtypes/trapper][Zabbix trapper]] service to send all Measurands delivered by an Instrument to a Zabbix network monitoring system.
@@ -129,7 +129,7 @@ Moreover the application contains some experimental code to send data via a NB-I
 ** Usage
 Use
 #+BEGIN_SRC shell
-data_collector --help
+datacollector --help
 #+END_SRC
 to get help about the usage.
 
@@ -137,6 +137,6 @@ to get help about the usage.
 In productive environments you have to make sure that the the application will
 be restarted automatically in the case of an exception and that the service will
 be started on reboot.
-Therefore /data_collector/ can be started as /systemd/ service.
+Therefore /datacollector/ can be started as /systemd/ service.
 
-Use the shell script ~bin/install_service~ to setup /data_collector/ in such an environment.
+Use the shell script ~bin/install_service~ to setup /datacollector/ in such an environment.

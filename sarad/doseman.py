@@ -1,4 +1,6 @@
-"""Module for the communication with instruments of the DOSEman family."""
+"""
+Module for the communication with instruments of the DOSEman family.
+"""
 
 from overrides import overrides  # type: ignore
 
@@ -6,7 +8,8 @@ from sarad.sari import CheckedAnswerDict, SaradInst, logger
 
 
 class DosemanInst(SaradInst):
-    """Instrument with Doseman communication protocol
+    """
+    Instrument with Doseman communication protocol
 
     Inherited properties:
         port
@@ -18,7 +21,8 @@ class DosemanInst(SaradInst):
         serial_number
         components: List of sensor or actor components
     Inherited Public methods:
-        get_reply()"""
+        get_reply()
+    """
 
     version = "0.3"
 
@@ -74,7 +78,8 @@ class DosemanInst(SaradInst):
 
     @overrides
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
-        """Send a message to the instrument and give back the payload of the reply.
+        """
+        Send a message to the instrument and give back the payload of the reply.
 
         Args:
             message:
@@ -91,6 +96,7 @@ class DosemanInst(SaradInst):
             raw: The raw byte string from _get_transparent_reply.
             standard_frame: standard B-E frame derived from b-e frame
         """
+
         if not self.check_cmd(message):
             logger().error("Received invalid command %s", message)
             return {
@@ -129,7 +135,10 @@ class DosemanInst(SaradInst):
 
     @overrides
     def stop_cycle(self):
-        """Stop the measuring cycle."""
+        """
+        Stop the measuring cycle.
+        """
+
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x15", b""], 1)
         if reply and (reply[0] == ok_byte):
@@ -140,8 +149,11 @@ class DosemanInst(SaradInst):
 
     @overrides
     def start_cycle(self, cycle_index):
-        """Start a measuring cycle.
+        """
+        Start a measuring cycle.
+
         TODO: rewrite or remove
+
         self.get_config()  # to set self.__interval
         for component in self.components:
             for sensor in component.sensors:

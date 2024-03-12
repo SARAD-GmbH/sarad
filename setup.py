@@ -1,4 +1,4 @@
-"""Setup configuration for deployment of data_collector"""
+"""Setup configuration for deployment of datacollector"""
 import setuptools  # type: ignore
 
 with open("README.org", "r", encoding="utf-8") as fh:
@@ -14,7 +14,7 @@ setuptools.setup(
     ),
     long_description=long_description,
     long_description_content_type="text/x-org",
-    url="https://github.com/SARAD-GmbH/data_collector",
+    url="https://github.com/SARAD-GmbH/datacollector",
     package_data={"sarad": ["py.typed"]},
     packages=setuptools.find_packages(),
     install_requires=[
@@ -32,10 +32,10 @@ setuptools.setup(
     ],
     entry_points="""
         [console_scripts]
-        data_collector=sarad.data_collector:cli
+        datacollector=sarad.datacollector:cli
     """,
-    scripts=["sarad/data_collector.py"],
-    data_files=[("config", ["data_collector.conf", "sarad/instruments.yaml"])],
+    scripts=["sarad/datacollector.py"],
+    data_files=[("config", ["datacollector.conf", "sarad/instruments.yaml"])],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",

@@ -1,7 +1,7 @@
 LICENSE
 MANIFEST.in
 README.org
-data_collector.conf
+datacollector.conf
 setup.py
 todos.org
 datacollector.egg-info/PKG-INFO
@@ -13,7 +13,7 @@ datacollector.egg-info/top_level.txt
 sarad/__init__.py
 sarad/cluster.py
 sarad/dacm.py
-sarad/data_collector.py
+sarad/datacollector.py
 sarad/doseman.py
 sarad/instruments.yaml
 sarad/radonscout.py

@@ -1,6 +1,6 @@
 #+STARTUP: indent
 #+DRAWERS: PROPERTIES
-#+TITLE: data_collector package for monitoring with SARAD instruments
+#+TITLE: datacollector package for monitoring with SARAD instruments
 #+AUTHOR:    Michael Strey
 #+EMAIL:     strey@sarad.de
 #+LANGUAGE: en
@@ -12,9 +12,9 @@
 - dacm :: a module for the adapter to the instruments of the DACM family
 - doseman :: a module for the adapter to the instruments of the DOSEman family
              (uncomplete, since the DOSEman family is not suited for monitoring applications)
-- data_collector :: a sample command line application to demonstrate the usage
-                    of the package.  It allows to send measuring values to a
-                    Zabbix server or publish MQTT messages or to display values.
+- datacollector :: a sample command line application to demonstrate the usage
+                   of the package.  It allows to send measuring values to a
+                   Zabbix server or publish MQTT messages or to display values.
 
 * Caveat
 Work in progress.
@@ -47,12 +47,12 @@ sudo pip install --editable ./
 
 Afterwards you should be able to run the sample application by for instance calling
 #+BEGIN_SRC shell
-data_collector cluster
+datacollector cluster
 #+END_SRC
 
 Get further help with
 #+BEGIN_SRC shell
-data_collector --help
+datacollector --help
 #+END_SRC
 
 *Read the code!*

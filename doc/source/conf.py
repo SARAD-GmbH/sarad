@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath("../../"))
 
 # -- Project information -----------------------------------------------------
 
-project = "Data collector"
+project = "Datacollector"
 copyright = "2021, SARAD GmbH"
 author = "Michael Strey <strey@sarad.de>"
 
@@ -32,9 +32,9 @@ release = "0.2"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.napoleon",
     "sphinx.ext.autodoc",
     "sphinxcontrib.plantuml",
-    "sphinx.ext.napoleon",
     "autoapi.extension",
 ]
 

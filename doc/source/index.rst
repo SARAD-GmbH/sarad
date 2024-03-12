@@ -1,9 +1,9 @@
-.. Data collector documentation master file, created by
+.. Datacollector documentation master file, created by
    sphinx-quickstart on Wed Oct  6 15:40:30 2021.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Data collector's documentation!
+Welcome to Datacollector's documentation!
 ==========================================
 
 .. toctree::

@@ -35,15 +35,18 @@ SI = TypeVar("SI", bound="SaradInst")
 
 @dataclass
 class Route:
-    """Class to store the route directing to a SaradInst. rs485_address and
-    zigbee_address are optional and may be None for the simple case that
-    SardInst is directly and exclusively connected to a serial port.
+    """Class to store the route directing to a SaradInst.
+
+    rs485_address and zigbee_address are optional and may be None for the
+    simple case that SardInst is directly and exclusively connected to a serial
+    port.
 
     Args:
         port (str): Name of the serial port
         rs485_address (int): RS-485 bus address. None, if RS-485 addressing is not used.
         zigbee_address (int): Address of instrument on NETmonitors coordinator.
                               None, if ZigBee is not used.
+
     """
 
     port: Optional[str]
@@ -183,6 +186,7 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
     @property
     def source(self) -> int:
         """Return the source index belonging to this measurand.
+
         This index marks the position the measurand can be found in the
         list of recent values provided by the instrument
         as reply to the GetComponentResult or _gather_all_recent_values
@@ -197,6 +201,7 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
     @property
     def operator(self) -> str:
         """Return the operator belonging to this measurand.
+
         Typical operators are '<', '>'"""
         return self.__operator
 
@@ -467,6 +472,7 @@ class SaradInst(Generic[SI]):
     @staticmethod
     def _make_command_msg(cmd_data: List[bytes]) -> bytes:
         """Encode the message to be sent to the SARAD instrument.
+
         Arguments are the one byte long command
         and the data bytes to be sent."""
         cmd: bytes = cmd_data[0]
@@ -500,7 +506,9 @@ class SaradInst(Generic[SI]):
 
     def _check_message(self, message: bytes, multiframe: bool) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
-        """Returns a dictionary of:
+        """Check the message
+
+        Returns a dictionary of:
         is_valid: True if message is valid, False otherwise
         is_control_message: True if control message
         payload: Payload of message
@@ -555,7 +563,9 @@ class SaradInst(Generic[SI]):
         self, answer: bytes, multiframe: bool, rs485_address
     ) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
-        """Returns a dictionary of:
+        """Check a RS-485 message
+
+        Returns a dictionary of:
         is_valid: True if answer is valid, False otherwise
         is_control_message: True if control message
         payload: Payload of answer
@@ -601,6 +611,7 @@ class SaradInst(Generic[SI]):
 
     def _rs485_filter(self, frame):
         """Convert an addressed RS-485 'b-E' frame into a normal 'B-E' frame
+
         by simply replacing the first two bytes with 'B'."""
         if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
             return frame
@@ -609,8 +620,7 @@ class SaradInst(Generic[SI]):
         return bytes(frame_list)
 
     def _make_rs485(self, frame):
-        """Convert a normal 'B-E' frame into an addressed 'b-E' frame
-        for RS-485"""
+        """Convert a normal 'B-E' frame into an addressed 'b-E' frame for RS-485"""
         if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
             return frame
         frame_list = list(frame)
@@ -769,12 +779,15 @@ class SaradInst(Generic[SI]):
 
     def _build_component_list(self) -> int:
         """Build up a list of components with sensors and measurands.
+
         Will be overriden by derived classes."""
         return len(self.components)
 
     @staticmethod
     def _bytes_to_float(value: bytes) -> float:
-        """Convert 4 bytes (little endian) from serial interface into
+        """Convert 4 bytes (little endian)
+
+        from serial interface into
         floating point nummber according to IEEE 754"""
         byte_array = bytearray(value)
         byte_array.reverse()
@@ -782,7 +795,9 @@ class SaradInst(Generic[SI]):
 
     @staticmethod
     def _parse_value_string(value: str) -> MeasurandDict:
-        """Take a string containing a physical value with operator,
+        """Parse the string containing a value.
+
+        Take a string containing a physical value with operator,
         value and unit and decompose it into its parts
         for further mathematical processing."""
         measurand_operator: str = ""
@@ -812,8 +827,9 @@ class SaradInst(Generic[SI]):
         }
 
     def _encode_setup_word(self) -> bytes:
-        """Compile the SetupWord for Doseman and RadonScout devices
-        from its components.  All used arguments from self are enum objects."""
+        """Compile the SetupWord for Doseman and RadonScout devices from its components.
+
+        All used arguments from self are enum objects."""
         bv_signal = BitVector(intVal=self.signal.value - 1, size=2)
         bv_radon_mode = BitVector(intVal=self.radon_mode.value - 1, size=1)
         bv_pump_mode = BitVector(intVal=self.pump_mode.value - 1, size=1)
@@ -859,7 +875,9 @@ class SaradInst(Generic[SI]):
             return False
 
     def get_reply(self, cmd_data: List[bytes], _reply_length=50, timeout=0.5) -> Any:
-        """Returns a bytestring of the payload of the instruments reply
+        """Send a command message and get a reply.
+
+        Returns a bytestring of the payload of the instruments reply
         to the provided list of 1-byte command and data bytes."""
         msg = self._make_command_msg(cmd_data)
         checked_payload = self.get_message_payload(msg, timeout)
@@ -910,6 +928,7 @@ class SaradInst(Generic[SI]):
     @staticmethod
     def _get_payload_length(first_bytes):
         """Read 3 Bytes from serial interface
+
         to get the length of payload from the control byte."""
         control_byte = first_bytes[-2]
         return (control_byte & 0x7F) + 1
@@ -1050,6 +1069,7 @@ class SaradInst(Generic[SI]):
     def _new_rs485_address(self, raw_cmd):
         # pylint: disable = unused-argument
         """Check whether raw_cmd changed the RS-485 bus address of the Instrument.
+
         If this is the case, self._route will be changed.
         This function must be overriden in the instrumen family dependent implementations.
 

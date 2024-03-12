@@ -32,37 +32,6 @@ class RscInst(SaradInst):
 
     version = "0.3"
 
-    ALLOWED_CMDS = [
-        0x01,
-        0x02,
-        0x03,
-        0x04,
-        0x05,
-        0x06,
-        0x07,
-        0x08,
-        0x09,
-        0x0A,
-        0x0B,
-        0x0C,
-        0x0D,
-        0x0E,
-        0x0F,
-        0x10,  # GetSetup
-        0x11,
-        0x12,
-        0x13,
-        0x14,
-        0x15,
-        0x16,
-        0x17,
-        0x18,
-        0x19,
-        0x1A,
-        0x1B,
-        0x1C,
-    ]
-
     @overrides
     def __init__(self, family=SaradInst.products[1]):
         super().__init__(family)
@@ -279,6 +248,7 @@ class RscInst(SaradInst):
         This function does the same like get_all_recent_values()\
         and is only here to provide a compatible API to the DACM interface"""
         self.get_all_recent_values()
+        # TODO This is causing too much traffic at the instrument.
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]

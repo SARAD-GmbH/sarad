@@ -5,6 +5,7 @@ the same instrument controller.
 SaradCluster is used as singleton."""
 
 import logging
+import logging.config
 import os
 import pickle
 from datetime import datetime
@@ -15,6 +16,7 @@ from hashids import Hashids  # type: ignore
 
 from sarad.dacm import DacmInst
 from sarad.doseman import DosemanInst
+from sarad.network import NetworkInst
 from sarad.radonscout import RscInst
 from sarad.sari import SI, Route, SaradInst
 
@@ -69,6 +71,8 @@ class SaradCluster(Generic[SI]):
             family_class: Any = DosemanInst
         elif family_id == 2:
             family_class = RscInst
+        elif family_id == 4:
+            family_class = NetworkInst
         elif family_id == 5:
             family_class = DacmInst
         else:
@@ -176,6 +180,8 @@ class SaradCluster(Generic[SI]):
                     family_class: Any = DosemanInst
                 elif family["family_id"] == 2:
                     family_class = RscInst
+                elif family["family_id"] == 4:
+                    family_class = NetworkInst
                 elif family["family_id"] == 5:
                     family_class = DacmInst
                 else:
@@ -250,6 +256,8 @@ class SaradCluster(Generic[SI]):
                         family_class: Any = DosemanInst
                     elif family["family_id"] == 2:
                         family_class = RscInst
+                    elif family["family_id"] == 4:
+                        family_class = NetworkInst
                     elif family["family_id"] == 5:
                         family_class = DacmInst
                     else:
@@ -427,7 +435,10 @@ if __name__ == "__main__":
 
     for connected_instrument in mycluster:
         print(connected_instrument)
-        print(connected_instrument._get_component_configuration(0))
+        # print(f"Coordinator_reset: {connected_instrument.coordinator_reset()}")
+        print(f"Get_first_channel: {connected_instrument.get_first_channel()}")
+        # print(f"Get_next_channel: {connected_instrument.get_next_channel()}")
+        # print(f"Close_channel: {connected_instrument.close_channel()}")
 
     # Example access on first device
     if len(mycluster.connected_instruments) > 0:

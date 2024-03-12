@@ -26,51 +26,6 @@ class DosemanInst(SaradInst):
 
     version = "0.3"
 
-    ALLOWED_CMDS = [
-        0x10,  # SetDeviceId
-        0x11,
-        0x12,
-        0x13,
-        0x14,
-        0x15,
-        0x20,
-        0x21,
-        0x22,
-        0x23,
-        0x24,
-        0x25,
-        0x25,
-        0x26,
-        0x30,  # SetTime
-        0x31,  # DeviceSetup
-        0x32,
-        0x33,
-        0x34,
-        0x35,
-        0x40,
-        0x41,
-        0x42,
-        0x43,
-        0x44,
-        0x45,
-        0x50,
-        0x51,
-        0x52,
-        0x53,
-        0x54,
-        0x55,
-        0x60,
-        0x61,
-        0x62,
-        0x63,
-        0x64,
-        0x65,
-        0x70,
-        0x71,
-        0x72,
-        0x73,
-    ]
-
     @overrides
     def __init__(self, family=SaradInst.products[0]):
         super().__init__(family)

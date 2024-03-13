@@ -1,10 +1,5 @@
-#+STARTUP: indent
-#+DRAWERS: PROPERTIES
-#+TITLE: datacollector package for monitoring with SARAD instruments
-#+AUTHOR:    Michael Strey
-#+EMAIL:     strey@sarad.de
-#+LANGUAGE: en
-#+OPTIONS: toc:2 H:5 email:t tags:t |:t todo:t d:nil
+# Library to access SARAD instruments
+
 - sari :: a class library to access SARAD instruments via their serial
           interfaces, comprises all recent SARAD instruments with their
           proprietary protocols
@@ -12,18 +7,15 @@
 - dacm :: a module for the adapter to the instruments of the DACM family
 - doseman :: a module for the adapter to the instruments of the DOSEman family
              (uncomplete, since the DOSEman family is not suited for monitoring applications)
-- datacollector :: a sample command line application to demonstrate the usage
-                   of the package.  It allows to send measuring values to a
-                   Zabbix server or publish MQTT messages or to display values.
 
-* Caveat
+## Caveat
 Work in progress.
 Code might be buggy, clumsy or uncomplete.
 Be careful, feel free to improve things and come back to me with questions.
 
 -- Michael Strey
 
-* What is it about?
+## What is it about?
 SARAD GmbH is a manufacturer of instruments for environmental measuring with a
 focus on radioactivity, radon and gases. All instruments have a serial interface
 -- usually a RS-232, RS-422 or USB creating a virtual serial port -- for remote
@@ -37,22 +29,12 @@ solutions to control SARAD instruments. It brings all proprietary SARAD
 protocols and instruments together and allows to access them via a unique
 software interface.
 
-* Getting started
+## Getting started
 Requires Python 3.
 
 Clone the repository to your local computer and move into the directory.
-#+BEGIN_SRC shell
+```
 sudo pip install --editable ./
-#+END_SRC
-
-Afterwards you should be able to run the sample application by for instance calling
-#+BEGIN_SRC shell
-datacollector cluster
-#+END_SRC
-
-Get further help with
-#+BEGIN_SRC shell
-datacollector --help
-#+END_SRC
+```
 
 *Read the code!*

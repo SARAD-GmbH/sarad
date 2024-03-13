@@ -1,3 +1,0 @@
-include *.org
-include datacollector.conf
-include sarad/instruments.yaml

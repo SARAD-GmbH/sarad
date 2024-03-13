@@ -1,0 +1,25 @@
+[project]
+name = "sarad"
+version = "0.2.0"
+description = "Library and sample application to collect data from SARAD instruments."
+authors = [
+    {name = "Michael Strey", email = "strey@sarad.de"},
+]
+dependencies = [
+    "pyserial>=3.5",
+    "hashids>=1.3.1",
+    "pyyaml>=6.0.1",
+    "bitvector>=3.5.0",
+    "overrides>=7.7.0",
+]
+requires-python = ">=3.9"
+readme = "README.org"
+license = {text = "LGPL-3.0-or-later"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true

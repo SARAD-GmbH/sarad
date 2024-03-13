@@ -1,12 +1,18 @@
 # Library to access SARAD instruments
 
-- sari :: a class library to access SARAD instruments via their serial
-          interfaces, comprises all recent SARAD instruments with their
-          proprietary protocols
-- radonscout :: a module for the adapter to the instruments of the Radon Scout family
-- dacm :: a module for the adapter to the instruments of the DACM family
-- doseman :: a module for the adapter to the instruments of the DOSEman family
-             (uncomplete, since the DOSEman family is not suited for monitoring applications)
+sari
+: a class library to access SARAD instruments via their serial interfaces,
+  comprises all recent SARAD instruments with their proprietary protocols
+
+radonscout
+: a module for the adapter to the instruments of the Radon Scout family
+
+dacm
+: a module for the adapter to the instruments of the DACM family
+
+doseman
+: a module for the adapter to the instruments of the DOSEman family (uncomplete,
+  since the DOSEman family is not suited for monitoring applications)
 
 ## Caveat
 Work in progress.
@@ -37,4 +43,8 @@ Clone the repository to your local computer and move into the directory.
 sudo pip install --editable ./
 ```
 
-*Read the code!*
+**Read the code!***
+
+Check out the sample project [*datacollector*](https://github.com/SARAD-GmbH/datacollector) as well!
+
+[![pdm-managed](https://img.shields.io/badge/pdm-managed-blueviolet)](https://pdm-project.org)

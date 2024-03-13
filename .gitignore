@@ -12,3 +12,8 @@
 !sarad/*.py
 !sarad/*.yaml
 !/*.org
+__pycache__/
+__pypackages__/
+doc/build/*
+src/sarad/*.pyo
+src/sarad/__pycache__/

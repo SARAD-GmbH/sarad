@@ -1,18 +1,20 @@
 # Library to access SARAD instruments
 
-sari
-: a class library to access SARAD instruments via their serial interfaces,
-  comprises all recent SARAD instruments with their proprietary protocols
+## Modules
 
-radonscout
-: a module for the adapter to the instruments of the Radon Scout family
+### sari
+a class library to access SARAD instruments via their serial interfaces,
+comprises all recent SARAD instruments with their proprietary protocols
 
-dacm
-: a module for the adapter to the instruments of the DACM family
+### radonscout
+a module for the adapter to the instruments of the Radon Scout family
 
-doseman
-: a module for the adapter to the instruments of the DOSEman family (uncomplete,
-  since the DOSEman family is not suited for monitoring applications)
+### dacm
+a module for the adapter to the instruments of the DACM family
+
+### doseman
+a module for the adapter to the instruments of the DOSEman family (uncomplete,
+since the DOSEman family is not suited for monitoring applications)
 
 ## Caveat
 Work in progress.
@@ -35,12 +37,10 @@ solutions to control SARAD instruments. It brings all proprietary SARAD
 protocols and instruments together and allows to access them via a unique
 software interface.
 
-## Getting started
-Requires Python 3.
+## Installation
 
-Clone the repository to your local computer and move into the directory.
 ```
-sudo pip install --editable ./
+pip install git+https://github.com/SARAD-GmbH/sarad.git
 ```
 
 **Read the code!***

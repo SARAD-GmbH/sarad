@@ -49,8 +49,6 @@ class SaradCluster(Generic[SI]):
         synchronize(): Stop all instruments, set time, start all measurings
         dump(): Save all properties to a Pickle file"""
 
-    version: str = "3.0"
-
     @staticmethod
     def get_instrument(device_id, route: Route) -> Optional[SaradInst]:
         """Get the instrument object for an instrument

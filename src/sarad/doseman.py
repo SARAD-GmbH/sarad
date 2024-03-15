@@ -24,8 +24,6 @@ class DosemanInst(SaradInst):
         get_reply()
     """
 
-    version = "0.3"
-
     @overrides
     def __init__(self, family=SaradInst.products[0]):
         super().__init__(family)

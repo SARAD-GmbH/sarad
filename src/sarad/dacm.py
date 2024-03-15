@@ -31,8 +31,6 @@ class DacmInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
-    version = "0.5"
-
     @overrides
     def __init__(self, family=SaradInst.products[3]):
         super().__init__(family)

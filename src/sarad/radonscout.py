@@ -30,8 +30,6 @@ class RscInst(SaradInst):
         get_config()
         set_config()"""
 
-    version = "0.3"
-
     @overrides
     def __init__(self, family=SaradInst.products[1]):
         super().__init__(family)

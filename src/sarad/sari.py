@@ -118,8 +118,6 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         time
         gps"""
 
-    version: str = "0.1"
-
     def __init__(
         self,
         measurand_id: int,
@@ -251,8 +249,6 @@ class Sensor:
     Public methods:
         get_measurands()"""
 
-    version: str = "0.1"
-
     def __init__(self, sensor_id: int, sensor_name: str) -> None:
         self.__id: int = sensor_id
         self.__name: str = sensor_name
@@ -314,8 +310,6 @@ class Sensor:
 
 class Component:
     """Class describing a sensor or actor component built into an instrument"""
-
-    version = "0.1"
 
     def __init__(self, component_id: int, component_name: str) -> None:
         self.__id: int = component_id
@@ -383,8 +377,6 @@ class SaradInst(Generic[SI]):
         serial_number: Serial number of the connected instrument.
         components: List of sensor or actor components
     """
-
-    version = "3.2"
 
     CHANNELSELECTED = 0xD2
 

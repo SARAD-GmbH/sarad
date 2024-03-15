@@ -25,8 +25,6 @@ class NetworkInst(SaradInst):
     Public methods:
     """
 
-    version = "1"
-
     CHANNELINFO = 0xD0
     ENDOFCHANNELLIST = 0xD1
     CHANNELSELECTED = 0xD2

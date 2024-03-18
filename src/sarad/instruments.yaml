@@ -10,8 +10,8 @@
     QA==
   - !!binary ""
   length_of_reply: 5
-  tx_wait: 0.1
-  write_sleeptime: 0.001
+  tx_msg_delay: 0.1
+  tx_byte_delay: 0.001
   parity: E
   ok_byte: 0
   allowed_cmds:
@@ -104,8 +104,8 @@
   - !!binary |
     /wAA
   length_of_reply: 13
-  tx_wait: 0
-  write_sleeptime: 0
+  tx_msg_delay: 0
+  tx_byte_delay: 0
   parity: N
   ok_byte: 10
   config_parameters:
@@ -1237,8 +1237,8 @@
   - !!binary |
     /wAA
   length_of_reply: 13
-  tx_wait: 0
-  write_sleeptime: 0
+  tx_msg_delay: 0
+  tx_byte_delay: 0
   ok_byte: 10
   parity: N
   allowed_cmds:
@@ -1261,8 +1261,8 @@
   - !!binary |
     /wAA
   length_of_reply: 44
-  tx_wait: 0
-  write_sleeptime: 0
+  tx_msg_delay: 0
+  tx_byte_delay: 0
   ok_byte: 10
   parity: N
   allowed_cmds:

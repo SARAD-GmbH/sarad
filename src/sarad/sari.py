@@ -85,7 +85,7 @@ class FamilyDict(TypedDict):
     baudrate: int
     get_id_cmd: List[bytes]
     length_of_reply: int
-    wait_for_reply: float
+    tx_wait: float
     write_sleeptime: float
     parity: str
     ok_byte: int
@@ -1064,12 +1064,12 @@ class SaradInst(Generic[SI]):
                 return b""
             logger().debug("Tx to %s: %s", ser.port, raw_cmd)
             ser.inter_byte_timeout = timeout
+            sleep(self._family["tx_wait"])
             for element in raw_cmd:
                 byte = (element).to_bytes(1, "big")
                 ser.write(byte)
                 sleep(self._family["write_sleeptime"])
             self._new_rs485_address(raw_cmd)
-            sleep(self._family["wait_for_reply"])
             be_frame = self._get_be_frame(ser, True)
             answer = bytearray(be_frame)
             self.__ser = self._close_serial(ser, keep)

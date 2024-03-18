@@ -10,7 +10,7 @@
     QA==
   - !!binary ""
   length_of_reply: 5
-  wait_for_reply: 0.1
+  tx_wait: 0.1
   write_sleeptime: 0.001
   parity: E
   ok_byte: 0
@@ -104,7 +104,7 @@
   - !!binary |
     /wAA
   length_of_reply: 13
-  wait_for_reply: 0
+  tx_wait: 0
   write_sleeptime: 0
   parity: N
   ok_byte: 10
@@ -1237,7 +1237,7 @@
   - !!binary |
     /wAA
   length_of_reply: 13
-  wait_for_reply: 0
+  tx_wait: 0
   write_sleeptime: 0
   ok_byte: 10
   parity: N
@@ -1261,7 +1261,7 @@
   - !!binary |
     /wAA
   length_of_reply: 44
-  wait_for_reply: 0
+  tx_wait: 0
   write_sleeptime: 0
   ok_byte: 10
   parity: N

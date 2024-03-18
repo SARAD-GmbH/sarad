@@ -46,7 +46,7 @@
 - baudrate
 - parity (e.g. serial.PARITY_NONE)
 - write_sleeptime (time to wait between writing consecutive bytes)
-- wait_for_reply (time to wait after writing a command)
+- tx_wait (time to wait before writing a command)
 - get_id_cmd (list of command and data bytes for the get_id command e.g. [b'\x0c', b'\xff\x00\x00'])
 - length_of_reply (expected length of the reply to the get_id command)
 - types (list of instrument types belonging into this family)

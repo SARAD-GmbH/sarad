@@ -1063,6 +1063,7 @@ class SaradInst(Generic[SI]):
                 return b""
             logger().debug("Tx to %s: %s", ser.port, raw_cmd)
             ser.inter_byte_timeout = timeout
+            sleep(self._family["tx_msg_delay"])
             for element in raw_cmd:
                 byte = (element).to_bytes(1, "big")
                 ser.write(byte)

@@ -8,6 +8,8 @@ from overrides import overrides  # type: ignore
 
 from sarad.sari import CheckedAnswerDict, SaradInst, logger
 
+TX_DOWNLOAD_DELAY = 0.1
+
 
 class DosemanInst(SaradInst):
     """
@@ -68,7 +70,7 @@ class DosemanInst(SaradInst):
         # If this is a get-data command, we expect multiple B-E frames.
         multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
         if checked_message["payload"] == b"\x60":
-            sleep(self._family["tx_msg_delay"])
+            sleep(TX_DOWNLOAD_DELAY)
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.

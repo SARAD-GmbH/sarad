@@ -2,6 +2,8 @@
 Module for the communication with instruments of the DOSEman family.
 """
 
+from time import sleep
+
 from overrides import overrides  # type: ignore
 
 from sarad.sari import CheckedAnswerDict, SaradInst, logger
@@ -65,6 +67,8 @@ class DosemanInst(SaradInst):
         checked_message = self._check_message(message, False)
         # If this is a get-data command, we expect multiple B-E frames.
         multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
+        if checked_message["payload"] == b"\x60":
+            sleep(self._family["tx_msg_delay"])
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         if answer == b"":
             # Workaround for firmware bug in SARAD instruments.

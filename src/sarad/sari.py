@@ -6,7 +6,6 @@ that all SARAD instruments have in common."""
 import logging
 import os
 import struct
-import time
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -761,7 +760,7 @@ class SaradInst(Generic[SI]):
     def _initialize(self) -> None:
         if self._route.zigbee_address:
             self.select_zigbee_channel(self._route.zigbee_address)
-            time.sleep(3)
+            sleep(3)
         self.get_description()
         logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
@@ -1023,7 +1022,7 @@ class SaradInst(Generic[SI]):
                         logger().error(
                             "%s. Waiting 1 s and retrying to connect.", exception
                         )
-                        time.sleep(1)
+                        sleep(1)
                     except (
                         Exception,
                         SerialException,
@@ -1032,7 +1031,7 @@ class SaradInst(Generic[SI]):
                         raise
             if retry:
                 raise BlockingIOError
-            time.sleep(0.5)
+            sleep(0.5)
             logger().debug("Serial ready @ %d baud", ser.baudrate)
             return ser
 
@@ -1047,7 +1046,7 @@ class SaradInst(Generic[SI]):
                         if not ser.is_open:
                             logger().debug("Serial interface is closed. Reopen.")
                             ser.open()
-                            time.sleep(0.5)
+                            sleep(0.5)
                         logger().debug("Reuse stored serial interface")
                     except (AttributeError, SerialException, OSError):
                         logger().warning(
@@ -1064,7 +1063,6 @@ class SaradInst(Generic[SI]):
                 return b""
             logger().debug("Tx to %s: %s", ser.port, raw_cmd)
             ser.inter_byte_timeout = timeout
-            sleep(self._family["tx_msg_delay"])
             for element in raw_cmd:
                 byte = (element).to_bytes(1, "big")
                 ser.write(byte)

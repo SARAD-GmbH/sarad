@@ -1072,7 +1072,7 @@ class SaradInst(Generic[SI]):
             self._new_rs485_address(raw_cmd)
             be_frame = self._get_be_frame(ser, True)
             answer = bytearray(be_frame)
-            self.__ser = self._close_serial(ser, keep)
+            self.__ser = self._close_serial(ser, keep_serial_open)
             b_answer = bytes(answer)
             logger().debug("Rx from %s: %s", ser.port, b_answer)
             return b_answer

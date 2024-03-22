@@ -1063,12 +1063,13 @@ class SaradInst(Generic[SI]):
                 return b""
             logger().debug("Tx to %s: %s", ser.port, raw_cmd)
             ser.inter_byte_timeout = timeout
-            sleep(self._family["tx_msg_delay"])
-            for element in raw_cmd:
-                byte = (element).to_bytes(1, "big")
-                ser.write(byte)
-                sleep(self._family["tx_byte_delay"])
-            self._new_rs485_address(raw_cmd)
+            if raw_cmd:
+                sleep(self._family["tx_msg_delay"])
+                for element in raw_cmd:
+                    byte = (element).to_bytes(1, "big")
+                    ser.write(byte)
+                    sleep(self._family["tx_byte_delay"])
+                self._new_rs485_address(raw_cmd)
             be_frame = self._get_be_frame(ser, True)
             answer = bytearray(be_frame)
             self.__ser = self._close_serial(ser, keep_serial_open)

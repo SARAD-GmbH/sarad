@@ -10,7 +10,7 @@
     QA==
   - !!binary ""
   length_of_reply: 5
-  tx_msg_delay: 0.001
+  tx_msg_delay: 0.1
   tx_byte_delay: 0.001
   parity: E
   ok_byte: 0

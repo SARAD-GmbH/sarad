@@ -52,7 +52,11 @@ class DosemanInst(SaradInst):
             standard_frame: standard B-E frame derived from b-e frame
         """
 
-        if not self.check_cmd(message):
+        if message != b"":
+            cmd_is_valid = self.check_cmd(message)
+        else:
+            cmd_is_valid = True
+        if not cmd_is_valid:
             logger().error("Received invalid command %s", message)
             return {
                 "is_valid": False,
@@ -63,15 +67,14 @@ class DosemanInst(SaradInst):
                 "raw": b"",
                 "standard_frame": b"",
             }
-        # Run _check_message to get the payload of the sent message.
-        checked_message = self._check_message(message, False)
-        # If this is a get-data command, we expect multiple B-E frames.
-        multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
+        if message == b"":
+            multiframe = True
+        else:
+            # Run _check_message to get the payload of the sent message.
+            checked_message = self._check_message(message, False)
+            # If this is a get-data command, we expect multiple B-E frames.
+            multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-        if answer == b"":
-            # Workaround for firmware bug in SARAD instruments.
-            logger().debug("Play it again, Sam!")
-            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
         checked_answer = self._check_message(answer, multiframe)
         logger().debug(checked_answer)
         if answer == message:

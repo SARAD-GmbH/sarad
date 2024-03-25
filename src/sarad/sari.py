@@ -672,7 +672,10 @@ class SaradInst(Generic[SI]):
             raw: The raw byte string from _get_transparent_reply.
             standard_frame: standard B-E frame derived from b-e frame
         """
-        if not self.check_cmd(message):
+        cmd_is_valid = True
+        if message:
+            cmd_is_valid = self.check_cmd(message)
+        if not cmd_is_valid:
             logger().error("Received invalid command %s", message)
             return {
                 "is_valid": False,
@@ -692,47 +695,6 @@ class SaradInst(Generic[SI]):
             answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
             retry_counter = retry_counter - 1
         checked_answer = self._check_message(answer, False)
-        return {
-            "is_valid": checked_answer["is_valid"],
-            "is_control": checked_answer["is_control"],
-            "is_last_frame": checked_answer["is_last_frame"],
-            "payload": checked_answer["payload"],
-            "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
-            "raw": checked_answer["raw"],
-            "standard_frame": checked_answer["standard_frame"],
-        }
-
-    def get_next_payload(self, timeout=0.1) -> CheckedAnswerDict:
-        """Delivers a follow-up B-E frame without sending a command to the instr.
-
-        Only for multi B-E frame replies (CMD_GetSumSpectrum (\x60) and
-        CMD_GetRoiAreas (\x61) of the DOSEman family)
-
-                Args:
-                    timeout:
-                        Timeout for waiting for a reply from instrument.
-                Returns:
-                    A dictionary of
-                    is_valid: True if answer is valid, False otherwise,
-                    is_control_message: True if control message,
-                    is_last_frame: True if no follow-up B-E frame is expected,
-                    payload: Payload of answer,
-                    number_of_bytes_in_payload,
-                    raw: The raw byte string from _get_transparent_reply.
-
-        """
-        answer = self._get_transparent_reply(b"", timeout=timeout, keep=True)
-        if answer == b"":
-            return {
-                "is_valid": False,
-                "is_control": False,
-                "is_last_frame": True,
-                "payload": b"",
-                "number_of_bytes_in_payload": 0,
-                "raw": b"",
-                "standard_frame": b"",
-            }
-        checked_answer = self._check_message(answer, True)
         return {
             "is_valid": checked_answer["is_valid"],
             "is_control": checked_answer["is_control"],
@@ -911,6 +873,7 @@ class SaradInst(Generic[SI]):
 
     def _get_control_bytes(self, serial):
         """Read 3 or 4 Bytes from serial interface resp."""
+        logger().debug("Trying to read the first 3 bytes")
         if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
             offset = 3
             start_byte = b"B"
@@ -919,11 +882,12 @@ class SaradInst(Generic[SI]):
             start_byte = b"b"
         try:
             answer = serial.read(offset)
-        except SerialException:
+        except SerialException as exception:
+            logger().warning(exception)
             return b""
         if answer:
             while len(answer) < offset:
-                sleep(0.1)
+                sleep(0.001)
                 answer_left = serial.read(offset - len(answer))
                 answer = answer + answer_left
         if not answer.startswith(start_byte):
@@ -1035,7 +999,7 @@ class SaradInst(Generic[SI]):
             logger().debug("Serial ready @ %d baud", ser.baudrate)
             return ser
 
-        def _try_baudrate(baudrate, keep_serial_open):
+        def _try_baudrate(baudrate, keep_serial_open, timeout):
             if keep_serial_open:
                 if self.__ser is None:
                     ser = _open_serial(baudrate)
@@ -1063,6 +1027,7 @@ class SaradInst(Generic[SI]):
                 return b""
             logger().debug("Tx to %s: %s", ser.port, raw_cmd)
             ser.inter_byte_timeout = timeout
+            # sleep(0.001)
             if raw_cmd:
                 sleep(self._family["tx_msg_delay"])
                 for element in raw_cmd:
@@ -1070,6 +1035,7 @@ class SaradInst(Generic[SI]):
                     ser.write(byte)
                     sleep(self._family["tx_byte_delay"])
                 self._new_rs485_address(raw_cmd)
+            logger().debug("Read one BE frame")
             be_frame = self._get_be_frame(ser, True)
             answer = bytearray(be_frame)
             self.__ser = self._close_serial(ser, keep_serial_open)
@@ -1082,7 +1048,7 @@ class SaradInst(Generic[SI]):
         for _i in range(len(self._possible_baudrates)):
             baudrate = self._possible_baudrates[0]
             logger().debug("Trying with %s baud", baudrate)
-            result = _try_baudrate(baudrate, keep)
+            result = _try_baudrate(baudrate, keep, timeout)
             if result:
                 logger().debug("Working with %s baud", baudrate)
                 return result

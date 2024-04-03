@@ -2,8 +2,6 @@
 Module for the communication with instruments of the DOSEman family.
 """
 
-from time import sleep
-
 from overrides import overrides  # type: ignore
 
 from sarad.sari import CheckedAnswerDict, SaradInst, logger
@@ -26,10 +24,48 @@ class DosemanInst(SaradInst):
         get_reply()
     """
 
+    RET_INVALID = 1
+
     @overrides
     def __init__(self, family=SaradInst.products[0]):
         super().__init__(family)
         self._last_sampling_time = None
+
+    @overrides
+    def get_description(self) -> bool:
+        """Set instrument type, software version, and serial number."""
+        id_cmd = self.family["get_id_cmd"]
+        ok_byte = self.family["ok_byte"]
+        reply = self.get_reply(id_cmd, timeout=1)
+        if reply:
+            if reply[0] == ok_byte:
+                logger().debug("Get description successful.")
+                try:
+                    self._type_id = reply[1]
+                    self._software_version = reply[2]
+                    self._serial_number = int.from_bytes(
+                        reply[3:5], byteorder="little", signed=False
+                    )
+                    if (self._type_id != 200) and (self.family["family_id"] == 4):
+                        logger().info("This seemed like a Network device, but isn't.")
+                        self._valid_family = False
+                        return False
+                    return True
+                except (TypeError, ReferenceError, LookupError) as exception:
+                    logger().error("Error when parsing the payload: %s", exception)
+                    return False
+            elif reply[0] == self.RET_INVALID:
+                logger().info(
+                    "DOSEman family with running measurement. Trying to stop."
+                )
+                self._type_id = 0
+                self._software_version = 0
+                self._serial_number = 0
+                self._valid_family = True
+                self.stop_cycle()
+                return self.get_description()
+        logger().debug("Get description failed. Instrument replied = %s", reply)
+        return False
 
     @overrides
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
@@ -98,7 +134,7 @@ class DosemanInst(SaradInst):
         """
 
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x15", b""], 1)
+        reply = self.get_reply([b"\x33", b""], 1)
         if reply and (reply[0] == ok_byte):
             logger().debug("Cycle stopped at device %s.", self.device_id)
             return True

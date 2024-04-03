@@ -732,9 +732,8 @@ class SaradInst(Generic[SI]):
     def get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
         id_cmd = self.family["get_id_cmd"]
-        length_of_reply = self.family["length_of_reply"]
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply(id_cmd, length_of_reply, timeout=0.5)
+        reply = self.get_reply(id_cmd, timeout=1)
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
@@ -860,7 +859,7 @@ class SaradInst(Generic[SI]):
         except Exception:  # pylint: disable=broad-except
             return False
 
-    def get_reply(self, cmd_data: List[bytes], _reply_length=50, timeout=0.5) -> Any:
+    def get_reply(self, cmd_data: List[bytes], timeout=0.5) -> Any:
         """Send a command message and get a reply.
 
         Returns a bytestring of the payload of the instruments reply

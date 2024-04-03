@@ -5,6 +5,15 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.4 (2024-04-03)
+-------------------
+
+Bugfixes
+^^^^^^^^
+
+- Stop a running measurement on instruments of DOSEman family automatically. (#1)
+
+
 v1.0.2 (2024-03-20)
 -------------------
 

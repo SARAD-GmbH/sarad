@@ -554,24 +554,28 @@ class SaradInst(Generic[SI]):
             received_checksum = int.from_bytes(
                 received_checksum_bytes, byteorder="little", signed=False
             )
-            checksum_ok = bool(received_checksum == calculated_checksum)
-            is_valid = bool(control_byte_ok and checksum_ok)
-        else:
-            logger().debug("Invalid B-E frame")
-            is_valid = False
-        if not is_valid:
-            is_control = False
-            payload = b""
-            number_of_bytes_in_payload = 0
-        # is_rend is True if this is the last frame of a multiframe reply
-        # (DOSEman data download)
-        is_rend = bool(is_valid and is_control and (payload == b"\x04"))
+            is_valid = bool(
+                control_byte_ok and (received_checksum == calculated_checksum)
+            )
+            # is_rend is True if this is the last frame of a multiframe reply
+            # (DOSEman data download)
+            is_rend = bool(is_valid and is_control and (payload == b"\x04"))
+            return {
+                "is_valid": is_valid,
+                "is_control": is_control,
+                "is_last_frame": (not multiframe) or is_rend,
+                "payload": payload,
+                "number_of_bytes_in_payload": number_of_bytes_in_payload,
+                "raw": answer,
+                "standard_frame": self._rs485_filter(answer),
+            }
+        logger().debug("Invalid B-E frame")
         return {
-            "is_valid": is_valid,
-            "is_control": is_control,
-            "is_last_frame": (not multiframe) or is_rend,
-            "payload": payload,
-            "number_of_bytes_in_payload": number_of_bytes_in_payload,
+            "is_valid": False,
+            "is_control": False,
+            "is_last_frame": True,
+            "payload": b"",
+            "number_of_bytes_in_payload": 0,
             "raw": answer,
             "standard_frame": self._rs485_filter(answer),
         }
@@ -747,17 +751,8 @@ class SaradInst(Generic[SI]):
                     self._valid_family = False
                     return False
                 return True
-            except TypeError:
-                logger().error("TypeError when parsing the payload.")
-                return False
-            except ReferenceError:
-                logger().error("ReferenceError when parsing the payload.")
-                return False
-            except LookupError:
-                logger().error("LookupError when parsing the payload.")
-                return False
-            except Exception:  # pylint: disable=broad-except
-                logger().error("Unknown error when parsing the payload.")
+            except (TypeError, ReferenceError, LookupError) as exception:
+                logger().error("Error when parsing the payload: %s", exception)
                 return False
         logger().debug("Get description failed. Instrument replied = %s", reply)
         return False

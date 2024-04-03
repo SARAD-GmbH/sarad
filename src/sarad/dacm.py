@@ -123,17 +123,16 @@ class DacmInst(SaradInst):
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family["ok_byte"]
         id_cmd = self.family["get_id_cmd"]
-        length_of_reply = self.family["length_of_reply"]
-        reply = self.get_reply(id_cmd, length_of_reply)
+        reply = self.get_reply(id_cmd, timeout=0.5)
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
                 if reply[29]:
                     self._byte_order = "little"
-                    logger().info("DACM-32 with Little-Endian")
+                    logger().debug("DACM-32 with Little-Endian")
                 else:
                     self._byte_order = "big"
-                    logger().info("DACM-8 with Big-Endian")
+                    logger().debug("DACM-8 with Big-Endian")
                 self._type_id = reply[1]
                 self._software_version = reply[2]
                 self._serial_number = int.from_bytes(
@@ -176,19 +175,18 @@ class DacmInst(SaradInst):
                 )
                 return True and self._get_module_information()
             except Exception as exception:  # pylint: disable=broad-except
-                logger().info(
+                logger().debug(
                     "Instrument doesn't belong to DACM family or %s",
                     exception,
                 )
                 self._valid_family = False
                 return False
-        # logger().debug("Get description failed.")
         return False
 
     def _get_module_information(self):
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x01", b""], 73)
+        reply = self.get_reply([b"\x01", b""])
         if reply and (reply[0] == ok_byte):
             logger().debug("Get module information successful.")
             try:
@@ -222,7 +220,7 @@ class DacmInst(SaradInst):
     def _get_component_information(self, component_index):
         """Get information about one component of a DACM instrument."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x03", bytes([component_index])], 21)
+        reply = self.get_reply([b"\x03", bytes([component_index])])
         if reply and (reply[0] == ok_byte):
             logger().debug("Get component information successful.")
             try:
@@ -265,7 +263,7 @@ class DacmInst(SaradInst):
         """Get information about the configuration of a component
         of a DACM instrument."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x04", bytes([component_index])], 73)
+        reply = self.get_reply([b"\x04", bytes([component_index])])
         if reply and (reply[0] == ok_byte):
             logger().debug("Get component configuration successful.")
             try:
@@ -315,7 +313,7 @@ class DacmInst(SaradInst):
     def _read_cycle_start(self, cycle_index=0):
         """Get description of a measuring cycle."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x06", bytes([cycle_index])], 28)
+        reply = self.get_reply([b"\x06", bytes([cycle_index])])
         if reply and (reply[0] == ok_byte) and reply[1]:
             logger().debug("Get primary cycle information successful.")
             try:
@@ -354,7 +352,7 @@ class DacmInst(SaradInst):
 
     def _read_cycle_continue(self):
         """Get description of subsequent cycle intervals."""
-        reply = self.get_reply([b"\x07", b""], 16)
+        reply = self.get_reply([b"\x07", b""])
         if reply and not len(reply) < 16:
             logger().debug("Get information about cycle interval successful.")
             try:
@@ -397,7 +395,7 @@ class DacmInst(SaradInst):
             ]
         )
         instr_datetime.extend((date_time.year).to_bytes(2, byteorder=self._byte_order))
-        reply = self.get_reply([b"\x10", instr_datetime], 1)
+        reply = self.get_reply([b"\x10", instr_datetime])
         if reply and (reply[0] == ok_byte):
             logger().debug("Time on device %s set to UTC.", self.device_id)
             return True
@@ -408,7 +406,7 @@ class DacmInst(SaradInst):
     def stop_cycle(self):
         """Stop the measuring cycle."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x16", b""], 1)
+        reply = self.get_reply([b"\x16", b""])
         if reply and (reply[0] == ok_byte):
             logger().debug("Cycle stopped at device %s.", self.device_id)
             return True
@@ -424,7 +422,7 @@ class DacmInst(SaradInst):
             for sensor in component.sensors:
                 sensor.interval = self.__interval
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x15", bytes([cycle_index])], 3, timeout=5)
+        reply = self.get_reply([b"\x15", bytes([cycle_index])], timeout=5)
         if reply and (reply[0] == ok_byte):
             logger().debug(
                 "Cycle %s started at device %s.", cycle_index, self.device_id
@@ -492,7 +490,6 @@ class DacmInst(SaradInst):
                 b"\x1a",
                 bytes([component_id]) + bytes([sensor_id]) + bytes([measurand_id]),
             ],
-            1000,
         )
         if reply and (reply[0] > 0):
             output = {}
@@ -523,12 +520,16 @@ class DacmInst(SaradInst):
                 gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))
                 gps_dict = {
                     "valid": True,
-                    "latitude": float(gps_list[0])
-                    if gps_list[1] == "N"
-                    else -float(gps_list[0]),
-                    "longitude": float(gps_list[2])
-                    if gps_list[3] == "E"
-                    else -float(gps_list[2]),
+                    "latitude": (
+                        float(gps_list[0])
+                        if gps_list[1] == "N"
+                        else -float(gps_list[0])
+                    ),
+                    "longitude": (
+                        float(gps_list[2])
+                        if gps_list[3] == "E"
+                        else -float(gps_list[2])
+                    ),
                     "altitude": float(gps_list[4]),
                     "deviation": float(gps_list[5]),
                 }

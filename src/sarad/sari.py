@@ -1054,7 +1054,7 @@ class SaradInst(Generic[SI]):
                 return result
             self.release_instrument()
             self._possible_baudrates.rotate(-1)
-            sleep(1)
+            sleep(2)
         return result
 
     def _new_rs485_address(self, raw_cmd):

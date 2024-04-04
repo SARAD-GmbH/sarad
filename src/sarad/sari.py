@@ -692,7 +692,7 @@ class SaradInst(Generic[SI]):
             }
         message = self._make_rs485(message)
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-        retry_counter = 2
+        retry_counter = 1
         while (answer == b"") and retry_counter:
             # Workaround for firmware bug in SARAD instruments.
             logger().debug("Play it again, Sam!")
@@ -737,7 +737,7 @@ class SaradInst(Generic[SI]):
         """Set instrument type, software version, and serial number."""
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply(id_cmd, timeout=1)
+        reply = self.get_reply(id_cmd, timeout=0.5)
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
@@ -919,9 +919,12 @@ class SaradInst(Generic[SI]):
     def _close_serial(serial, keep):
         if serial is not None and serial.is_open:
             try:
-                serial.flush()
+                serial.reset_input_buffer()
+                serial.reset_output_buffer()
                 if not keep:
                     serial.close()
+                    while serial.is_open:
+                        sleep(0.01)
                     logger().debug("Serial interface closed.")
                     return None
             except Exception:  # pylint: disable=broad-except
@@ -989,7 +992,10 @@ class SaradInst(Generic[SI]):
                         raise
             if retry:
                 raise BlockingIOError
-            sleep(0.5)
+            while not ser.is_open:
+                sleep(0.01)
+            while ser.baudrate != baudrate:
+                sleep(0.01)
             logger().debug("Serial ready @ %d baud", ser.baudrate)
             return ser
 
@@ -1004,7 +1010,8 @@ class SaradInst(Generic[SI]):
                         if not ser.is_open:
                             logger().debug("Serial interface is closed. Reopen.")
                             ser.open()
-                            sleep(0.5)
+                            while not ser.is_open:
+                                sleep(0.01)
                         logger().debug("Reuse stored serial interface")
                     except (AttributeError, SerialException, OSError):
                         logger().warning(
@@ -1021,7 +1028,6 @@ class SaradInst(Generic[SI]):
                 return b""
             logger().debug("Tx to %s: %s", ser.port, raw_cmd)
             ser.inter_byte_timeout = timeout
-            # sleep(0.001)
             if raw_cmd:
                 sleep(self._family["tx_msg_delay"])
                 for element in raw_cmd:

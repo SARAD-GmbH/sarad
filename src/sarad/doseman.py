@@ -36,7 +36,7 @@ class DosemanInst(SaradInst):
         """Set instrument type, software version, and serial number."""
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply(id_cmd, timeout=1)
+        reply = self.get_reply(id_cmd, timeout=0.5)
         if reply:
             if reply[0] == ok_byte:
                 logger().debug("Get description successful.")
@@ -111,6 +111,12 @@ class DosemanInst(SaradInst):
             # If this is a get-data command, we expect multiple B-E frames.
             multiframe = checked_message["payload"] in [b"\x60", b"\x61"]
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+        retry_counter = 1
+        while (answer == b"") and retry_counter:
+            # Workaround for firmware bug in SARAD instruments.
+            logger().debug("Play it again, Sam!")
+            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
+            retry_counter = retry_counter - 1
         checked_answer = self._check_message(answer, multiframe)
         logger().debug(checked_answer)
         if answer == message:

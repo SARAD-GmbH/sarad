@@ -5,7 +5,7 @@
 groups = ["default"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:442c49f315434922d1ac990c80a2d95500c8f8ce26aaa7761c9a8852235203b7"
+content_hash = "sha256:f475a916e4a3edf4fbb15dd457519107fc9e709185803510d83171afc8a7ca06"
 
 [[package]]
 name = "bitvector"

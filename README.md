@@ -43,6 +43,51 @@ software interface.
 pip install git+https://github.com/SARAD-GmbH/sarad.git
 ```
 
+## Getting started
+
+Clone this Git repository:
+
+```
+git clone https://github.com/SARAD-GmbH/sarad.git
+```
+
+Install the virtual environment:
+
+```
+pdm install
+```
+
+Connect a SARAD measuring instrument,
+start the Python REPL in the virtual environment and try some methods:
+
+```
+➜  sarad git:(master) ✗ pdm run python
+Python 3.9.18 (main, Nov  2 2023, 12:04:11)
+[GCC 13.2.1 20230801] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from sarad.cluster import SaradCluster
+>>> mycluster = SaradCluster()
+>>> mycluster.update_connected_instruments()
+[<sarad.dacm.DacmInst object at 0x757a62d79760>]
+>>> myinstr = mycluster.connected_instruments[0]
+>>> print(myinstr)
+Id: 08t2hLv
+SerialDevice: /dev/ttyUSB0
+Baudrate: [9600, 256000]
+FamilyName: DACM family
+FamilyId: 5
+TypName: RTM 2200
+TypeId: 2
+SoftwareVersion: 4
+SerialNumber: 342
+LastUpdate: 2022-05-02
+DateOfManufacture: 2023-03-29
+Address: 0
+LastConfig: 2023-09-15
+ModuleName: RTM 2200
+ConfigName: Bodenluft
+```
+
 **Read the code!***
 
 Check out the sample project [*datacollector*](https://github.com/SARAD-GmbH/datacollector) as well!

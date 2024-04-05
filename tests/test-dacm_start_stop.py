@@ -83,12 +83,23 @@ for i in range(no_of_attempts):
 comment(f"Finally trying to start. You should hear the starting pump.")
 my_instr.start_cycle(2)
 
+heading(f"4th Test -- {no_of_attempts} attempts of Stop/Start/Stop/Start")
+for i in range(no_of_attempts):
+    comment(f"Attempt {i + 1}: trying to stop")
+    my_instr.stop_cycle()
+    comment(f"Attempt {i + 1}: trying to start")
+    my_instr.start_cycle(2)
+    comment(f"Attempt {i + 1}: trying to stop")
+    my_instr.stop_cycle()
+    comment(f"Attempt {i + 1}: trying to start")
+    my_instr.start_cycle(2)
+
 sleep(15)
 comment("Finally trying to stop")
-
 my_instr.stop_cycle()
+
 no_of_attempts = 100
-heading(f"4th Test -- {no_of_attempts} attempts of Start/Stop/Start")
+heading(f"5th Test -- {no_of_attempts} attempts of Start/Stop/Start")
 for i in range(no_of_attempts):
     if i:
         comment(f"In the next attempt to start we are expecting an error message.")

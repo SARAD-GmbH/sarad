@@ -692,12 +692,6 @@ class SaradInst(Generic[SI]):
             }
         message = self._make_rs485(message)
         answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-        retry_counter = 1
-        while (answer == b"") and retry_counter:
-            # Workaround for firmware bug in SARAD instruments.
-            logger().debug("Play it again, Sam!")
-            answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-            retry_counter = retry_counter - 1
         checked_answer = self._check_message(answer, False)
         return {
             "is_valid": checked_answer["is_valid"],
@@ -1047,14 +1041,20 @@ class SaradInst(Generic[SI]):
         result = b""
         for _i in range(len(self._possible_baudrates)):
             baudrate = self._possible_baudrates[0]
-            logger().debug("Trying with %s baud", baudrate)
+            logger().debug("Try to send %s with %s baud", raw_cmd, baudrate)
             result = _try_baudrate(baudrate, keep, timeout)
+            retry_counter = 1
+            while not result and retry_counter:
+                # Workaround for firmware bug in SARAD instruments.
+                logger().debug("Play it again, Sam!")
+                result = _try_baudrate(baudrate, keep, timeout)
+                retry_counter = retry_counter - 1
             if result:
                 logger().debug("Working with %s baud", baudrate)
                 return result
             self.release_instrument()
             self._possible_baudrates.rotate(-1)
-            sleep(1.5)
+            sleep(1)  # Give the instrument time to reset its input buffer.
         return result
 
     def _new_rs485_address(self, raw_cmd):

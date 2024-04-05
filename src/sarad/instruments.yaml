@@ -1253,8 +1253,8 @@
 - family_id: 5
   family_name: DACM family
   baudrate:
-  - 256000
   - 9600
+  - 256000
   get_id_cmd:
   - !!binary |
     DA==

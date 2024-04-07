@@ -1,6 +1,24 @@
 %YAML 1.2
 # This file describes instruments manufactured by SARAD GmbH
 ---
+- family_id: 0
+  family_name: Generic
+  baudrate:
+    - 9600
+    - 115200
+    - 256000
+  get_id_cmd:
+    - !!binary |
+      DA==
+    - !!binary |
+      /wAA
+  length_of_reply: 13
+  tx_msg_delay: 0
+  tx_byte_delay: 0
+  parity: N
+  ok_byte: 10
+  allowed_cmds:
+  - 0x0C  # GetId
 - family_id: 1
   family_name: Doseman family
   baudrate:
@@ -152,7 +170,7 @@
   - 0x09  # SetParameter
   - 0x0A  # OK
   - 0x0B  # NoMoreData
-  - 0x0C  # GetParameter
+  - 0x0C  # GetId
   - 0x0D  # GetBatteryStatus
   - 0x0E
   - 0x0F  # Setup
@@ -1265,44 +1283,44 @@
   ok_byte: 10
   parity: N
   allowed_cmds:
-  - 0x01
-  - 0x02
-  - 0x03
-  - 0x04
-  - 0x05
-  - 0x06
-  - 0x07
-  - 0x08
-  - 0x09
-  - 0x0A
-  - 0x0B
-  - 0x0C
-  - 0x0D
-  - 0x0E
-  - 0x0F
-  - 0x10
-  - 0x11
-  - 0x12
-  - 0x13
-  - 0x14
-  - 0x15
-  - 0x16
-  - 0x17
-  - 0x18
-  - 0x19
-  - 0x1A
-  - 0x1B
-  - 0x1C
-  - 0x1D
-  - 0x1E
-  - 0x1F
-  - 0x20
-  - 0x22
-  - 0x23
-  - 0x24
-  - 0x25
-  - 0x26
-  - 0x27
+  - 0x01  # GetModuleInformation
+  - 0x02  # SetModuleInformation
+  - 0x03  # GetComponentInformation
+  - 0x04  # GetComponentConfiguration
+  - 0x05  # SetComponentConfiguration
+  - 0x06  # ReadCycleStart
+  - 0x07  # ReadCycleContinue
+  - 0x08  # WriteCycleStart
+  - 0x09  # WriteCycleFinish
+  - 0x0A  # ClearAllCycles
+  - 0x0B  # ResetComponentConfiguration
+  - 0x0C  # GetId
+  - 0x0D  # ClearMemoryCard
+  - 0x0E  # ReadDataStart
+  - 0x0F  # ReadDataContinue
+  - 0x10  # SetClock
+  - 0x11  # ReadModuleIdentification (from memory card)
+  - 0x12  # ReadComponentConfiguration (from memory card)
+  - 0x13  # ReadComponentInformation (from memory card)
+  - 0x14  # ReadDataMemoryStatus (from memory card)
+  - 0x15  # StartCycle
+  - 0x16  # StopCycle
+  - 0x17  # ResetMemoryCard
+  - 0x18  # GetModuleSettings
+  - 0x19  # SetModuleSettings
+  - 0x1A  # GetComponentResult
+  - 0x1B  # ReadModuleInformation (from memory card)
+  - 0x1C  # ReadSelectedDataStart
+  - 0x1D  # GetExtComponentConfiguration (from EEPROM)
+  - 0x1E  # SetExtComponentConfiguration (on EEPROM)
+  - 0x1F  # ReadExtComponentConfiguration (from memory card)
+  - 0x20  # SetClock
+  - 0x22  # SetComponentConfigurationStart (on EEPROM)
+  - 0x23  # SetComponentConfigurationStop (on EEPROM)
+  - 0x24  # GetComponentConfigurationStart
+  - 0x25  # GetComponentConfigurationContinue
+  - 0x26  # ReadComponentConfigurationStart
+  - 0x27  # ReadComponentConfigurationContinue
   - 0x28  # SetResultStyle
   - 0x29  # GetResultStyle
   - 0x3A  # SetDisplayControl

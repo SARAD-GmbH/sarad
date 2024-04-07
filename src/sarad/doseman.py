@@ -4,7 +4,7 @@ Module for the communication with instruments of the DOSEman family.
 
 from overrides import overrides  # type: ignore
 
-from sarad.sari import CheckedAnswerDict, SaradInst, logger
+from sarad.sari import CheckedAnswerDict, SaradInst, logger, sarad_family
 
 
 class DosemanInst(SaradInst):
@@ -27,7 +27,7 @@ class DosemanInst(SaradInst):
     RET_INVALID = 1
 
     @overrides
-    def __init__(self, family=SaradInst.products[0]):
+    def __init__(self, family=sarad_family(1)):
         super().__init__(family)
         self._last_sampling_time = None
 

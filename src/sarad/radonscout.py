@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 
 from overrides import overrides  # type: ignore
 
-from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
+from sarad.sari import (Component, Measurand, SaradInst, Sensor, logger,
+                        sarad_family)
 
 
 class RscInst(SaradInst):
@@ -31,7 +32,7 @@ class RscInst(SaradInst):
         set_config()"""
 
     @overrides
-    def __init__(self, family=SaradInst.products[1]):
+    def __init__(self, family=sarad_family(2)):
         super().__init__(family)
         self._last_sampling_time = None
         self.__alarm_level = None

@@ -14,7 +14,7 @@ from time import sleep
 from typing import (Any, Collection, Dict, Generic, Iterator, List, Optional,
                     TypedDict, TypeVar)
 
-import yaml
+import yaml  # type: ignore
 from BitVector import BitVector  # type: ignore
 from serial import STOPBITS_ONE  # type: ignore
 from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
@@ -27,6 +27,24 @@ def logger():
     global _LOGGER  # pylint: disable=global-statement
     _LOGGER = _LOGGER or logging.getLogger(__name__)
     return _LOGGER
+
+
+def sarad_family(family_id):
+    """Get dict of product features from instrument.yaml file.
+
+    products (Dict): Dictionary holding a database containing the features
+    of all SARAD products that cannot be gained from the instrument itself.
+    """
+    with open(
+        os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "instruments.yaml",
+        "r",
+        encoding="utf-8",
+    ) as __f:
+        products = yaml.safe_load(__f)
+    for family in products:
+        if family.get("family_id") == family_id:
+            return family
+        return None
 
 
 SI = TypeVar("SI", bound="SaradInst")
@@ -361,10 +379,6 @@ class Component:
 class SaradInst(Generic[SI]):
     """Basic class for the serial communication protocol of SARAD instruments
 
-    Attributes:
-        products (Dict): Dictionary holding a database containing the features
-             of all SARAD products that cannot be gained from the instrument itself.
-
     Properties:
         route: Route dataclass object containing the serial communication port,
                RS-485 bus address and ZigBee address if applicable
@@ -420,13 +434,6 @@ class SaradInst(Generic[SI]):
         MEDIUM: int = 2
         LARGE: int = 3
         XL: int = 4
-
-    with open(
-        os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "instruments.yaml",
-        "r",
-        encoding="utf-8",
-    ) as __f:
-        products = yaml.safe_load(__f)
 
     def __init__(self: SI, family: FamilyDict) -> None:
         self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)

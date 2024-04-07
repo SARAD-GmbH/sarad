@@ -7,7 +7,8 @@ from typing import Literal
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
 
-from sarad.sari import Component, Measurand, SaradInst, Sensor, logger
+from sarad.sari import (Component, Measurand, SaradInst, Sensor, logger,
+                        sarad_family)
 
 
 class DacmInst(SaradInst):
@@ -32,7 +33,7 @@ class DacmInst(SaradInst):
         get_recent_value(index)"""
 
     @overrides
-    def __init__(self, family=SaradInst.products[3]):
+    def __init__(self, family=sarad_family(5)):
         super().__init__(family)
         self._date_of_manufacture = None
         self._date_of_update = None

@@ -469,7 +469,7 @@ class SaradInst(Generic[SI]):
         self.__id: str = ""
         self._valid_family = True
         self._last_sampling_time = None
-        self._possible_baudrates: deque = deque(family["baudrate"])
+        self._serial_param_sets: deque = deque(family["serial"])
         self._allowed_cmds = family.get("allowed_cmds", [])
 
     def __iter__(self) -> Iterator[Component]:
@@ -1007,10 +1007,8 @@ class SaradInst(Generic[SI]):
     def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):
         """Returns the raw bytestring of the instruments reply"""
 
-        def _open_serial(baudrate):
+        def _open_serial(baudrate, parity):
             retry = True
-            parity_options = {"N": PARITY_NONE, "E": PARITY_EVEN}
-            logger().debug("Parity = %s", parity_options[self._family["parity"]])
             for _i in range(0, 1):
                 while retry:
                     try:
@@ -1019,7 +1017,7 @@ class SaradInst(Generic[SI]):
                             baudrate=baudrate,
                             bytesize=8,
                             xonxoff=0,
-                            parity=parity_options[self._family["parity"]],
+                            parity=parity,
                             stopbits=STOPBITS_ONE,
                         )
                         retry = False
@@ -1043,14 +1041,15 @@ class SaradInst(Generic[SI]):
             logger().debug("Serial ready @ %d baud", ser.baudrate)
             return ser
 
-        def _try_baudrate(baudrate, keep_serial_open, timeout):
+        def _try_baudrate(baudrate, parity, keep_serial_open, timeout):
             if keep_serial_open:
                 if self.__ser is None:
-                    ser = _open_serial(baudrate)
+                    ser = _open_serial(baudrate, parity)
                 else:
                     try:
                         ser = self.__ser
                         ser.baudrate = baudrate
+                        ser.parity = parity
                         if not ser.is_open:
                             logger().debug("Serial interface is closed. Reopen.")
                             ser.open()
@@ -1064,7 +1063,7 @@ class SaradInst(Generic[SI]):
                         self.__ser = None
             else:
                 logger().debug("Open serial, don't keep.")
-                ser = _open_serial(baudrate)
+                ser = _open_serial(baudrate, parity)
             try:
                 ser.timeout = timeout
             except SerialException as exception:
@@ -1087,23 +1086,28 @@ class SaradInst(Generic[SI]):
             logger().debug("Rx from %s: %s", ser.port, b_answer)
             return b_answer
 
-        logger().debug("Possible baudrates: %s", self._possible_baudrates)
+        logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         result = b""
-        for _i in range(len(self._possible_baudrates)):
-            baudrate = self._possible_baudrates[0]
-            logger().debug("Try to send %s with %s baud", raw_cmd, baudrate)
-            result = _try_baudrate(baudrate, keep, timeout)
+        for _i in range(len(self._serial_param_sets)):
+            baudrate = self._serial_param_sets[0]["baudrate"]
+            parity_char = self._serial_param_sets[0]["parity"]
+            parity_options = {"N": PARITY_NONE, "E": PARITY_EVEN}
+            parity = parity_options[parity_char]
+            logger().debug(
+                "Try to send %s with %s baud, parity %s", raw_cmd, baudrate, parity
+            )
+            result = _try_baudrate(baudrate, parity, keep, timeout)
             retry_counter = 1
             while not result and retry_counter:
                 # Workaround for firmware bug in SARAD instruments.
                 logger().debug("Play it again, Sam!")
-                result = _try_baudrate(baudrate, keep, timeout)
+                result = _try_baudrate(baudrate, parity, keep, timeout)
                 retry_counter = retry_counter - 1
             if result:
                 logger().debug("Working with %s baud", baudrate)
                 return result
             self.release_instrument()
-            self._possible_baudrates.rotate(-1)
+            self._serial_param_sets.rotate(-1)
             sleep(1)  # Give the instrument time to reset its input buffer.
         return result
 

@@ -3,10 +3,13 @@
 ---
 - family_id: 0
   family_name: Generic
-  baudrate:
-    - 9600
-    - 115200
-    - 256000
+  serial:
+    - baudrate: 9600
+      parity: N
+    - baudrate: 115200
+      parity: E
+    - baudrate: 256000
+      parity: N
   get_id_cmd:
     - !!binary |
       DA==
@@ -14,15 +17,15 @@
       /wAA
   tx_msg_delay: 0
   tx_byte_delay: 0
-  parity: N
   ok_byte: 10
   byte_order: little
   allowed_cmds:
   - 0x0C  # GetId
 - family_id: 1
   family_name: Doseman family
-  baudrate:
-  - 115200
+  serial:
+    - baudrate: 115200
+      parity: E
   get_id_cmd:
   - !!binary |
     QA==
@@ -30,7 +33,6 @@
   length_of_reply: 5
   tx_msg_delay: 0.1
   tx_byte_delay: 0.001
-  parity: E
   ok_byte: 0
   byte_order: little
   allowed_cmds:
@@ -114,8 +116,9 @@
   - {type_id: 200, type_name: NETmonitors Coordinator}
 - family_id: 2
   family_name: Radon Scout family
-  baudrate:
-  - 9600
+  serial:
+    - baudrate: 9600
+      parity: N
   get_id_cmd:
   - !!binary |
     DA==
@@ -124,7 +127,6 @@
   length_of_reply: 13
   tx_msg_delay: 0
   tx_byte_delay: 0
-  parity: N
   ok_byte: 10
   byte_order: little
   config_parameters:
@@ -1247,9 +1249,11 @@
           measurand_source: 3
 - family_id: 4
   family_name: Network family
-  baudrate:
-  - 115200
-  - 9600
+  serial:
+    - baudrate: 115200
+      parity: E
+    - baudrate: 9600
+      parity: N
   get_id_cmd:
   - !!binary |
     DA==
@@ -1260,7 +1264,6 @@
   tx_byte_delay: 0
   ok_byte: 10
   byte_order: little
-  parity: N
   allowed_cmds:
   - 0x0C  # GetId
   - 0xC0  # GetFirstChannel
@@ -1272,9 +1275,11 @@
     type_name: ZigBee Coordinator
 - family_id: 5
   family_name: DACM family
-  baudrate:
-  - 9600
-  - 256000
+  serial:
+    - baudrate: 9600
+      parity: N
+    - baudrate: 256000
+      parity: N
   get_id_cmd:
   - !!binary |
     DA==
@@ -1285,7 +1290,6 @@
   tx_byte_delay: 0
   ok_byte: 10
   byte_order: big
-  parity: N
   allowed_cmds:
   - 0x01  # GetModuleInformation
   - 0x02  # SetModuleInformation

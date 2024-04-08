@@ -778,7 +778,7 @@ class SaradInst(Generic[SI]):
                 self._type_id = reply[1]
                 self._software_version = reply[2]
                 if self._type_id == 200:
-                    logger().info("ZigBee Coordinator detected.")
+                    logger().debug("ZigBee Coordinator detected.")
                     self._family = sarad_family(4)
                 if self._family["family_id"] == 5:
                     if reply[29]:
@@ -1143,6 +1143,18 @@ class SaradInst(Generic[SI]):
         """Set route to instrument."""
         self._route = route
         if (self._route.port is not None) and (self._family is not None):
+            self._initialize()
+
+    @property
+    def address(self):
+        """Return the RS-485 address of the instrument."""
+        return self._route.rs485_address
+
+    @address.setter
+    def address(self, address):
+        """Set the address of the DACM module."""
+        self.route.rs485_address = address
+        if (self._route.port is not None) and (self._route.rs485_address is not None):
             self._initialize()
 
     @property

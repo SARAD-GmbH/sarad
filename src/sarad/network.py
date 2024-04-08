@@ -1,10 +1,8 @@
 """Module for the communication with instruments of the Network family."""
 
-from typing import Literal
-
 from overrides import overrides  # type: ignore
 
-from sarad.sari import SaradInst, logger
+from sarad.sari import SaradInst, logger, sarad_family
 
 
 class NetworkInst(SaradInst):
@@ -25,16 +23,15 @@ class NetworkInst(SaradInst):
     Public methods:
     """
 
-    CHANNELINFO = 0xD0
-    ENDOFCHANNELLIST = 0xD1
-    CHANNELSELECTED = 0xD2
+    CHANNEL_INFO = 0xD0
+    END_OF_CHANNEL_LIST = 0xD1
+    CHANNEL_SELECTED = 0xD2
 
     @overrides
-    def __init__(self, family=SaradInst.products[2]):
+    def __init__(self, family=sarad_family(4)):
         super().__init__(family)
         self._date_of_manufacture = None
         self._date_of_update = None
-        self._byte_order: Literal["little", "big"] = "big"
 
     @overrides
     def _new_rs485_address(self, raw_cmd):
@@ -64,7 +61,7 @@ class NetworkInst(SaradInst):
     def get_first_channel(self):
         """Get information about the instrument connected via first available channel."""
         reply = self.get_reply([b"\xC0", b""], timeout=3)
-        if reply and (reply[0] == self.CHANNELINFO):
+        if reply and (reply[0] == self.CHANNEL_INFO):
             return {
                 "short_address": int.from_bytes(
                     reply[1:3], byteorder="little", signed=False
@@ -76,7 +73,7 @@ class NetworkInst(SaradInst):
                 ),
                 "family_id": reply[7],
             }
-        if reply and (reply[0] == self.ENDOFCHANNELLIST):
+        if reply and (reply[0] == self.END_OF_CHANNEL_LIST):
             return False
         logger().error("Unexpected reply to get_first_channel: %s", reply)
         return False
@@ -84,7 +81,7 @@ class NetworkInst(SaradInst):
     def get_next_channel(self):
         """Get information about the instrument connected via next available channel."""
         reply = self.get_reply([b"\xC1", b""], timeout=3)
-        if reply and (reply[0] == self.CHANNELINFO):
+        if reply and (reply[0] == self.CHANNEL_INFO):
             return {
                 "short_address": int.from_bytes(
                     reply[1:3], byteorder="little", signed=False
@@ -96,22 +93,10 @@ class NetworkInst(SaradInst):
                 ),
                 "family_id": reply[7],
             }
-        if reply and (reply[0] == self.ENDOFCHANNELLIST):
+        if reply and (reply[0] == self.END_OF_CHANNEL_LIST):
             return False
         logger().error("Unexpected reply to get_next_channel: %s", reply)
         return False
-
-    def get_address(self):
-        """Return the address of the DACM module."""
-        return self._route.rs485_address
-
-    def set_address(self, address):
-        """Set the address of the DACM module."""
-        self.route.rs485_address = address
-        if (self._route.port is not None) and (self._route.rs485_address is not None):
-            self._initialize()
-
-    address = property(get_address, set_address)
 
     @property
     def type_name(self) -> str:

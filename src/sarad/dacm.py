@@ -550,16 +550,6 @@ class DacmInst(SaradInst):
         logger().error("The instrument doesn't reply.")
         return False
 
-    def get_address(self):
-        """Return the address of the DACM module."""
-        return self._route.rs485_address
-
-    def set_address(self, address):
-        """Set the address of the DACM module."""
-        self.route.rs485_address = address
-        if (self._route.port is not None) and (self._route.rs485_address is not None):
-            self._initialize()
-
     def get_date_of_config(self):
         """Return the date the configuration was made on."""
         return self._date_of_config
@@ -599,7 +589,6 @@ class DacmInst(SaradInst):
         return self._date_of_update
 
     module_name = property(get_module_name, set_module_name)
-    address = property(get_address, set_address)
     date_of_config = property(get_date_of_config, set_date_of_config)
     config_name = property(get_config_name, set_config_name)
     date_of_manufacture = property(get_date_of_manufacture)

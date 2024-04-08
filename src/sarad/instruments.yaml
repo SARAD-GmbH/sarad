@@ -16,6 +16,7 @@
   tx_byte_delay: 0
   parity: N
   ok_byte: 10
+  byte_order: little
   allowed_cmds:
   - 0x0C  # GetId
 - family_id: 1
@@ -31,6 +32,7 @@
   tx_byte_delay: 0.001
   parity: E
   ok_byte: 0
+  byte_order: little
   allowed_cmds:
   - 0x10  # SetDeviceId
   - 0x11
@@ -124,6 +126,7 @@
   tx_byte_delay: 0
   parity: N
   ok_byte: 10
+  byte_order: little
   config_parameters:
   - name: lock
     type: enum
@@ -1256,6 +1259,7 @@
   tx_msg_delay: 0
   tx_byte_delay: 0
   ok_byte: 10
+  byte_order: little
   parity: N
   allowed_cmds:
   - 0x0C  # GetId
@@ -1280,6 +1284,7 @@
   tx_msg_delay: 0
   tx_byte_delay: 0
   ok_byte: 10
+  byte_order: big
   parity: N
   allowed_cmds:
   - 0x01  # GetModuleInformation

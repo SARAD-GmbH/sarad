@@ -11,8 +11,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
 from time import sleep
-from typing import (Any, Collection, Dict, Generic, Iterator, List, Optional,
-                    TypedDict, TypeVar)
+from typing import (Any, Collection, Dict, Generic, Iterator, List, Literal,
+                    Optional, TypedDict, TypeVar)
 
 import yaml  # type: ignore
 from BitVector import BitVector  # type: ignore
@@ -92,11 +92,21 @@ class MeasurandDict(TypedDict):
     valid: bool
 
 
+class ComponentDict(TypedDict):
+    # pylint: disable=inherit-non-class, too-few-public-methods
+    """Type declaration for Component type dictionary"""
+    component_id: int
+    component_name: str
+
+
 class InstrumentDict(TypedDict):
     # pylint: disable=inherit-non-class, too-few-public-methods
     """Type declaration for instrument type dictionary."""
     type_id: int
     type_name: str
+    components: List[ComponentDict]
+    battery_bytes: int
+    battery_coeff: float
 
 
 class FamilyDict(TypedDict):
@@ -104,7 +114,7 @@ class FamilyDict(TypedDict):
     """Type declaration for Family dictionary."""
     family_id: int
     family_name: str
-    baudrate: int
+    baudrate: List[int]
     get_id_cmd: List[bytes]
     length_of_reply: int
     tx_msg_delay: float
@@ -113,6 +123,8 @@ class FamilyDict(TypedDict):
     ok_byte: int
     config_parameters: List[Dict[str, Any]]
     types: List[InstrumentDict]
+    byte_order: Literal["little", "big"]
+    allowed_cmds: List[bytes]
 
 
 class CheckedAnswerDict(TypedDict):
@@ -667,7 +679,8 @@ class SaradInst(Generic[SI]):
         if checked_dict["is_valid"] and (len(checked_dict["payload"]) > 0):
             if not checked_dict["is_control"]:
                 return True
-            return bool(checked_dict["payload"][0] in self._allowed_cmds)
+            cmd_byte = checked_dict["payload"][0]
+            return bool(cmd_byte in self._allowed_cmds)
         return False
 
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
@@ -764,13 +777,21 @@ class SaradInst(Generic[SI]):
             try:
                 self._type_id = reply[1]
                 self._software_version = reply[2]
-                self._serial_number = int.from_bytes(
-                    reply[3:5], byteorder="little", signed=False
-                )
                 if self._type_id == 200:
                     logger().info("ZigBee Coordinator detected.")
                     self._family = sarad_family(4)
-                    self._valid_family = True
+                if self._family["family_id"] == 5:
+                    if reply[29]:
+                        byte_order: Literal["little", "big"] = "little"
+                        logger().debug("DACM-32 with Little-Endian")
+                    else:
+                        byte_order = "big"
+                        logger().debug("DACM-8 with Big-Endian")
+                else:
+                    byte_order = self._family["byte_order"]
+                self._serial_number = int.from_bytes(
+                    reply[3:5], byteorder=byte_order, signed=False
+                )
                 return True
             except (TypeError, ReferenceError, LookupError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)
@@ -863,7 +884,9 @@ class SaradInst(Generic[SI]):
         chamber_size_index = bit_vector[1:3].int_val()
         self.chamber_size = list(self.ChamberSize)[chamber_size_index]
 
-    def _get_parameter(self, parameter_name: str) -> Any:
+    def _get_parameter(
+        self, parameter_name: Literal["components", "battery_bytes", "battery_coeff"]
+    ) -> Any:
         for inst_type in self.family["types"]:
             if inst_type["type_id"] == self.type_id:
                 try:

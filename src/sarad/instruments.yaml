@@ -12,7 +12,6 @@
       DA==
     - !!binary |
       /wAA
-  length_of_reply: 13
   tx_msg_delay: 0
   tx_byte_delay: 0
   parity: N
@@ -1277,7 +1276,7 @@
     DA==
   - !!binary |
     /wAA
-  length_of_reply: 44
+  length_of_reply: 32
   tx_msg_delay: 0
   tx_byte_delay: 0
   ok_byte: 10

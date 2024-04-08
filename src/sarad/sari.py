@@ -35,16 +35,21 @@ def sarad_family(family_id):
     products (Dict): Dictionary holding a database containing the features
     of all SARAD products that cannot be gained from the instrument itself.
     """
-    with open(
-        os.path.dirname(os.path.realpath(__file__)) + os.path.sep + "instruments.yaml",
-        "r",
-        encoding="utf-8",
-    ) as __f:
-        products = yaml.safe_load(__f)
-    for family in products:
-        if family.get("family_id") == family_id:
-            return family
-        return None
+    try:
+        with open(
+            os.path.dirname(os.path.realpath(__file__))
+            + os.path.sep
+            + "instruments.yaml",
+            "r",
+            encoding="utf-8",
+        ) as __f:
+            products = yaml.safe_load(__f)
+        for family in products:
+            if family.get("family_id") == family_id:
+                return family
+    except Exception as exception:  # pylint: disable=broad-exception-caught
+        logger().error("Cannot get products dict from instruments.yaml. %s", exception)
+    return None
 
 
 SI = TypeVar("SI", bound="SaradInst")
@@ -738,7 +743,22 @@ class SaradInst(Generic[SI]):
         """Set instrument type, software version, and serial number."""
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply(id_cmd, timeout=0.5)
+        msg = self._make_command_msg(id_cmd)
+        checked_payload = self.get_message_payload(msg, timeout=0.5)
+        if checked_payload["is_valid"]:
+            reply = checked_payload["payload"]
+        else:
+            reply = b""
+        if (
+            checked_payload["number_of_bytes_in_payload"]
+            == sarad_family(2)["length_of_reply"]
+        ):
+            self._family = sarad_family(2)
+        elif (
+            checked_payload["number_of_bytes_in_payload"]
+            > sarad_family(2)["length_of_reply"]
+        ):
+            self._family = sarad_family(5)
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
@@ -747,10 +767,10 @@ class SaradInst(Generic[SI]):
                 self._serial_number = int.from_bytes(
                     reply[3:5], byteorder="little", signed=False
                 )
-                if (self._type_id != 200) and (self.family["family_id"] == 4):
-                    logger().info("This seemed like a Network device, but isn't.")
-                    self._valid_family = False
-                    return False
+                if self._type_id == 200:
+                    logger().info("ZigBee Coordinator detected.")
+                    self._family = sarad_family(4)
+                    self._valid_family = True
                 return True
             except (TypeError, ReferenceError, LookupError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)

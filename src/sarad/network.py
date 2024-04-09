@@ -1,8 +1,11 @@
 """Module for the communication with instruments of the Network family."""
 
+from time import sleep
+
 from overrides import overrides  # type: ignore
 
-from sarad.sari import SaradInst, logger, sarad_family
+from sarad.global_helpers import logger, sarad_family
+from sarad.sari import SaradInst
 
 
 class NetworkInst(SaradInst):
@@ -58,6 +61,13 @@ class NetworkInst(SaradInst):
                 self._route.rs485_address,
             )
 
+    @overrides
+    def _initialize(self):
+        if self._route.zigbee_address:
+            self.select_channel(self._route.zigbee_address)
+            sleep(3)
+        super()._initialize()
+
     def get_first_channel(self):
         """Get information about the instrument connected via first available channel."""
         reply = self.get_reply([b"\xC0", b""], timeout=3)
@@ -96,6 +106,31 @@ class NetworkInst(SaradInst):
         if reply and (reply[0] == self.END_OF_CHANNEL_LIST):
             return False
         logger().error("Unexpected reply to get_next_channel: %s", reply)
+        return False
+
+    def select_channel(self, channel_idx):
+        """Start the transparent mode to given channel."""
+        reply = self.get_reply([b"\xC2", channel_idx.to_bytes(2, "little")], timeout=3)
+        if reply and (reply[0] == self.CHANNEL_SELECTED):
+            logger().info("Channel selected: %s", reply)
+            return reply
+        logger().error("Unexpecte reply to select_channel: %s", reply)
+        return False
+
+    def close_channel(self):
+        """Leave the transparent mode."""
+        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=3)
+        if reply and (reply[0] == self.CHANNEL_SELECTED):
+            return reply
+        logger().error("Unexpecte reply to close_channel: %s", reply)
+        return False
+
+    def coordinator_reset(self):
+        """Restart the coordinator. Same as power off -> on."""
+        reply = self.get_reply([b"\xFE", b"\x00\x00"], timeout=3)
+        if reply and (reply[0] == self.CHANNEL_SELECTED):
+            return reply
+        logger().error("Unexpecte reply to coordinator_reset: %s", reply)
         return False
 
     @property

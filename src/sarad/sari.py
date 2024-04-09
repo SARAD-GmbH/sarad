@@ -3,394 +3,22 @@
 SaradInst comprises all attributes and methods
 that all SARAD instruments have in common."""
 
-import logging
-import os
 import struct
 from collections import deque
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from time import sleep
-from typing import (Any, Collection, Dict, Generic, Iterator, List, Literal,
-                    Optional, TypedDict, TypeVar)
+from typing import Any, Collection, Generic, Iterator, List, Literal, TypeVar
 
-import yaml  # type: ignore
 from BitVector import BitVector  # type: ignore
 from serial import STOPBITS_ONE  # type: ignore
 from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
 
-_LOGGER = None
-
-
-def logger():
-    """Returns the logger instance used in this module."""
-    global _LOGGER  # pylint: disable=global-statement
-    _LOGGER = _LOGGER or logging.getLogger(__name__)
-    return _LOGGER
-
-
-def sarad_family(family_id):
-    """Get dict of product features from instrument.yaml file.
-
-    products (Dict): Dictionary holding a database containing the features
-    of all SARAD products that cannot be gained from the instrument itself.
-    """
-    try:
-        with open(
-            os.path.dirname(os.path.realpath(__file__))
-            + os.path.sep
-            + "instruments.yaml",
-            "r",
-            encoding="utf-8",
-        ) as __f:
-            products = yaml.safe_load(__f)
-        for family in products:
-            if family.get("family_id") == family_id:
-                return family
-    except Exception as exception:  # pylint: disable=broad-exception-caught
-        logger().error("Cannot get products dict from instruments.yaml. %s", exception)
-    return None
-
+from sarad.global_helpers import logger, sarad_family
+from sarad.instrument import Component, Route
+from sarad.typedef import CheckedAnswerDict, CmdDict, FamilyDict, MeasurandDict
 
 SI = TypeVar("SI", bound="SaradInst")
-
-
-@dataclass
-class Route:
-    """Class to store the route directing to a SaradInst.
-
-    rs485_address and zigbee_address are optional and may be None for the
-    simple case that SardInst is directly and exclusively connected to a serial
-    port.
-
-    Args:
-        port (str): Name of the serial port
-        rs485_address (int): RS-485 bus address. None, if RS-485 addressing is not used.
-        zigbee_address (int): Address of instrument on NETmonitors coordinator.
-                              None, if ZigBee is not used.
-
-    """
-
-    port: Optional[str]
-    rs485_address: Optional[int]
-    zigbee_address: Optional[int]
-
-
-class CmdDict(TypedDict):
-    """Type declaration for the result of the analysis of a binary command message."""
-
-    cmd: bytes
-    data: bytes
-
-
-class MeasurandDict(TypedDict):
-    # pylint: disable=inherit-non-class, too-few-public-methods
-    """Type declaration for Measurand dictionary."""
-    measurand_operator: str
-    measurand_value: float
-    measurand_unit: str
-    valid: bool
-
-
-class ComponentDict(TypedDict):
-    # pylint: disable=inherit-non-class, too-few-public-methods
-    """Type declaration for Component type dictionary"""
-    component_id: int
-    component_name: str
-
-
-class InstrumentDict(TypedDict):
-    # pylint: disable=inherit-non-class, too-few-public-methods
-    """Type declaration for instrument type dictionary."""
-    type_id: int
-    type_name: str
-    components: List[ComponentDict]
-    battery_bytes: int
-    battery_coeff: float
-
-
-class FamilyDict(TypedDict):
-    # pylint: disable=inherit-non-class, too-few-public-methods
-    """Type declaration for Family dictionary."""
-    family_id: int
-    family_name: str
-    baudrate: List[int]
-    get_id_cmd: List[bytes]
-    length_of_reply: int
-    tx_msg_delay: float
-    tx_byte_delay: float
-    parity: str
-    ok_byte: int
-    config_parameters: List[Dict[str, Any]]
-    types: List[InstrumentDict]
-    byte_order: Literal["little", "big"]
-    allowed_cmds: List[bytes]
-
-
-class CheckedAnswerDict(TypedDict):
-    # pylint: disable=inherit-non-class, too-few-public-methods
-    """Type declaration for checked reply from instrument."""
-    is_valid: bool
-    is_control: bool
-    is_last_frame: bool
-    payload: bytes
-    number_of_bytes_in_payload: int
-    raw: bytes
-    standard_frame: bytes
-
-
-class Measurand:  # pylint: disable=too-many-instance-attributes
-    """Class providing a measurand that is delivered by a sensor.
-
-    Properties:
-        id
-        name
-        operator
-        value
-        unit
-        source
-        time
-        gps"""
-
-    def __init__(
-        self,
-        measurand_id: int,
-        measurand_name: str,
-        measurand_unit=None,
-        measurand_source=None,
-    ) -> None:
-        self.__id: int = measurand_id
-        self.__name: str = measurand_name
-        if measurand_unit is not None:
-            self.__unit: str = measurand_unit
-        else:
-            self.__unit = ""
-        if measurand_source is not None:
-            self.__source: int = measurand_source
-        else:
-            self.__source = 0
-        self.__value: Optional[float] = None
-        self.__time: datetime = datetime.min
-        self.__operator: str = ""
-        self.__gps: str = ""
-
-    def __str__(self) -> str:
-        output = f"MeasurandId: {self.measurand_id}\nMeasurandName: {self.name}\n"
-        if self.value is not None:
-            output += f"Value: {self.operator} {self.value} {self.unit}\n"
-            output += f"Time: {self.time}\n"
-            output += f"GPS: {self.gps}\n"
-        else:
-            output += f"MeasurandUnit: {self.unit}\n"
-            output += f"MeasurandSource: {self.source}\n"
-        return output
-
-    @property
-    def measurand_id(self) -> int:
-        """Return the Id of this measurand."""
-        return self.__id
-
-    @measurand_id.setter
-    def measurand_id(self, measurand_id: int) -> None:
-        """Set the Id of this measurand."""
-        self.__id = measurand_id
-
-    @property
-    def name(self) -> str:
-        """Return the name of this measurand."""
-        return self.__name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        """Set the name of this measurand."""
-        self.__name = name
-
-    @property
-    def unit(self) -> str:
-        """Return the physical unit of this measurand."""
-        return self.__unit
-
-    @unit.setter
-    def unit(self, unit: str) -> None:
-        """Set the physical unit of this measurand."""
-        self.__unit = unit
-
-    @property
-    def source(self) -> int:
-        """Return the source index belonging to this measurand.
-
-        This index marks the position the measurand can be found in the
-        list of recent values provided by the instrument
-        as reply to the GetComponentResult or _gather_all_recent_values
-        commands respectively."""
-        return self.__source
-
-    @source.setter
-    def source(self, source: int) -> None:
-        """Set the source index."""
-        self.__source = source
-
-    @property
-    def operator(self) -> str:
-        """Return the operator belonging to this measurand.
-
-        Typical operators are '<', '>'"""
-        return self.__operator
-
-    @operator.setter
-    def operator(self, operator: str) -> None:
-        """Set the operator of this measurand."""
-        self.__operator = operator
-
-    @property
-    def value(self) -> Optional[float]:
-        """Return the value of the measurand."""
-        return self.__value
-
-    @value.setter
-    def value(self, value: Optional[float]) -> None:
-        """Set the value of the measurand."""
-        self.__value = value
-
-    @property
-    def time(self) -> datetime:
-        """Return the aquisition time (timestamp) of the measurand."""
-        return self.__time
-
-    @time.setter
-    def time(self, time_stamp: datetime) -> None:
-        """Set the aquisition time (timestamp) of the measurand."""
-        self.__time = time_stamp
-
-    @property
-    def gps(self) -> str:
-        """Return the GPS string of the measurand."""
-        return self.__gps
-
-    @gps.setter
-    def gps(self, gps: str) -> None:
-        """Set the GPS string of the measurand."""
-        self.__gps = gps
-
-
-class Sensor:
-    """Class describing a sensor that is part of a component.
-
-    Properties:
-        id
-        name
-        interval: Measuring interval in seconds
-    Public methods:
-        get_measurands()"""
-
-    def __init__(self, sensor_id: int, sensor_name: str) -> None:
-        self.__id: int = sensor_id
-        self.__name: str = sensor_name
-        self.__interval: timedelta = timedelta(0)
-        self.__measurands: List[Measurand] = []
-
-    def __iter__(self):
-        return iter(self.__measurands)
-
-    def __str__(self) -> str:
-        output = (
-            f"SensorId: {self.sensor_id}\nSensorName: {self.name}\n"
-            f"SensorInterval: {self.interval}\nMeasurands:\n"
-        )
-        for measurand in self.measurands:
-            output += f"{measurand}\n"
-        return output
-
-    @property
-    def sensor_id(self) -> int:
-        """Return the Id of this sensor."""
-        return self.__id
-
-    @sensor_id.setter
-    def sensor_id(self, sensor_id: int) -> None:
-        """Set the Id of this sensor."""
-        self.__id = sensor_id
-
-    @property
-    def name(self) -> str:
-        """Return the name of this sensor."""
-        return self.__name
-
-    @name.setter
-    def name(self, name: str) -> None:
-        """Set the name of this sensor."""
-        self.__name = name
-
-    @property
-    def interval(self) -> timedelta:
-        """Return the measuring interval of this sensor."""
-        return self.__interval
-
-    @interval.setter
-    def interval(self, interval: timedelta):
-        """Set the measuring interval of this sensor."""
-        self.__interval = interval
-
-    @property
-    def measurands(self) -> List[Measurand]:
-        """Return the list of measurands of this sensor."""
-        return self.__measurands
-
-    @measurands.setter
-    def measurands(self, measurands: List[Measurand]):
-        """Set the list of measurands of this sensor."""
-        self.__measurands = measurands
-
-
-class Component:
-    """Class describing a sensor or actor component built into an instrument"""
-
-    def __init__(self, component_id: int, component_name: str) -> None:
-        self.__id: int = component_id
-        self.__name: str = component_name
-        self.__sensors: List[Sensor] = []
-
-    def __iter__(self):
-        return iter(self.__sensors)
-
-    def __str__(self) -> str:
-        output = (
-            f"ComponentId: {self.component_id}\n"
-            f"ComponentName: {self.name}\nSensors:\n"
-        )
-        for sensor in self.sensors:
-            output += f"{sensor}\n"
-        return output
-
-    @property
-    def component_id(self) -> int:
-        """Return the Id of this component."""
-        return self.__id
-
-    @component_id.setter
-    def component_id(self, component_id: int) -> None:
-        """Set the Id of this component."""
-        self.__id = component_id
-
-    @property
-    def name(self) -> str:
-        """Return the name of this component."""
-        return self.__name
-
-    @name.setter
-    def name(self, name: str):
-        """Set the component name."""
-        self.__name = name
-
-    @property
-    def sensors(self) -> List[Sensor]:
-        """Return the list of sensors belonging to this component."""
-        return self.__sensors
-
-    @sensors.setter
-    def sensors(self, sensors: List[Sensor]):
-        """Set the list of sensors belonging to this component."""
-        self.__sensors = sensors
 
 
 class SaradInst(Generic[SI]):
@@ -407,8 +35,6 @@ class SaradInst(Generic[SI]):
         serial_number: Serial number of the connected instrument.
         components: List of sensor or actor components
     """
-
-    CHANNELSELECTED = 0xD2
 
     class Lock(Enum):
         """Setting of the device. Lock the hardware button."""
@@ -519,31 +145,6 @@ class SaradInst(Generic[SI]):
         else:
             data = b""
         return {"cmd": bytes(payload_list[0:1]), "data": data}
-
-    def select_zigbee_channel(self, channel_idx):
-        """Start the transparent mode to given channel."""
-        reply = self.get_reply([b"\xC2", channel_idx.to_bytes(2, "little")], timeout=3)
-        if reply and (reply[0] == self.CHANNELSELECTED):
-            logger().info("Channel selected: %s", reply)
-            return reply
-        logger().error("Unexpecte reply to select_channel: %s", reply)
-        return False
-
-    def close_zigbee_channel(self):
-        """Leave the transparent mode."""
-        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=3)
-        if reply and (reply[0] == self.CHANNELSELECTED):
-            return reply
-        logger().error("Unexpecte reply to close_channel: %s", reply)
-        return False
-
-    def zigbee_coordinator_reset(self):
-        """Restart the coordinator. Same as power off -> on."""
-        reply = self.get_reply([b"\xFE", b"\x00\x00"], timeout=3)
-        if reply and (reply[0] == self.CHANNELSELECTED):
-            return reply
-        logger().error("Unexpecte reply to coordinator_reset: %s", reply)
-        return False
 
     def _check_message(self, message: bytes, multiframe: bool) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
@@ -732,7 +333,7 @@ class SaradInst(Generic[SI]):
         output = (
             f"Id: {self.device_id}\n"
             f"SerialDevice: {self._route.port}\n"
-            f"Baudrate: {self.family['baudrate']}\n"
+            f"Baudrate: {self.family['serial']['baudrate']}\n"
             f"FamilyName: {self.family['family_name']}\n"
             f"FamilyId: {self.family['family_id']}\n"
             f"TypName: {self.type_name}\n"
@@ -743,9 +344,6 @@ class SaradInst(Generic[SI]):
         return output
 
     def _initialize(self) -> None:
-        if self._route.zigbee_address:
-            self.select_zigbee_channel(self._route.zigbee_address)
-            sleep(3)
         self.get_description()
         logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
@@ -893,10 +491,11 @@ class SaradInst(Generic[SI]):
                     return inst_type[parameter_name]
                 except Exception:  # pylint: disable=broad-except
                     pass
-        try:
-            return self.family[parameter_name]
-        except Exception:  # pylint: disable=broad-except
-            return False
+        return None
+        # try:
+        #     return self.family[parameter_name]
+        # except Exception:  # pylint: disable=broad-except
+        #     return False
 
     def get_reply(self, cmd_data: List[bytes], timeout=0.5) -> Any:
         """Send a command message and get a reply.
@@ -1004,107 +603,110 @@ class SaradInst(Generic[SI]):
             return first_bytes + remaining_bytes + left_bytes
         return first_bytes + remaining_bytes
 
+    def _open_serial(self, serial_params):
+        parity_options = {"N": PARITY_NONE, "E": PARITY_EVEN}
+        parity_char = serial_params["parity"]
+        parity = parity_options[parity_char]
+        retry = True
+        baudrate = serial_params["baudrate"]
+        for _i in range(0, 1):
+            while retry:
+                try:
+                    ser = Serial(
+                        self._route.port,
+                        baudrate=baudrate,
+                        bytesize=8,
+                        xonxoff=0,
+                        parity=parity,
+                        stopbits=STOPBITS_ONE,
+                    )
+                    retry = False
+                except BlockingIOError as exception:
+                    logger().error(
+                        "%s. Waiting 1 s and retrying to connect.", exception
+                    )
+                    sleep(1)
+                except (
+                    Exception,
+                    SerialException,
+                ) as exception:  # pylint: disable=broad-except
+                    logger().critical(exception)
+                    raise
+        if retry:
+            raise BlockingIOError
+        while not ser.is_open:
+            sleep(0.01)
+        while ser.baudrate != baudrate:
+            sleep(0.01)
+        logger().debug("Serial ready @ %d baud", ser.baudrate)
+        return ser
+
+    def _try_baudrate(self, serial_params, keep_serial_open, timeout, raw_cmd):
+        if keep_serial_open:
+            if self.__ser is None:
+                ser = self._open_serial(serial_params)
+            else:
+                try:
+                    ser = self.__ser
+                    ser.baudrate = serial_params["baudrate"]
+                    ser.parity = serial_params["parity"]
+                    if not ser.is_open:
+                        logger().debug("Serial interface is closed. Reopen.")
+                        ser.open()
+                        while not ser.is_open:
+                            sleep(0.01)
+                    logger().debug("Reuse stored serial interface")
+                except (AttributeError, SerialException, OSError):
+                    logger().warning(
+                        "Something went wrong with reopening -> Re-initialize"
+                    )
+                    self.__ser = None
+        else:
+            logger().debug("Open serial, don't keep.")
+            ser = self._open_serial(serial_params)
+        try:
+            ser.timeout = timeout
+        except SerialException as exception:
+            logger().error(exception)
+            return b""
+        logger().debug("Tx to %s: %s", ser.port, raw_cmd)
+        ser.inter_byte_timeout = timeout
+        if raw_cmd:
+            sleep(self._family["tx_msg_delay"])
+            for element in raw_cmd:
+                byte = (element).to_bytes(1, "big")
+                ser.write(byte)
+                sleep(self._family["tx_byte_delay"])
+            self._new_rs485_address(raw_cmd)
+        logger().debug("Read one BE frame")
+        be_frame = self._get_be_frame(ser, True)
+        answer = bytearray(be_frame)
+        self.__ser = self._close_serial(ser, keep_serial_open)
+        b_answer = bytes(answer)
+        logger().debug("Rx from %s: %s", ser.port, b_answer)
+        return b_answer
+
     def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):
         """Returns the raw bytestring of the instruments reply"""
-
-        def _open_serial(baudrate, parity):
-            retry = True
-            for _i in range(0, 1):
-                while retry:
-                    try:
-                        ser = Serial(
-                            self._route.port,
-                            baudrate=baudrate,
-                            bytesize=8,
-                            xonxoff=0,
-                            parity=parity,
-                            stopbits=STOPBITS_ONE,
-                        )
-                        retry = False
-                    except BlockingIOError as exception:
-                        logger().error(
-                            "%s. Waiting 1 s and retrying to connect.", exception
-                        )
-                        sleep(1)
-                    except (
-                        Exception,
-                        SerialException,
-                    ) as exception:  # pylint: disable=broad-except
-                        logger().critical(exception)
-                        raise
-            if retry:
-                raise BlockingIOError
-            while not ser.is_open:
-                sleep(0.01)
-            while ser.baudrate != baudrate:
-                sleep(0.01)
-            logger().debug("Serial ready @ %d baud", ser.baudrate)
-            return ser
-
-        def _try_baudrate(baudrate, parity, keep_serial_open, timeout):
-            if keep_serial_open:
-                if self.__ser is None:
-                    ser = _open_serial(baudrate, parity)
-                else:
-                    try:
-                        ser = self.__ser
-                        ser.baudrate = baudrate
-                        ser.parity = parity
-                        if not ser.is_open:
-                            logger().debug("Serial interface is closed. Reopen.")
-                            ser.open()
-                            while not ser.is_open:
-                                sleep(0.01)
-                        logger().debug("Reuse stored serial interface")
-                    except (AttributeError, SerialException, OSError):
-                        logger().warning(
-                            "Something went wrong with reopening -> Re-initialize"
-                        )
-                        self.__ser = None
-            else:
-                logger().debug("Open serial, don't keep.")
-                ser = _open_serial(baudrate, parity)
-            try:
-                ser.timeout = timeout
-            except SerialException as exception:
-                logger().error(exception)
-                return b""
-            logger().debug("Tx to %s: %s", ser.port, raw_cmd)
-            ser.inter_byte_timeout = timeout
-            if raw_cmd:
-                sleep(self._family["tx_msg_delay"])
-                for element in raw_cmd:
-                    byte = (element).to_bytes(1, "big")
-                    ser.write(byte)
-                    sleep(self._family["tx_byte_delay"])
-                self._new_rs485_address(raw_cmd)
-            logger().debug("Read one BE frame")
-            be_frame = self._get_be_frame(ser, True)
-            answer = bytearray(be_frame)
-            self.__ser = self._close_serial(ser, keep_serial_open)
-            b_answer = bytes(answer)
-            logger().debug("Rx from %s: %s", ser.port, b_answer)
-            return b_answer
-
         logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         result = b""
         for _i in range(len(self._serial_param_sets)):
-            baudrate = self._serial_param_sets[0]["baudrate"]
-            parity_char = self._serial_param_sets[0]["parity"]
-            parity_options = {"N": PARITY_NONE, "E": PARITY_EVEN}
-            parity = parity_options[parity_char]
             logger().debug(
-                "Try to send %s with %s baud, parity %s", raw_cmd, baudrate, parity
+                "Try to send %s with %s", raw_cmd, self._serial_param_sets[0]
             )
-            result = _try_baudrate(baudrate, parity, keep, timeout)
+            result = self._try_baudrate(
+                self._serial_param_sets[0], keep, timeout, raw_cmd
+            )
             retry_counter = 1
             while not result and retry_counter:
                 # Workaround for firmware bug in SARAD instruments.
                 logger().debug("Play it again, Sam!")
-                result = _try_baudrate(baudrate, parity, keep, timeout)
+                result = self._try_baudrate(
+                    self._serial_param_sets[0], keep, timeout, raw_cmd
+                )
                 retry_counter = retry_counter - 1
             if result:
-                logger().debug("Working with %s baud", baudrate)
+                logger().debug("Working with %s", self._serial_param_sets[0])
                 return result
             self.release_instrument()
             self._serial_param_sets.rotate(-1)

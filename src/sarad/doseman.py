@@ -4,7 +4,9 @@ Module for the communication with instruments of the DOSEman family.
 
 from overrides import overrides  # type: ignore
 
-from sarad.sari import CheckedAnswerDict, SaradInst, logger, sarad_family
+from sarad.global_helpers import logger, sarad_family
+from sarad.sari import SaradInst
+from sarad.typedef import CheckedAnswerDict
 
 
 class DosemanInst(SaradInst):

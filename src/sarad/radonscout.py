@@ -4,8 +4,9 @@ from datetime import datetime, timedelta
 
 from overrides import overrides  # type: ignore
 
-from sarad.sari import (Component, Measurand, SaradInst, Sensor, logger,
-                        sarad_family)
+from sarad.global_helpers import logger, sarad_family
+from sarad.instrument import Component, Measurand, Sensor
+from sarad.sari import SaradInst
 
 
 class RscInst(SaradInst):
@@ -110,20 +111,8 @@ class RscInst(SaradInst):
                     device_time_h,
                     device_time_min,
                 )
-            except TypeError:
-                logger().error("TypeError when parsing the payload.")
-                return False
-            except ReferenceError:
-                logger().error("ReferenceError when parsing the payload.")
-                return False
-            except LookupError:
-                logger().error("LookupError when parsing the payload.")
-                return False
-            except ValueError:
-                logger().error("ValueError when parsing the payload.")
-                return False
-            except Exception:  # pylint: disable=broad-except
-                logger().error("Unknown error when parsing the payload.")
+            except (TypeError, ReferenceError, LookupError, ValueError) as exception:
+                logger().error("Error when parsing the payload: %s", exception)
                 return False
             self.__interval = sample_interval
             for component in self.components:
@@ -418,20 +407,9 @@ class RscInst(SaradInst):
                 self.__wifi["ip_address"] = reply[97:121].rstrip(b"0")
                 self.__wifi["server_port"] = int.from_bytes(reply[121:123], "big")
                 return True
-            except TypeError:
-                logger().error("TypeError when parsing the payload.")
+            except (TypeError, ReferenceError, LookupError) as exception:
+                logger().error("Error when parsing the payload: %s", exception)
                 return False
-            except ReferenceError:
-                logger().error("ReferenceError when parsing the payload.")
-                return False
-            except LookupError:
-                logger().error("LookupError when parsing the payload.")
-                return False
-            except Exception:  # pylint: disable=broad-except
-                logger().error("Unknown error when parsing the payload.")
-                return False
-            else:
-                pass
         else:
             logger().error(
                 "Cannot get Wi-Fi access data from device %s.", self.device_id

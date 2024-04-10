@@ -1322,7 +1322,8 @@
   - 0x1D  # GetExtComponentConfiguration (from EEPROM)
   - 0x1E  # SetExtComponentConfiguration (on EEPROM)
   - 0x1F  # ReadExtComponentConfiguration (from memory card)
-  - 0x20  # SetClock
+  - 0x20  # GetClock
+  - 0x21  # ClearPortToken
   - 0x22  # SetComponentConfigurationStart (on EEPROM)
   - 0x23  # SetComponentConfigurationStop (on EEPROM)
   - 0x24  # GetComponentConfigurationStart
@@ -1331,12 +1332,12 @@
   - 0x27  # ReadComponentConfigurationContinue
   - 0x28  # SetResultStyle
   - 0x29  # GetResultStyle
+  - 0x2A  # SetDisplayControl
+  - 0x2B  # GetDisplayControl
   - 0x2C  # SetAlertConfiguration
   - 0x2D  # GetAlertConfiguration
   - 0x2E  # GetPendingAlerts
   - 0x2F  # AlertConfirmation
-  - 0x3A  # SetDisplayControl
-  - 0x3B  # GetDisplayControl
   - 0xC2  # SelectChannel
   - 0xFE  # CoordinatorReset
   types:

@@ -78,6 +78,8 @@ class SaradInst(Generic[SI]):
         LARGE: int = 3
         XL: int = 4
 
+    CHANNEL_SELECTED = 0xD2
+
     def __init__(self: SI, family: FamilyDict) -> None:
         self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
         self._family: FamilyDict = family
@@ -344,6 +346,9 @@ class SaradInst(Generic[SI]):
         return output
 
     def _initialize(self) -> None:
+        if self._route.zigbee_address:
+            self.select_channel(self._route.zigbee_address)
+            sleep(3)
         self.get_description()
         logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
@@ -402,6 +407,23 @@ class SaradInst(Generic[SI]):
 
         Will be overriden by derived classes."""
         return len(self.components)
+
+    def select_channel(self, channel_idx):
+        """Start the transparent mode to given ZigBee channel."""
+        reply = self.get_reply([b"\xC2", channel_idx.to_bytes(2, "little")], timeout=3)
+        if reply and (reply[0] == self.CHANNEL_SELECTED):
+            logger().info("Channel selected: %s", reply)
+            return reply
+        logger().error("Unexpecte reply to select_channel: %s", reply)
+        return False
+
+    def close_channel(self):
+        """Leave the transparent ZigBee mode."""
+        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=3)
+        if reply and (reply[0] == self.CHANNEL_SELECTED):
+            return reply
+        logger().error("Unexpecte reply to close_channel: %s", reply)
+        return False
 
     @staticmethod
     def _bytes_to_float(value: bytes) -> float:

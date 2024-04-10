@@ -1331,6 +1331,10 @@
   - 0x27  # ReadComponentConfigurationContinue
   - 0x28  # SetResultStyle
   - 0x29  # GetResultStyle
+  - 0x2C  # SetAlertConfiguration
+  - 0x2D  # GetAlertConfiguration
+  - 0x2E  # GetPendingAlerts
+  - 0x2F  # AlertConfirmation
   - 0x3A  # SetDisplayControl
   - 0x3B  # GetDisplayControl
   - 0xC2  # SelectChannel

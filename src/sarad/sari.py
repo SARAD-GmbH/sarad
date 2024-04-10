@@ -14,8 +14,9 @@ from BitVector import BitVector  # type: ignore
 from serial import STOPBITS_ONE  # type: ignore
 from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
 
-from sarad.global_helpers import logger, sarad_family
+from sarad.global_helpers import sarad_family
 from sarad.instrument import Component, Route
+from sarad.logger import logger
 from sarad.typedef import CheckedAnswerDict, CmdDict, FamilyDict, MeasurandDict
 
 SI = TypeVar("SI", bound="SaradInst")

@@ -7,8 +7,9 @@ from typing import Literal
 from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
 
-from sarad.global_helpers import logger, sarad_family
+from sarad.global_helpers import sarad_family
 from sarad.instrument import Component, Measurand, Sensor
+from sarad.logger import logger
 from sarad.sari import SaradInst
 
 

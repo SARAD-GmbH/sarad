@@ -349,8 +349,9 @@ class SaradInst(Generic[SI]):
     def _initialize(self) -> None:
         if self._route.zigbee_address:
             self.select_channel(self._route.zigbee_address)
-            sleep(3)
         self.get_description()
+        if self._route.zigbee_address:
+            self.close_channel()
         logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
             self._build_component_list()

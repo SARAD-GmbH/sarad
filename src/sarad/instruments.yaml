@@ -21,6 +21,8 @@
   byte_order: little
   allowed_cmds:
   - 0x0C  # GetId
+  - 0xC2  # SelectChannel
+  - 0xFE  # CoordinatorReset
 - family_id: 1
   family_name: Doseman family
   serial:

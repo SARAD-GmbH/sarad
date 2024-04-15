@@ -25,6 +25,7 @@ class NetworkInst(SaradInst):
     Public methods:
     """
 
+    OK = 0x0A
     CHANNEL_INFO = 0xD0
     END_OF_CHANNEL_LIST = 0xD1
     CHANNEL_SELECTED = 0xD2
@@ -34,7 +35,7 @@ class NetworkInst(SaradInst):
         super().__init__(family)
         self._date_of_manufacture = None
         self._date_of_update = None
-        self._channels = []
+        self._channels = set()
 
     @overrides
     def _new_rs485_address(self, raw_cmd):
@@ -65,7 +66,7 @@ class NetworkInst(SaradInst):
         """Get information about the instrument connected via first available channel."""
         reply = self.get_reply([b"\xC0", b""], timeout=3)
         if reply and (reply[0] == self.CHANNEL_INFO):
-            return {
+            result = {
                 "short_address": int.from_bytes(
                     reply[1:3], byteorder="little", signed=False
                 ),
@@ -76,7 +77,10 @@ class NetworkInst(SaradInst):
                 ),
                 "family_id": reply[7],
             }
+            logger().debug("get_first_channel() returns with %s", result)
+            return result
         if reply and (reply[0] == self.END_OF_CHANNEL_LIST):
+            logger().debug("get_first_channel() returns with %s", False)
             return False
         logger().error("Unexpected reply to get_first_channel: %s", reply)
         return False
@@ -85,7 +89,7 @@ class NetworkInst(SaradInst):
         """Get information about the instrument connected via next available channel."""
         reply = self.get_reply([b"\xC1", b""], timeout=3)
         if reply and (reply[0] == self.CHANNEL_INFO):
-            return {
+            result = {
                 "short_address": int.from_bytes(
                     reply[1:3], byteorder="little", signed=False
                 ),
@@ -96,23 +100,27 @@ class NetworkInst(SaradInst):
                 ),
                 "family_id": reply[7],
             }
+            logger().debug("get_next_channel() returns with %s", result)
+            return result
         if reply and (reply[0] == self.END_OF_CHANNEL_LIST):
+            logger().debug("get_next_channel() returns with %s", False)
             return False
         logger().error("Unexpected reply to get_next_channel: %s", reply)
         return False
 
     def scan(self):
         """Scan for SARAD instruments connected via ZigBee end points"""
+        self._channels = set()
         reply = self.get_first_channel()
         while reply:
-            self._channels.append(reply)
+            self._channels.add(frozenset(reply.items()))
             reply = self.get_next_channel()
         return self._channels
 
     def coordinator_reset(self):
         """Restart the coordinator. Same as power off -> on."""
-        reply = self.get_reply([b"\xFE", b"\x00\x00"], timeout=3)
-        if reply and (reply[0] == self.CHANNEL_SELECTED):
+        reply = self.get_reply([b"\xFE", b""], timeout=3)
+        if reply and (reply[0] == self.OK):
             return reply
         logger().error("Unexpecte reply to coordinator_reset: %s", reply)
         return False

@@ -721,14 +721,6 @@ class SaradInst(Generic[SI]):
             result = self._try_baudrate(
                 self._serial_param_sets[0], keep, timeout, raw_cmd
             )
-            retry_counter = 1
-            while not result and retry_counter:
-                # Workaround for firmware bug in SARAD instruments.
-                logger().debug("Play it again, Sam!")
-                result = self._try_baudrate(
-                    self._serial_param_sets[0], keep, timeout, raw_cmd
-                )
-                retry_counter = retry_counter - 1
             if result:
                 logger().debug("Working with %s", self._serial_param_sets[0])
                 return result

@@ -81,6 +81,34 @@ class RscInst(SaradInst):
                 self._route.rs485_address,
             )
 
+    @overrides
+    def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):
+        """Returns the raw bytestring of the instruments reply"""
+        logger().debug("Possible parameter sets: %s", self._serial_param_sets)
+        result = b""
+        for _i in range(len(self._serial_param_sets)):
+            logger().debug(
+                "Try to send %s with %s", raw_cmd, self._serial_param_sets[0]
+            )
+            result = self._try_baudrate(
+                self._serial_param_sets[0], keep, timeout, raw_cmd
+            )
+            retry_counter = 1
+            while not result and retry_counter:
+                # Workaround for firmware bug in SARAD instruments.
+                logger().debug("Play it again, Sam!")
+                result = self._try_baudrate(
+                    self._serial_param_sets[0], keep, timeout, raw_cmd
+                )
+                retry_counter = retry_counter - 1
+            if result:
+                logger().debug("Working with %s", self._serial_param_sets[0])
+                return result
+            self.release_instrument()
+            self._serial_param_sets.rotate(-1)
+            sleep(1)  # Give the instrument time to reset its input buffer.
+        return result
+
     def _gather_all_recent_values(self):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x14", b""])

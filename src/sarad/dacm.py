@@ -34,6 +34,8 @@ class DacmInst(SaradInst):
         get_all_recent_values()
         get_recent_value(index)"""
 
+    COM_TIMEOUT = 0.5
+
     @overrides
     def __init__(self, family=sarad_family(5)):
         super().__init__(family)
@@ -126,7 +128,7 @@ class DacmInst(SaradInst):
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family["ok_byte"]
         id_cmd = self.family["get_id_cmd"]
-        reply = self.get_reply(id_cmd, timeout=0.5)
+        reply = self.get_reply(id_cmd, timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
@@ -189,7 +191,7 @@ class DacmInst(SaradInst):
     def _get_module_information(self):
         """Get descriptive data about DACM instrument."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x01", b""])
+        reply = self.get_reply([b"\x01", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Get module information successful.")
             try:
@@ -223,7 +225,9 @@ class DacmInst(SaradInst):
     def _get_component_information(self, component_index):
         """Get information about one component of a DACM instrument."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x03", bytes([component_index])])
+        reply = self.get_reply(
+            [b"\x03", bytes([component_index])], timeout=self.COM_TIMEOUT
+        )
         if reply and (reply[0] == ok_byte):
             logger().debug("Get component information successful.")
             try:
@@ -266,7 +270,9 @@ class DacmInst(SaradInst):
         """Get information about the configuration of a component
         of a DACM instrument."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x04", bytes([component_index])])
+        reply = self.get_reply(
+            [b"\x04", bytes([component_index])], timeout=self.COM_TIMEOUT
+        )
         if reply and (reply[0] == ok_byte):
             logger().debug("Get component configuration successful.")
             try:
@@ -316,7 +322,9 @@ class DacmInst(SaradInst):
     def _read_cycle_start(self, cycle_index=0):
         """Get description of a measuring cycle."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x06", bytes([cycle_index])])
+        reply = self.get_reply(
+            [b"\x06", bytes([cycle_index])], timeout=self.COM_TIMEOUT
+        )
         if reply and (reply[0] == ok_byte) and reply[1]:
             logger().debug("Get primary cycle information successful.")
             try:
@@ -355,7 +363,7 @@ class DacmInst(SaradInst):
 
     def _read_cycle_continue(self):
         """Get description of subsequent cycle intervals."""
-        reply = self.get_reply([b"\x07", b""])
+        reply = self.get_reply([b"\x07", b""], timeout=self.COM_TIMEOUT)
         if reply and not len(reply) < 16:
             logger().debug("Get information about cycle interval successful.")
             try:
@@ -398,7 +406,7 @@ class DacmInst(SaradInst):
             ]
         )
         instr_datetime.extend((date_time.year).to_bytes(2, byteorder=self._byte_order))
-        reply = self.get_reply([b"\x10", instr_datetime])
+        reply = self.get_reply([b"\x10", instr_datetime], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Time on device %s set to UTC.", self.device_id)
             return True
@@ -409,7 +417,7 @@ class DacmInst(SaradInst):
     def stop_cycle(self):
         """Stop the measuring cycle."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x16", b""])
+        reply = self.get_reply([b"\x16", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Cycle stopped at device %s.", self.device_id)
             return True
@@ -425,7 +433,9 @@ class DacmInst(SaradInst):
             for sensor in component.sensors:
                 sensor.interval = self.__interval
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x15", bytes([cycle_index])], timeout=5)
+        reply = self.get_reply(
+            [b"\x15", bytes([cycle_index])], timeout=self.COM_TIMEOUT + 5
+        )
         if reply and (reply[0] == ok_byte):
             logger().debug(
                 "Cycle %s started at device %s.", cycle_index, self.device_id
@@ -493,6 +503,7 @@ class DacmInst(SaradInst):
                 b"\x1a",
                 bytes([component_id]) + bytes([sensor_id]) + bytes([measurand_id]),
             ],
+            timeout=self.COM_TIMEOUT,
         )
         if reply and (reply[0] > 0):
             output = {}

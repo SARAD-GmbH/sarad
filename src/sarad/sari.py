@@ -80,6 +80,7 @@ class SaradInst(Generic[SI]):
         XL: int = 4
 
     CHANNEL_SELECTED = 0xD2
+    COM_TIMEOUT = 0.5
 
     def __init__(self: SI, family: FamilyDict) -> None:
         self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
@@ -362,7 +363,7 @@ class SaradInst(Generic[SI]):
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
         msg = self._make_command_msg(id_cmd)
-        checked_payload = self.get_message_payload(msg, timeout=0.5)
+        checked_payload = self.get_message_payload(msg, timeout=self.COM_TIMEOUT)
         if checked_payload["is_valid"]:
             reply = checked_payload["payload"]
         else:
@@ -412,16 +413,18 @@ class SaradInst(Generic[SI]):
 
     def select_channel(self, channel_idx):
         """Start the transparent mode to given ZigBee channel."""
-        reply = self.get_reply([b"\xC2", channel_idx.to_bytes(2, "little")], timeout=3)
+        reply = self.get_reply(
+            [b"\xC2", channel_idx.to_bytes(2, "little")], timeout=self.COM_TIMEOUT
+        )
         if reply and (reply[0] == self.CHANNEL_SELECTED):
-            logger().info("Channel selected: %s", reply)
+            logger().debug("Channel selected: %s", reply)
             return reply
         logger().error("Unexpecte reply to select_channel: %s", reply)
         return False
 
     def close_channel(self):
         """Leave the transparent ZigBee mode."""
-        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=3)
+        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == self.CHANNEL_SELECTED):
             return reply
         logger().error("Unexpecte reply to close_channel: %s", reply)

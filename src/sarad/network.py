@@ -29,6 +29,7 @@ class NetworkInst(SaradInst):
     CHANNEL_INFO = 0xD0
     END_OF_CHANNEL_LIST = 0xD1
     CHANNEL_SELECTED = 0xD2
+    COM_TIMEOUT = 3
 
     @overrides
     def __init__(self, family=sarad_family(4)):
@@ -64,7 +65,7 @@ class NetworkInst(SaradInst):
 
     def get_first_channel(self):
         """Get information about the instrument connected via first available channel."""
-        reply = self.get_reply([b"\xC0", b""], timeout=3)
+        reply = self.get_reply([b"\xC0", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == self.CHANNEL_INFO):
             result = {
                 "short_address": int.from_bytes(
@@ -87,7 +88,7 @@ class NetworkInst(SaradInst):
 
     def get_next_channel(self):
         """Get information about the instrument connected via next available channel."""
-        reply = self.get_reply([b"\xC1", b""], timeout=3)
+        reply = self.get_reply([b"\xC1", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == self.CHANNEL_INFO):
             result = {
                 "short_address": int.from_bytes(
@@ -119,7 +120,7 @@ class NetworkInst(SaradInst):
 
     def coordinator_reset(self):
         """Restart the coordinator. Same as power off -> on."""
-        reply = self.get_reply([b"\xFE", b""], timeout=3)
+        reply = self.get_reply([b"\xFE", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == self.OK):
             return reply
         logger().error("Unexpecte reply to coordinator_reset: %s", reply)

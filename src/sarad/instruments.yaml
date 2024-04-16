@@ -6,10 +6,10 @@
   serial:
     - baudrate: 9600
       parity: N
-    - baudrate: 115200
-      parity: E
     - baudrate: 256000
       parity: N
+    - baudrate: 115200
+      parity: E
   get_id_cmd:
     - !!binary |
       DA==

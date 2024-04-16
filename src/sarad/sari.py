@@ -724,7 +724,7 @@ class SaradInst(Generic[SI]):
                 return result
             self.release_instrument()
             self._serial_param_sets.rotate(-1)
-            sleep(1)  # Give the instrument time to reset its input buffer.
+            sleep(2)  # Give the instrument time to reset its input buffer.
         return result
 
     def _new_rs485_address(self, raw_cmd):
@@ -792,6 +792,7 @@ class SaradInst(Generic[SI]):
     def family(self, family: FamilyDict):
         """Set the instrument family."""
         self._family = family
+        self._serial_param_sets = deque(family["serial"])
         if (self.route.port is not None) and (self._family is not None):
             self._initialize()
 

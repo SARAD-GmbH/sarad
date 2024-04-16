@@ -549,11 +549,6 @@ class SaradInst(Generic[SI]):
         except SerialException as exception:
             logger().warning(exception)
             return b""
-        if answer:
-            while len(answer) < offset:
-                sleep(0.001)
-                answer_left = serial.read(offset - len(answer))
-                answer = answer + answer_left
         if not answer.startswith(start_byte):
             if answer == b"":
                 logger().debug(

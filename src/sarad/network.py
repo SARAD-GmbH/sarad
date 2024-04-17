@@ -1,5 +1,6 @@
 """Module for the communication with instruments of the Network family."""
 
+from hashids import Hashids  # type: ignore
 from overrides import overrides  # type: ignore
 
 from sarad.global_helpers import sarad_family
@@ -36,7 +37,6 @@ class NetworkInst(SaradInst):
         super().__init__(family)
         self._date_of_manufacture = None
         self._date_of_update = None
-        self._channels = set()
 
     @overrides
     def _new_rs485_address(self, raw_cmd):
@@ -111,12 +111,18 @@ class NetworkInst(SaradInst):
 
     def scan(self):
         """Scan for SARAD instruments connected via ZigBee end points"""
-        self._channels = set()
+        channels = {}
         reply = self.get_first_channel()
         while reply:
-            self._channels.add(frozenset(reply.items()))
+            instr_id = Hashids().encode(
+                reply["family_id"],
+                reply["device_type"],
+                reply["serial_number"],
+            )
+            address = reply["short_address"]
+            channels[instr_id] = address
             reply = self.get_next_channel()
-        return self._channels
+        return channels
 
     def coordinator_reset(self):
         """Restart the coordinator. Same as power off -> on."""

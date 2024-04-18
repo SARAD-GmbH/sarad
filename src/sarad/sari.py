@@ -360,6 +360,8 @@ class SaradInst(Generic[SI]):
 
     def get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
+        if self.family["family_id"] == 4:
+            self.close_channel()
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
         msg = self._make_command_msg(id_cmd)

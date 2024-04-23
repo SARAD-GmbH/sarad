@@ -421,7 +421,7 @@ class SaradInst(Generic[SI]):
         if reply and (reply[0] == self.CHANNEL_SELECTED):
             logger().debug("Channel selected: %s", reply)
             return reply
-        logger().error("Unexpecte reply to select_channel: %s", reply)
+        logger().error("Unexpected reply to select_channel: %s", reply)
         return False
 
     def close_channel(self):
@@ -429,7 +429,7 @@ class SaradInst(Generic[SI]):
         reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == self.CHANNEL_SELECTED):
             return reply
-        logger().error("Unexpecte reply to close_channel: %s", reply)
+        logger().error("Unexpected reply to close_channel: %s", reply)
         return False
 
     @staticmethod

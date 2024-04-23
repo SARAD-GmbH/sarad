@@ -129,7 +129,7 @@ class NetworkInst(SaradInst):
         reply = self.get_reply([b"\xFE", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == self.OK):
             return reply
-        logger().error("Unexpecte reply to coordinator_reset: %s", reply)
+        logger().error("Unexpected reply to coordinator_reset: %s", reply)
         return False
 
     @property

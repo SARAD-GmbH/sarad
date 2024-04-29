@@ -97,8 +97,10 @@ class RscInst(SaradInst):
                 self._serial_param_sets[0], keep, timeout, raw_cmd
             )
             retry_counter = 1
-            while not result and retry_counter:
+            while not result and retry_counter and not self.route.zigbee_address:
                 # Workaround for firmware bug in SARAD instruments.
+                # This shall only be used, if the instrument is connected directly
+                # to the COM port.
                 logger().debug("Play it again, Sam!")
                 result = self._try_baudrate(
                     self._serial_param_sets[0], keep, timeout, raw_cmd

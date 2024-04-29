@@ -75,9 +75,7 @@ class RscInst(SaradInst):
                 rs485_address = unicon_4
             elif self._type_id in [4, 10]:
                 rs485_address = software_version
-            # TODO uncomment the following line as soon as addressable RS-485
-            # with SARAD protocol is supported by Smart Radon Sensor and RTM-1688
-            # self._route.rs485_address = rs485_address
+            self._route.rs485_address = rs485_address
             logger().info(
                 "Change RS-485 bus address from %d into %d",
                 old_rs485_address,

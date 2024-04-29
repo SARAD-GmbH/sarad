@@ -34,7 +34,7 @@ class RscInst(SaradInst):
         get_config()
         set_config()"""
 
-    COM_TIMEOUT = 0.1
+    COM_TIMEOUT = 1
 
     @overrides
     def __init__(self, family=sarad_family(2)):
@@ -101,7 +101,8 @@ class RscInst(SaradInst):
                 # Workaround for firmware bug in SARAD instruments.
                 # This shall only be used, if the instrument is connected directly
                 # to the COM port.
-                logger().debug("Play it again, Sam!")
+                logger().info("Play it again, Sam!")
+                sleep(1)
                 result = self._try_baudrate(
                     self._serial_param_sets[0], keep, timeout, raw_cmd
                 )

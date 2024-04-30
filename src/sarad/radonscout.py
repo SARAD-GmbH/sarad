@@ -1,6 +1,6 @@
 """Module for the communication with instruments of the Radon Scout family."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import sleep
 
 from overrides import overrides  # type: ignore
@@ -143,6 +143,7 @@ class RscInst(SaradInst):
                     device_time_d,
                     device_time_h,
                     device_time_min,
+                    tzinfo=timezone(timedelta(hours=0)),  # TODO make configurable
                 )
             except (TypeError, ReferenceError, LookupError, ValueError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)

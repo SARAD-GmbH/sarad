@@ -1,7 +1,7 @@
 """Module for the communication with instruments of the DACM family."""
 
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 
 from BitVector import BitVector  # type: ignore
@@ -527,6 +527,7 @@ class DacmInst(SaradInst):
                     int(meas_time[0]),
                     int(meas_time[1]),
                     int(meas_time[2]),
+                    tzinfo=timezone(timedelta(hours=0)),  # TODO make configurable
                 )
             else:
                 output["datetime"] = None

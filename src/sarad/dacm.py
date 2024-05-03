@@ -487,7 +487,8 @@ class DacmInst(SaradInst):
                 list_of_outputs.append(output)
         return list_of_outputs
 
-    def get_recent_value(self, component_id, sensor_id=0, measurand_id=0):
+    @overrides
+    def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         """Get a dictionaries with recent measuring values from one sensor.
         component_id: one of the 34 sensor/actor modules of the DACM system
         measurand_id:
@@ -496,6 +497,11 @@ class DacmInst(SaradInst):
         2 = minimum of last completed interval,
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
+        if not self._interval:
+            # TODO This is a dirty workaround. Actually it is impossible to
+            # find out, which cycle is running, if it wasn't started from the
+            # RegServer itself. We just guess that cycle 0 is running.
+            self._interval = self._read_cycle_start(cycle_index=0)["cycle_interval"]
         measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
         reply = self.get_reply(
             [
@@ -530,11 +536,16 @@ class DacmInst(SaradInst):
                 )
             else:
                 meas_datetime = datetime.min
-            if measurand_id == 0:  # momentary value
-                meas_datetime = datetime.now(timezone.utc)
-            output["datetime"] = meas_datetime.replace(
-                tzinfo=timezone(timedelta(hours=self.utc_offset))
-            )
+            if self._utc_offset is None:
+                self._utc_offset = self._calc_utc_offset(
+                    self._interval, meas_datetime, datetime.now(timezone.utc)
+                )
+            if self._utc_offset is None:
+                output["datetime"] = meas_datetime
+            else:
+                output["datetime"] = meas_datetime.replace(
+                    tzinfo=timezone(timedelta(hours=self._utc_offset))
+                )
             try:
                 gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))
                 gps_dict = {

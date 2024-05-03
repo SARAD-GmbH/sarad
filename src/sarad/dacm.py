@@ -53,7 +53,6 @@ class DacmInst(SaradInst):
         self._date_of_config = None
         self._module_name = None
         self._config_name = None
-        self.__interval = 0
         self._byte_order: Literal["little", "big"] = "big"
 
     def __str__(self):
@@ -428,10 +427,10 @@ class DacmInst(SaradInst):
     def start_cycle(self, cycle_index=0):
         """Start a measuring cycle."""
         logger().debug("Trying to start measuring cycle %d", cycle_index)
-        self.__interval = self._read_cycle_start(cycle_index)["cycle_interval"]
+        self._interval = self._read_cycle_start(cycle_index)["cycle_interval"]
         for component in self.components:
             for sensor in component.sensors:
-                sensor.interval = self.__interval
+                sensor.interval = self._interval
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply(
             [b"\x15", bytes([cycle_index])], timeout=self.COM_TIMEOUT + 5
@@ -520,17 +519,22 @@ class DacmInst(SaradInst):
             meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
             meas_time = reply[69:85].split(b"\x00")[0].split(b":")
             if meas_date != [b""]:
-                output["datetime"] = datetime(
+                meas_datetime = datetime(
                     int(meas_date[2]),
                     int(meas_date[0]),
                     int(meas_date[1]),
                     int(meas_time[0]),
                     int(meas_time[1]),
                     int(meas_time[2]),
-                    tzinfo=timezone(timedelta(hours=0)),  # TODO make configurable
+                    tzinfo=timezone.utc,
                 )
             else:
-                output["datetime"] = None
+                meas_datetime = datetime.min
+            if measurand_id == 0:  # momentary value
+                meas_datetime = datetime.now(timezone.utc)
+            output["datetime"] = meas_datetime.replace(
+                tzinfo=timezone(timedelta(hours=self.utc_offset))
+            )
             try:
                 gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))
                 gps_dict = {

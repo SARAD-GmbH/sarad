@@ -7,7 +7,7 @@ SaradCluster is used as singleton."""
 import logging
 import logging.config
 import pickle
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import IO, Dict, Generic, Iterator, List, Optional, Set
 
 from hashids import Hashids  # type: ignore
@@ -131,7 +131,7 @@ class SaradCluster(Generic[SI]):
             except Exception:  # pylint: disable=broad-except
                 logger().error("Not all instruments have been stopped as intended.")
                 raise
-        self.__start_time = datetime.utcnow()
+        self.__start_time = datetime.now(tzinfo=timezone.utc)
         for instrument in self.connected_instruments:
             try:
                 instrument.set_real_time_clock(self.__start_time)

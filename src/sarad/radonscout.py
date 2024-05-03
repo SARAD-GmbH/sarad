@@ -48,7 +48,6 @@ class RscInst(SaradInst):
             "ip_address": None,
             "server_port": None,
         }
-        self.__interval = None
 
     @overrides
     def _new_rs485_address(self, raw_cmd):
@@ -117,58 +116,71 @@ class RscInst(SaradInst):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x14", b""], timeout=self.COM_TIMEOUT)
         self._last_sampling_time = datetime.utcnow()
-        if reply and (reply[0] == ok_byte):
-            try:
-                sample_interval = timedelta(minutes=reply[1])
-                device_time_min = reply[2]
-                device_time_h = reply[3]
-                device_time_d = reply[4]
-                device_time_m = reply[5]
-                device_time_y = reply[6]
-                source = []  # measurand_source
-                source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
-                source.append(reply[11])  # 1
-                source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
-                source.append(reply[16])  # 3
-                source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
-                source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
-                source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
-                source.append(
-                    int.from_bytes(reply[29:33], byteorder="big", signed=False)
-                )  # 7
-                source.append(self._get_battery_voltage())  # 8
-                device_time = datetime(
-                    device_time_y + 2000,
-                    device_time_m,
-                    device_time_d,
-                    device_time_h,
-                    device_time_min,
-                    tzinfo=timezone(timedelta(hours=0)),  # TODO make configurable
-                )
-            except (TypeError, ReferenceError, LookupError, ValueError) as exception:
-                logger().error("Error when parsing the payload: %s", exception)
-                return False
-            self.__interval = sample_interval
-            for component in self.components:
-                for sensor in component.sensors:
-                    sensor.interval = sample_interval
-                    for measurand in sensor.measurands:
-                        try:
-                            measurand.value = source[measurand.source]
-                            measurand.time = device_time
-                            if measurand.source == 8:  # battery voltage
-                                sensor.interval = timedelta(seconds=5)
-                        except Exception:  # pylint: disable=broad-except
-                            logger().error(
-                                "Can't get value for source %s in %s/%s/%s.",
-                                measurand.source,
-                                component.name,
-                                sensor.name,
-                                measurand.name,
-                            )
-            return True
-        logger().error("Device %s doesn't reply.", self.device_id)
-        return False
+        if not (reply and (reply[0] == ok_byte)):
+            logger().error("Device %s doesn't reply.", self.device_id)
+            return False
+        try:
+            self._interval = timedelta(minutes=reply[1])
+            device_time_min = reply[2]
+            device_time_h = reply[3]
+            device_time_d = reply[4]
+            device_time_m = reply[5]
+            device_time_y = reply[6]
+            source = []  # measurand_source
+            source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
+            source.append(reply[11])  # 1
+            source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
+            source.append(reply[16])  # 3
+            source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
+            source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
+            source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
+            source.append(
+                int.from_bytes(reply[29:33], byteorder="big", signed=False)
+            )  # 7
+            source.append(self._get_battery_voltage())  # 8
+            device_time = datetime(
+                device_time_y + 2000,
+                device_time_m,
+                device_time_d,
+                device_time_h,
+                device_time_min,
+                tzinfo=timezone.utc,
+            )
+        except (TypeError, ReferenceError, LookupError, ValueError) as exception:
+            logger().error("Error when parsing the payload: %s", exception)
+            return False
+        for component in self.components:
+            for sensor in component.sensors:
+                sensor.interval = self._interval
+                for measurand in sensor.measurands:
+                    try:
+                        measurand.value = source[measurand.source]
+                        if measurand.source in [
+                            0,
+                            1,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                        ]:  # momentary values
+                            meas_datetime = datetime.now(timezone.utc)
+                        else:
+                            meas_datetime = device_time
+                        measurand.time = meas_datetime.replace(
+                            tzinfo=timezone(timedelta(hours=self._utc_offset))
+                        )
+                        if measurand.source == 8:  # battery voltage
+                            sensor.interval = timedelta(seconds=5)
+                    except Exception:  # pylint: disable=broad-except
+                        logger().error(
+                            "Can't get value for source %s in %s/%s/%s.",
+                            measurand.source,
+                            component.name,
+                            sensor.name,
+                            measurand.name,
+                        )
+        return True
 
     def _build_component_list(self) -> int:
         logger().debug("Building component list for Radon Scout instrument.")
@@ -211,8 +223,7 @@ class RscInst(SaradInst):
         battery_coeff = self._get_parameter("battery_coeff")
         ok_byte = self.family["ok_byte"]
         if not (battery_coeff and battery_bytes):
-            return "This instrument type doesn't provide \
-            battery voltage information"
+            return "This instrument type doesn't provide battery voltage information"
 
         reply = self.get_reply([b"\x0d", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == ok_byte):
@@ -258,17 +269,16 @@ class RscInst(SaradInst):
                 "for a regular initialization of the measuring cycle."
             )
             return self._gather_all_recent_values()
-        if (datetime.utcnow() - self._last_sampling_time) < self.__interval:
+        if (datetime.utcnow() - self._last_sampling_time) < self._interval:
             logger().info(
-                "We do not have new values yet. Sample interval = %s.", self.__interval
+                "We do not have new values yet. Sample interval = %s.", self._interval
             )
             return True
         return self._gather_all_recent_values()
 
+    @overrides
     def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
-        """Fill component objects with recent measuring values.\
-        This function does the same like get_all_recent_values()\
-        and is only here to provide a compatible API to the DACM interface"""
+        super().get_recent_value(component_id, sensor_id, measurand_id)
         self.get_all_recent_values()
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
@@ -325,10 +335,10 @@ class RscInst(SaradInst):
     @overrides
     def start_cycle(self, cycle_index):
         """Start a measurement cycle."""
-        self.get_config()  # to set self.__interval
+        self.get_config()  # to set self._interval
         for component in self.components:
             for sensor in component.sensors:
-                sensor.interval = self.__interval
+                sensor.interval = self._interval
         success = self.stop_cycle() and self._push_button()
         if success:
             self._last_sampling_time = datetime.utcnow()
@@ -341,7 +351,7 @@ class RscInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Getting config. from device %s.", self.device_id)
             try:
-                self.__interval = timedelta(minutes=reply[1])
+                self._interval = timedelta(minutes=reply[1])
                 setup_word = reply[2:3]
                 self._decode_setup_word(setup_word)
                 self.__alarm_level = int.from_bytes(
@@ -370,7 +380,7 @@ class RscInst(SaradInst):
         """Upload a new configuration to the device."""
         ok_byte = self.family["ok_byte"]
         setup_word = self._encode_setup_word()
-        interval = int(self.__interval.seconds / 60)
+        interval = int(self._interval.seconds / 60)
         setup_data = (
             (interval).to_bytes(1, byteorder="little")
             + setup_word
@@ -411,7 +421,7 @@ class RscInst(SaradInst):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x03", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == ok_byte):
-            self.__interval = timedelta(hours=3)
+            self._interval = timedelta(hours=3)
             logger().debug("Device %s set to 3 h interval.", self.device_id)
             return True
         logger().error("Interval setup failed at device %s.", self.device_id)
@@ -422,7 +432,7 @@ class RscInst(SaradInst):
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x04", b""], timeout=self.COM_TIMEOUT)
         if reply and (reply[0] == ok_byte):
-            self.__interval = timedelta(hours=1)
+            self._interval = timedelta(hours=1)
             logger().debug("Device %s set to 1 h interval.", self.device_id)
             return True
         logger().error("Interval setup failed at device %s.", self.device_id)

@@ -5,7 +5,7 @@ that all SARAD instruments have in common."""
 
 import struct
 from collections import deque
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from time import sleep
 from typing import Any, Collection, Generic, Iterator, List, Literal, TypeVar
@@ -96,11 +96,12 @@ class SaradInst(Generic[SI]):
         self.units = self.Units.SI
         self.chamber_size = self.ChamberSize.SMALL
         self.lock = self.Lock.UNLOCKED
-        self.__id: str = ""
+        self._id: str = ""
         self._valid_family = True
         self._last_sampling_time = None
         self._serial_param_sets: deque = deque(family["serial"])
-        self._allowed_cmds = family.get("allowed_cmds", [])
+        self._utc_offset = 0
+        self._interval = timedelta(seconds=0)
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -285,7 +286,7 @@ class SaradInst(Generic[SI]):
             if not checked_dict["is_control"]:
                 return True
             cmd_byte = checked_dict["payload"][0]
-            return bool(cmd_byte in self._allowed_cmds)
+            return bool(cmd_byte in self._family.get("allowed_cmds", []))
         return False
 
     def get_message_payload(self, message: bytes, timeout=0.1) -> CheckedAnswerDict:
@@ -751,6 +752,17 @@ class SaradInst(Generic[SI]):
         """Set RTC of instrument to datetime.  Place holder for subclasses."""
         return False
 
+    def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
+        """Fill component objects with recent measuring values.
+        This function provides a compatible API to the DACM interface."""
+        logger().debug(
+            "Sample interval in get_recent_value(%d, %d, %d): %s",
+            component_id,
+            sensor_id,
+            measurand_id,
+            self._interval,
+        )
+
     @property
     def route(self) -> Route:
         """Return route to instrument (ser. port, RS-485 address, ZigBee address)."""
@@ -778,12 +790,12 @@ class SaradInst(Generic[SI]):
     @property
     def device_id(self) -> str:
         """Return device id."""
-        return self.__id
+        return self._id
 
     @device_id.setter
     def device_id(self, device_id: str):
         """Set device id."""
-        self.__id = device_id
+        self._id = device_id
 
     @property
     def family(self) -> FamilyDict:
@@ -835,3 +847,26 @@ class SaradInst(Generic[SI]):
     def valid_family(self) -> bool:
         """True if the family set is correct for the connected instrument."""
         return self._valid_family
+
+    @property
+    def utc_offset(self) -> int:
+        """Return the offset of the instruments RTC to UTC."""
+        return self._utc_offset
+
+    @utc_offset.setter
+    def utc_offset(self, utc_offset: int):
+        """Set the offset of the instruments RTC to UTC."""
+        self._utc_offset = utc_offset
+        now = datetime.now(timezone(timedelta(hours=utc_offset)))
+        logger().info("Set RTC of %s to %s", self._id, now)
+        self.set_real_time_clock(now)
+
+    @property
+    def sample_interval(self) -> int:
+        """Return the duration of the sampling interval in seconds."""
+        return round(self._interval.total_seconds())
+
+    @sample_interval.setter
+    def sample_interval(self, sample_interval: int):
+        """Set the duration of the sampling interval in seconds."""
+        self._interval = timedelta(seconds=sample_interval)

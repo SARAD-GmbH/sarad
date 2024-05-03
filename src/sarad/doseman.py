@@ -152,10 +152,10 @@ class DosemanInst(SaradInst):
 
         TODO: rewrite or remove
 
-        self.get_config()  # to set self.__interval
+        self.get_config()  # to set self._interval
         for component in self.components:
             for sensor in component.sensors:
-                sensor.interval = self.__interval
+                sensor.interval = self._interval
         self._last_sampling_time = datetime.utcnow()
         return self.stop_cycle() and self._push_button()
         """

@@ -7,8 +7,10 @@ import struct
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from enum import Enum
+from math import ceil
 from time import sleep
-from typing import Any, Collection, Generic, Iterator, List, Literal, TypeVar
+from typing import (Any, Collection, Generic, Iterator, List, Literal, TypeVar,
+                    Union)
 
 from BitVector import BitVector  # type: ignore
 from serial import STOPBITS_ONE  # type: ignore
@@ -100,7 +102,7 @@ class SaradInst(Generic[SI]):
         self._valid_family = True
         self._last_sampling_time = None
         self._serial_param_sets: deque = deque(family["serial"])
-        self._utc_offset = 0
+        self._utc_offset: Union[None, int] = None
         self._interval = timedelta(seconds=0)
 
     def __iter__(self) -> Iterator[Component]:
@@ -150,6 +152,19 @@ class SaradInst(Generic[SI]):
         else:
             data = b""
         return {"cmd": bytes(payload_list[0:1]), "data": data}
+
+    @staticmethod
+    def _calc_utc_offset(
+        sample_interval: timedelta,
+        timestamp_datetime: datetime,
+        momentary_datetime: datetime,
+    ) -> Union[None, int]:
+        """This method tries to calculate the UTC offset of the RTC."""
+        if sample_interval > timedelta(hours=1):
+            return None
+        t_diff = timestamp_datetime - momentary_datetime
+        logger().debug("t_diff = %s", t_diff)
+        return ceil(t_diff.total_seconds() / 3600)
 
     def _check_message(self, message: bytes, multiframe: bool) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
@@ -849,7 +864,7 @@ class SaradInst(Generic[SI]):
         return self._valid_family
 
     @property
-    def utc_offset(self) -> int:
+    def utc_offset(self) -> Union[None, int]:
         """Return the offset of the instruments RTC to UTC."""
         return self._utc_offset
 

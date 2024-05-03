@@ -156,8 +156,6 @@ class RscInst(SaradInst):
                     try:
                         measurand.value = source[measurand.source]
                         if measurand.source in [
-                            0,
-                            1,
                             4,
                             5,
                             6,
@@ -167,9 +165,21 @@ class RscInst(SaradInst):
                             meas_datetime = datetime.now(timezone.utc)
                         else:
                             meas_datetime = device_time
-                        measurand.time = meas_datetime.replace(
-                            tzinfo=timezone(timedelta(hours=self._utc_offset))
-                        )
+                        if self._utc_offset is None:
+                            self._utc_offset = self._calc_utc_offset(
+                                self._interval, device_time, datetime.now(timezone.utc)
+                            )
+                        if self._utc_offset is None:
+                            measurand.time = meas_datetime.replace(
+                                second=0,
+                                microsecond=0,
+                            )
+                        else:
+                            measurand.time = meas_datetime.replace(
+                                second=0,
+                                microsecond=0,
+                                tzinfo=timezone(timedelta(hours=self._utc_offset)),
+                            )
                         if measurand.source == 8:  # battery voltage
                             sensor.interval = timedelta(seconds=5)
                     except Exception:  # pylint: disable=broad-except

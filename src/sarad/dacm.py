@@ -510,7 +510,10 @@ class DacmInst(SaradInst):
             ],
             timeout=self.COM_TIMEOUT,
         )
-        if reply and (reply[0] > 0):
+        if not reply:
+            logger().error("The instrument doesn't reply.")
+            return False
+        if reply[0] > 0:
             output = {}
             output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
             output["measurand_name"] = measurand_names[measurand_id]
@@ -522,24 +525,35 @@ class DacmInst(SaradInst):
             output["measurand_operator"] = measurand_dict["measurand_operator"]
             output["value"] = measurand_dict["measurand_value"]
             output["measurand_unit"] = measurand_dict["measurand_unit"]
-            meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
             meas_time = reply[69:85].split(b"\x00")[0].split(b":")
+            meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
+            if len(meas_date) == 3:
+                year = int(meas_date[2])
+                month = int(meas_date[0])
+                day = int(meas_date[1])
+            else:
+                meas_date = reply[52:68].split(b"\x00")[0].split(b".")
+                if len(meas_date) == 3:
+                    year = int(meas_date[2])
+                    month = int(meas_date[1])
+                    day = int(meas_date[0])
+            logger().debug(meas_date)
             if meas_date != [b""]:
                 meas_datetime = datetime(
-                    int(meas_date[2]),
-                    int(meas_date[0]),
-                    int(meas_date[1]),
+                    year,
+                    month,
+                    day,
                     int(meas_time[0]),
                     int(meas_time[1]),
                     int(meas_time[2]),
                     tzinfo=timezone.utc,
                 )
+                if self._utc_offset is None:
+                    self._utc_offset = self._calc_utc_offset(
+                        self._interval, meas_datetime, datetime.now(timezone.utc)
+                    )
             else:
-                meas_datetime = datetime.min
-            if self._utc_offset is None:
-                self._utc_offset = self._calc_utc_offset(
-                    self._interval, meas_datetime, datetime.now(timezone.utc)
-                )
+                meas_datetime = datetime.now(timezone.utc)
             if self._utc_offset is None:
                 output["datetime"] = meas_datetime
             else:
@@ -573,10 +587,7 @@ class DacmInst(SaradInst):
                     "deviation": None,
                 }
             return output
-        if reply[0] == 0:
-            logger().error("Measurand not available.")
-            return False
-        logger().error("The instrument doesn't reply.")
+        logger().error("Measurand not available.")
         return False
 
     def get_date_of_config(self):

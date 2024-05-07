@@ -171,12 +171,10 @@ class RscInst(SaradInst):
                             )
                         if self._utc_offset is None:
                             measurand.time = meas_datetime.replace(
-                                second=0,
                                 microsecond=0,
                             )
                         else:
                             measurand.time = meas_datetime.replace(
-                                second=0,
                                 microsecond=0,
                                 tzinfo=timezone(timedelta(hours=self._utc_offset)),
                             )
@@ -328,7 +326,7 @@ class RscInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Time on device %s set.", self.device_id)
             return True
-        logger().error("Setting the time on device %s failed.", {self.device_id})
+        logger().error("Setting the time on device %s failed.", self.device_id)
         return False
 
     @overrides

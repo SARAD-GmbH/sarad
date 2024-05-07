@@ -555,10 +555,10 @@ class DacmInst(SaradInst):
             else:
                 meas_datetime = datetime.now(timezone.utc)
             if self._utc_offset is None:
-                output["datetime"] = meas_datetime
+                output["datetime"] = meas_datetime.replace(microsecond=0)
             else:
                 output["datetime"] = meas_datetime.replace(
-                    tzinfo=timezone(timedelta(hours=self._utc_offset))
+                    microsecond=0, tzinfo=timezone(timedelta(hours=self._utc_offset))
                 )
             try:
                 gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))

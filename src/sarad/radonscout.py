@@ -151,7 +151,6 @@ class RscInst(SaradInst):
             return False
         for component in self.components:
             for sensor in component.sensors:
-                sensor.interval = self._interval
                 for measurand in sensor.measurands:
                     try:
                         measurand.value = source[measurand.source]
@@ -163,8 +162,10 @@ class RscInst(SaradInst):
                             8,
                         ]:  # momentary values
                             meas_datetime = datetime.now(timezone.utc)
+                            measurand.interval = timedelta(seconds=0)
                         else:
                             meas_datetime = device_time
+                            measurand.interval = self._interval
                         if self._utc_offset is None:
                             self._utc_offset = self._calc_utc_offset(
                                 self._interval, device_time, datetime.now(timezone.utc)
@@ -178,8 +179,6 @@ class RscInst(SaradInst):
                                 microsecond=0,
                                 tzinfo=timezone(timedelta(hours=self._utc_offset)),
                             )
-                        if measurand.source == 8:  # battery voltage
-                            sensor.interval = timedelta(seconds=5)
                     except Exception:  # pylint: disable=broad-except
                         logger().error(
                             "Can't get value for source %s in %s/%s/%s.",
@@ -300,6 +299,7 @@ class RscInst(SaradInst):
             "value": measurand.value,
             "measurand_unit": measurand.unit,
             "datetime": measurand.time,
+            "sample_interval": measurand.interval,
             "gps": {
                 "valid": False,
                 "latitude": None,

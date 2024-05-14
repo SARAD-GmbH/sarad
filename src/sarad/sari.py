@@ -807,9 +807,9 @@ class SaradInst(Generic[SI]):
     def _establish_socket(self):
         try:
             if self._socket is None:
-                socket.setdefaulttimeout(5)
+                socket.setdefaulttimeout(10)
                 self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self._socket.settimeout(5)
+                self._socket.settimeout(10)
                 retry_counter = 2
                 while retry_counter:
                     try:

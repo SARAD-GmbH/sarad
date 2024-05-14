@@ -82,6 +82,8 @@
   - 0x73
   - 0xC2  # SelectChannel
   - 0xFE  # CoordinatorReset
+  - 0xE0  # GetFirstCOM
+  - 0xE2  # SelectCOM
   config_parameters:
   - name: interval
     type: integer
@@ -195,6 +197,8 @@
   - 0x1C
   - 0xC2  # SelectChannel
   - 0xFE  # CoordinatorReset
+  - 0xE0  # GetFirstCOM
+  - 0xE2  # SelectCOM
   types:
   - {type_id: 1, type_name: Radon Scout 1}
   - {type_id: 2, type_name: Radon Scout 2}
@@ -1272,6 +1276,8 @@
   - 0xC1  # GetNextChannel
   - 0xC2  # SelectChannel
   - 0xFE  # CoordinatorReset
+  - 0xE0  # GetFirstCOM
+  - 0xE2  # SelectCOM
   types:
   - type_id: 200
     type_name: ZigBee Coordinator
@@ -1342,6 +1348,8 @@
   - 0x2F  # AlertConfirmation
   - 0xC2  # SelectChannel
   - 0xFE  # CoordinatorReset
+  - 0xE0  # GetFirstCOM
+  - 0xE2  # SelectCOM
   types:
   - type_id: 2
     type_name: RTM 2200

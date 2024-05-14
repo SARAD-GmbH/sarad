@@ -1,5 +1,6 @@
 """Module for the communication with instruments of the Radon Scout family."""
 
+import socket
 from datetime import datetime, timedelta, timezone
 from time import sleep
 
@@ -84,8 +85,38 @@ class RscInst(SaradInst):
     @overrides
     def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):
         """Returns the raw bytestring of the instruments reply"""
-        logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         result = b""
+        if (
+            (self._route.ip_address is not None) and (self._route.ip_port is not None)
+        ) and (self._socket is None):
+            self._establish_socket()
+        if self._socket is not None:
+            retry_counter = 0
+            if self._send_via_socket(raw_cmd):
+                try:
+                    result = self._socket.recv(1024)
+                except (TimeoutError, socket.timeout) as exception:
+                    logger().error("Exception in get_transparent_reply: %s", exception)
+                    retry_counter = 1
+                except ConnectionResetError as exception:
+                    logger().error("Exception in get_transparent_reply: %s", exception)
+            while not result and retry_counter and not self.route.zigbee_address:
+                # Workaround for firmware bug in SARAD instruments.
+                # This shall only be used, if the instrument is connected directly
+                # to the COM port.
+                logger().info("Play it again, Sam!")
+                retry_counter = retry_counter - 1
+                if self._send_via_socket(raw_cmd):
+                    try:
+                        result = self._socket.recv(1024)
+                    except (
+                        TimeoutError,
+                        socket.timeout,
+                        ConnectionResetError,
+                    ) as exception:
+                        logger().error("Second exception: %s", exception)
+            return result
+        logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         for _i in range(len(self._serial_param_sets)):
             logger().debug(
                 "Try to send %s with %s", raw_cmd, self._serial_param_sets[0]

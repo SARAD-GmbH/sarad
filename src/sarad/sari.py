@@ -3,6 +3,7 @@
 SaradInst comprises all attributes and methods
 that all SARAD instruments have in common."""
 
+import socket
 import struct
 from collections import deque
 from datetime import datetime, timedelta, timezone
@@ -85,7 +86,14 @@ class SaradInst(Generic[SI]):
     COM_TIMEOUT = 0.5
 
     def __init__(self: SI, family: FamilyDict) -> None:
-        self._route: Route = Route(port=None, rs485_address=None, zigbee_address=None)
+        self._route: Route = Route(
+            port=None,
+            rs485_address=None,
+            zigbee_address=None,
+            ip_address=None,
+            ip_port=None,
+        )
+        self._socket = None
         self._family: FamilyDict = family
         self.__ser = None
         self.__components: Collection[Component] = []
@@ -620,6 +628,8 @@ class SaradInst(Generic[SI]):
 
     def release_instrument(self):
         """Close serial port to release the reserved instrument"""
+        if self._socket is not None:
+            self._destroy_socket()
         logger().debug("Release serial interface %s", self.__ser)
         self.__ser = self._close_serial(self.__ser, False)
 
@@ -728,6 +738,22 @@ class SaradInst(Generic[SI]):
 
     def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):
         """Returns the raw bytestring of the instruments reply"""
+        result = b""
+        if (
+            (self._route.ip_address is not None) and (self._route.ip_port is not None)
+        ) and (self._socket is None):
+            self._establish_socket()
+        if self._socket is not None:
+            if self._send_via_socket(raw_cmd):
+                try:
+                    result = self._socket.recv(1024)
+                except (
+                    TimeoutError,
+                    socket.timeout,
+                    ConnectionResetError,
+                ) as exception:
+                    logger().error(exception)
+            return result
         logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         result = b""
         for _i in range(len(self._serial_param_sets)):
@@ -778,6 +804,75 @@ class SaradInst(Generic[SI]):
             self._interval,
         )
 
+    def _establish_socket(self):
+        try:
+            if self._socket is None:
+                socket.setdefaulttimeout(5)
+                self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self._socket.settimeout(5)
+                retry_counter = 2
+                while retry_counter:
+                    try:
+                        logger().debug(
+                            "Trying to connect %s:%d",
+                            self._route.ip_address,
+                            self._route.ip_port,
+                        )
+                        self._socket.connect(
+                            (self._route.ip_address, self._route.ip_port)
+                        )
+                        retry_counter = 0
+                        logger().debug(
+                            "Socket @ %s:%d established",
+                            self._route.ip_address,
+                            self._route.ip_port,
+                        )
+                        return
+                    except ConnectionRefusedError:
+                        retry_counter = retry_counter - 1
+                        logger().debug(
+                            "Connection refused. %d retries left", retry_counter
+                        )
+                        sleep(1)
+                    except (TimeoutError, socket.timeout, ConnectionResetError):
+                        logger().error("Timeout connecting %s", self._route.ip_address)
+                        retry_counter = 0
+                    except BlockingIOError:
+                        logger().error(
+                            "BlockingIOError connecting %s", self._route.ip_address
+                        )
+                        retry_counter = 0
+                self._socket = None
+        except OSError as re_exception:
+            logger().error("Failed to re-establish socket: %s", re_exception)
+            self._socket = None
+
+    def _destroy_socket(self):
+        if self._socket is not None:
+            try:
+                self._socket.shutdown(socket.SHUT_RDWR)
+                self._socket.close()
+            except OSError as exception:
+                logger().warning(exception)
+            self._socket = None
+            logger().debug("Socket shutdown and closed.")
+
+    def _send_via_socket(self, msg) -> bool:
+        retry_counter = 2
+        success = False
+        while retry_counter and (self._socket is not None):
+            try:
+                self._socket.sendall(msg)
+                retry_counter = 0
+                success = True
+            except OSError as exception:
+                logger().error(exception)
+                self._establish_socket()
+                retry_counter = retry_counter - 1
+                logger().debug("%d retries left", retry_counter)
+                sleep(1)
+        return success
+
     @property
     def route(self) -> Route:
         """Return route to instrument (ser. port, RS-485 address, ZigBee address)."""
@@ -787,7 +882,15 @@ class SaradInst(Generic[SI]):
     def route(self, route: Route):
         """Set route to instrument."""
         self._route = route
-        if (self._route.port is not None) and (self._family is not None):
+        if (self._route.ip_address is not None) and (self._route.ip_port is not None):
+            self._establish_socket()
+        if (
+            (self._route.port is not None)
+            or (
+                (self._route.ip_address is not None)
+                and (self._route.ip_port is not None)
+            )
+        ) and (self._family is not None):
             self._initialize()
 
     @property

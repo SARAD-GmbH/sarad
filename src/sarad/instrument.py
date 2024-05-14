@@ -18,12 +18,16 @@ class Route:
         rs485_address (int): RS-485 bus address. None, if RS-485 addressing is not used.
         zigbee_address (int): Address of instrument on NETmonitors coordinator.
                               None, if ZigBee is not used.
+        ip_address (str): IP address for socket communication.
+        ip_port (int): Port for socket communication.
 
     """
 
-    port: Optional[str]
-    rs485_address: Optional[int]
-    zigbee_address: Optional[int]
+    port: Optional[str] = None
+    rs485_address: Optional[int] = None
+    zigbee_address: Optional[int] = None
+    ip_address: Optional[str] = None
+    ip_port: Optional[int] = None
 
 
 class Measurand:  # pylint: disable=too-many-instance-attributes

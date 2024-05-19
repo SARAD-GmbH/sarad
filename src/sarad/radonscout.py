@@ -143,83 +143,6 @@ class RscInst(SaradInst):
             sleep(1)  # Give the instrument time to reset its input buffer.
         return result
 
-    def _gather_all_recent_values(self):
-        ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x14", b""], timeout=self.COM_TIMEOUT)
-        self._last_sampling_time = datetime.utcnow()
-        if not (reply and (reply[0] == ok_byte)):
-            logger().error("Device %s doesn't reply.", self.device_id)
-            return False
-        try:
-            self._interval = timedelta(minutes=reply[1])
-            device_time_min = reply[2]
-            device_time_h = reply[3]
-            device_time_d = reply[4]
-            device_time_m = reply[5]
-            device_time_y = reply[6]
-            source = []  # measurand_source
-            source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
-            source.append(reply[11])  # 1
-            source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
-            source.append(reply[16])  # 3
-            source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
-            source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
-            source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
-            source.append(
-                int.from_bytes(reply[29:33], byteorder="big", signed=False)
-            )  # 7
-            source.append(self._get_battery_voltage())  # 8
-            device_time = datetime(
-                device_time_y + 2000,
-                device_time_m,
-                device_time_d,
-                device_time_h,
-                device_time_min,
-                tzinfo=timezone.utc,
-            )
-        except (TypeError, ReferenceError, LookupError, ValueError) as exception:
-            logger().error("Error when parsing the payload: %s", exception)
-            return False
-        for component in self.components:
-            for sensor in component.sensors:
-                for measurand in sensor.measurands:
-                    try:
-                        measurand.value = source[measurand.source]
-                        if measurand.source in [
-                            4,
-                            5,
-                            6,
-                            7,
-                            8,
-                        ]:  # momentary values
-                            meas_datetime = datetime.now(timezone.utc)
-                            measurand.interval = timedelta(seconds=0)
-                        else:
-                            meas_datetime = device_time
-                            measurand.interval = self._interval
-                        if self._utc_offset is None:
-                            self._utc_offset = self._calc_utc_offset(
-                                self._interval, device_time, datetime.now(timezone.utc)
-                            )
-                        if self._utc_offset is None:
-                            measurand.time = meas_datetime.replace(
-                                microsecond=0,
-                            )
-                        else:
-                            measurand.time = meas_datetime.replace(
-                                microsecond=0,
-                                tzinfo=timezone(timedelta(hours=self._utc_offset)),
-                            )
-                    except Exception:  # pylint: disable=broad-except
-                        logger().error(
-                            "Can't get value for source %s in %s/%s/%s.",
-                            measurand.source,
-                            component.name,
-                            sensor.name,
-                            measurand.name,
-                        )
-        return True
-
     def _build_component_list(self) -> int:
         logger().debug("Building component list for Radon Scout instrument.")
         for component_object in self.components:
@@ -299,25 +222,116 @@ class RscInst(SaradInst):
 
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
-        # Do nothing as long as the previous values are valid.
+        ok_byte = self.family["ok_byte"]
+        reply = self.get_reply([b"\x14", b""], timeout=self.COM_TIMEOUT)
+        self._last_sampling_time = datetime.utcnow()
+        if not (reply and (reply[0] == ok_byte)):
+            logger().error("Device %s doesn't reply.", self.device_id)
+            return False
+        try:
+            self._interval = timedelta(minutes=reply[1])
+            device_time_min = reply[2]
+            device_time_h = reply[3]
+            device_time_d = reply[4]
+            device_time_m = reply[5]
+            device_time_y = reply[6]
+            source = []  # measurand_source
+            source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
+            source.append(reply[11])  # 1
+            source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
+            source.append(reply[16])  # 3
+            source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
+            source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
+            source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
+            source.append(
+                int.from_bytes(reply[29:33], byteorder="big", signed=False)
+            )  # 7
+            source.append(self._get_battery_voltage())  # 8
+            device_time = datetime(
+                device_time_y + 2000,
+                device_time_m,
+                device_time_d,
+                device_time_h,
+                device_time_min,
+                tzinfo=timezone.utc,
+            )
+        except (TypeError, ReferenceError, LookupError, ValueError) as exception:
+            logger().error("Error when parsing the payload: %s", exception)
+            return False
+        for component in self.components:
+            for sensor in component.sensors:
+                for measurand in sensor.measurands:
+                    try:
+                        measurand.value = source[measurand.source]
+                        if measurand.source in [
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                        ]:  # momentary values
+                            meas_datetime = datetime.now(timezone.utc)
+                            measurand.interval = timedelta(seconds=0)
+                        else:
+                            meas_datetime = device_time
+                            measurand.interval = self._interval
+                        if self._utc_offset is None:
+                            self._utc_offset = self._calc_utc_offset(
+                                self._interval, device_time, datetime.now(timezone.utc)
+                            )
+                        if self._utc_offset is None:
+                            measurand.time = meas_datetime.replace(
+                                microsecond=0,
+                            )
+                        else:
+                            measurand.time = meas_datetime.replace(
+                                microsecond=0,
+                                tzinfo=timezone(timedelta(hours=self._utc_offset)),
+                            )
+                    except Exception:  # pylint: disable=broad-except
+                        logger().error(
+                            "Can't get value for source %s in %s/%s/%s.",
+                            measurand.source,
+                            component.name,
+                            sensor.name,
+                            measurand.name,
+                        )
+        return True
+
+    @overrides
+    def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
+        super().get_recent_value(component_id, sensor_id, measurand_id)
         if self._last_sampling_time is None:
             logger().warning(
                 "The gathered values might be invalid. "
                 "You should use function start_cycle() in your application "
                 "for a regular initialization of the measuring cycle."
             )
-            return self._gather_all_recent_values()
-        if (datetime.utcnow() - self._last_sampling_time) < self._interval:
-            logger().info(
-                "We do not have new values yet. Sample interval = %s.", self._interval
+            self.get_all_recent_values()
+        else:
+            in_recent_interval = bool(
+                component_id == 0
+                and (
+                    (datetime.utcnow() - self._last_sampling_time)
+                    < timedelta(seconds=5)
+                )
             )
-            return True
-        return self._gather_all_recent_values()
-
-    @overrides
-    def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
-        super().get_recent_value(component_id, sensor_id, measurand_id)
-        self.get_all_recent_values()
+            in_main_interval = bool(
+                component_id != 0
+                and ((datetime.utcnow() - self._last_sampling_time) < self._interval)
+            )
+            if in_main_interval:
+                logger().info(
+                    "We do not have new values yet. Sample interval = %s.",
+                    self._interval,
+                )
+            elif in_recent_interval:
+                logger().info(
+                    "We don't request recent values faster than every %s.",
+                    timedelta(seconds=5),
+                )
+            else:
+                self.get_all_recent_values()
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]

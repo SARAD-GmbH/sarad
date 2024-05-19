@@ -54,6 +54,7 @@ class DacmInst(SaradInst):
         self._module_name = None
         self._config_name = None
         self._byte_order: Literal["little", "big"] = "big"
+        self._last_sampling_time = None
 
     def __str__(self):
         output = super().__str__() + (
@@ -502,6 +503,94 @@ class DacmInst(SaradInst):
             # find out, which cycle is running, if it wasn't started from the
             # RegServer itself. We just guess that cycle 0 is running.
             self._interval = self._read_cycle_start(cycle_index=0)["cycle_interval"]
+        if self._last_sampling_time is None:
+            logger().warning(
+                "The gathered values might be invalid. "
+                "You should use function start_cycle() in your application "
+                "for a regular initialization of the measuring cycle."
+            )
+            output = self._gather_recent_value(component_id, sensor_id, measurand_id)
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].name = output["measurand_name"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].operator = output["measurand_operator"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].value = output["value"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].unit = output["unit"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].time = output["datetime"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].interval = output["sample_interval"]
+            return output
+        in_recent_interval = bool(
+            measurand_id == 0
+            and ((datetime.utcnow() - self._last_sampling_time) < timedelta(seconds=5))
+        )
+        in_main_interval = bool(
+            measurand_id != 0
+            and ((datetime.utcnow() - self._last_sampling_time) < self._interval)
+        )
+        if not in_main_interval and not in_recent_interval:
+            output = self._gather_recent_value(component_id, sensor_id, measurand_id)
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].name = output["measurand_name"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].operator = output["measurand_operator"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].value = output["value"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].unit = output["unit"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].time = output["datetime"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].interval = output["sample_interval"]
+            return output
+        if in_main_interval:
+            logger().info(
+                "We do not have new values yet. Sample interval = %s.",
+                self._interval,
+            )
+        elif in_recent_interval:
+            logger().info(
+                "We don't request recent values faster than every %s.",
+                timedelta(seconds=5),
+            )
+        component = self.components[component_id]
+        sensor = component.sensors[sensor_id]
+        measurand = sensor.measurands[measurand_id]
+        return {
+            "component_name": component.name,
+            "sensor_name": sensor.name,
+            "measurand_name": measurand.name,
+            "measurand_operator": measurand.operator,
+            "measurand": f"{measurand.operator} {measurand.value} {measurand.unit}",
+            "value": measurand.value,
+            "measurand_unit": measurand.unit,
+            "datetime": measurand.time,
+            "sample_interval": measurand.interval,
+            "gps": {
+                "valid": False,
+                "latitude": None,
+                "longitude": None,
+                "altitude": None,
+                "deviation": None,
+            },
+        }
+
+    def _gather_recent_value(self, component_id, sensor_id, measurand_id):
         measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
         reply = self.get_reply(
             [
@@ -510,6 +599,7 @@ class DacmInst(SaradInst):
             ],
             timeout=self.COM_TIMEOUT,
         )
+        self._last_sampling_time = datetime.utcnow()
         if not reply:
             logger().error("The instrument doesn't reply.")
             return False

@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 
 @dataclass
@@ -63,7 +63,7 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         self.__value: Optional[float] = None
         self.__time: datetime = datetime.min
         self.__operator: str = ""
-        self.__gps: str = ""
+        self.__gps: Dict[str, Union[float, bool]] = {}
 
     def __str__(self) -> str:
         output = f"MeasurandId: {self.measurand_id}\nMeasurandName: {self.name}\n"
@@ -154,13 +154,13 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         self.__time = time_stamp
 
     @property
-    def gps(self) -> str:
-        """Return the GPS string of the measurand."""
+    def gps(self) -> Dict[str, Union[float, bool]]:
+        """Return the GPS dict of the measurand."""
         return self.__gps
 
     @gps.setter
-    def gps(self, gps: str) -> None:
-        """Set the GPS string of the measurand."""
+    def gps(self, gps: Dict[str, Union[float, bool]]) -> None:
+        """Set the GPS dict of the measurand."""
         self.__gps = gps
 
 

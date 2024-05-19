@@ -528,6 +528,9 @@ class DacmInst(SaradInst):
             self.components[component_id].sensors[sensor_id].measurands[
                 measurand_id
             ].interval = output["sample_interval"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].gps = output["gps"]
             return output
         in_recent_interval = bool(
             measurand_id == 0
@@ -557,6 +560,9 @@ class DacmInst(SaradInst):
             self.components[component_id].sensors[sensor_id].measurands[
                 measurand_id
             ].interval = output["sample_interval"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].gps = output["gps"]
             return output
         if in_main_interval:
             logger().info(
@@ -581,13 +587,7 @@ class DacmInst(SaradInst):
             "measurand_unit": measurand.unit,
             "datetime": measurand.time,
             "sample_interval": measurand.interval,
-            "gps": {
-                "valid": False,
-                "latitude": None,
-                "longitude": None,
-                "altitude": None,
-                "deviation": None,
-            },
+            "gps": measurand.gps,
         }
 
     def _gather_recent_value(self, component_id, sensor_id, measurand_id):

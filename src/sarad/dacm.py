@@ -54,7 +54,6 @@ class DacmInst(SaradInst):
         self._module_name = None
         self._config_name = None
         self._byte_order: Literal["little", "big"] = "big"
-        self._last_sampling_time = None
 
     def __str__(self):
         output = super().__str__() + (
@@ -72,32 +71,14 @@ class DacmInst(SaradInst):
         for component_object in self.components:
             del component_object
         self.components = []
-        component_dict = self._get_parameter("components")
-        if not component_dict:
-            return 0
-        for component in component_dict:
-            component_object = Component(
-                component["component_id"], component["component_name"]
-            )
+        for component_id in range(34):
+            component_object = Component(component_id)
             # build sensor list
-            for sensor in component["sensors"]:
-                sensor_object = Sensor(sensor["sensor_id"], sensor["sensor_name"])
+            for sensor_id in range(5):
+                sensor_object = Sensor(sensor_id)
                 # build measurand list
-                for measurand in sensor["measurands"]:
-                    try:
-                        unit = measurand["measurand_unit"]
-                    except Exception:  # pylint: disable=broad-except
-                        unit = ""
-                    try:
-                        source = measurand["measurand_source"]
-                    except Exception:  # pylint: disable=broad-except
-                        source = None
-                    measurand_object = Measurand(
-                        measurand["measurand_id"],
-                        measurand["measurand_name"],
-                        unit,
-                        source,
-                    )
+                for measurand_id in range(4):
+                    measurand_object = Measurand(measurand_id)
                     sensor_object.measurands += [measurand_object]
                 component_object.sensors += [sensor_object]
             self.components += [component_object]
@@ -498,71 +479,91 @@ class DacmInst(SaradInst):
         2 = minimum of last completed interval,
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
+        super().get_recent_value(component_id, sensor_id, measurand_id)
         if not self._interval:
             # TODO This is a dirty workaround. Actually it is impossible to
             # find out, which cycle is running, if it wasn't started from the
             # RegServer itself. We just guess that cycle 0 is running.
             self._interval = self._read_cycle_start(cycle_index=0)["cycle_interval"]
-        if self._last_sampling_time is None:
+        component = self.components[component_id]
+        sensor = component.sensors[sensor_id]
+        measurand = sensor.measurands[measurand_id]
+        fetched = (
+            self.components[component_id]
+            .sensors[sensor_id]
+            .measurands[measurand_id]
+            .fetched
+        )
+        if fetched == datetime.min:
             logger().warning(
                 "The gathered values might be invalid. "
                 "You should use function start_cycle() in your application "
                 "for a regular initialization of the measuring cycle."
             )
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].name = output["measurand_name"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].operator = output["measurand_operator"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].value = output["value"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].unit = output["unit"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].time = output["datetime"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].interval = output["sample_interval"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].gps = output["gps"]
+            try:
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].name = output["measurand_name"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].operator = output["measurand_operator"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].value = output["value"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].unit = output["measurand_unit"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].time = output["datetime"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].interval = output["sample_interval"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].gps = output["gps"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].fetched = output["fetched"]
+            except KeyError:
+                return {}
             return output
         in_recent_interval = bool(
-            measurand_id == 0
-            and ((datetime.utcnow() - self._last_sampling_time) < timedelta(seconds=5))
+            measurand_id == 0 and ((datetime.utcnow() - fetched) < timedelta(seconds=5))
         )
         in_main_interval = bool(
-            measurand_id != 0
-            and ((datetime.utcnow() - self._last_sampling_time) < self._interval)
+            measurand_id != 0 and ((datetime.utcnow() - fetched) < self._interval)
         )
         if not in_main_interval and not in_recent_interval:
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].name = output["measurand_name"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].operator = output["measurand_operator"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].value = output["value"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].unit = output["unit"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].time = output["datetime"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].interval = output["sample_interval"]
-            self.components[component_id].sensors[sensor_id].measurands[
-                measurand_id
-            ].gps = output["gps"]
+            try:
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].name = output["measurand_name"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].operator = output["measurand_operator"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].value = output["value"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].unit = output["measurand_unit"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].time = output["datetime"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].interval = output["sample_interval"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].gps = output["gps"]
+                self.components[component_id].sensors[sensor_id].measurands[
+                    measurand_id
+                ].fetched = output["fetched"]
+            except KeyError:
+                return {}
             return output
         if in_main_interval:
             logger().info(
@@ -574,9 +575,6 @@ class DacmInst(SaradInst):
                 "We don't request recent values faster than every %s.",
                 timedelta(seconds=5),
             )
-        component = self.components[component_id]
-        sensor = component.sensors[sensor_id]
-        measurand = sensor.measurands[measurand_id]
         return {
             "component_name": component.name,
             "sensor_name": sensor.name,
@@ -599,10 +597,9 @@ class DacmInst(SaradInst):
             ],
             timeout=self.COM_TIMEOUT,
         )
-        self._last_sampling_time = datetime.utcnow()
         if not reply:
             logger().error("The instrument doesn't reply.")
-            return False
+            return {}
         if reply[0] > 0:
             output = {}
             output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
@@ -642,8 +639,10 @@ class DacmInst(SaradInst):
                     self._utc_offset = self._calc_utc_offset(
                         self._interval, meas_datetime, datetime.now(timezone.utc)
                     )
+                output["sample_interval"] = self._interval
             else:
                 meas_datetime = datetime.now(timezone.utc)
+                output["sample_interval"] = timedelta(seconds=0)
             if self._utc_offset is None:
                 output["datetime"] = meas_datetime.replace(microsecond=0)
             else:
@@ -667,7 +666,6 @@ class DacmInst(SaradInst):
                     "altitude": float(gps_list[4]),
                     "deviation": float(gps_list[5]),
                 }
-                output["gps"] = gps_dict
             except Exception:  # pylint: disable=broad-except
                 gps_dict = {
                     "valid": False,
@@ -676,9 +674,11 @@ class DacmInst(SaradInst):
                     "altitude": None,
                     "deviation": None,
                 }
+            output["gps"] = gps_dict
+            output["fetched"] = datetime.utcnow()
             return output
         logger().error("Measurand not available.")
-        return False
+        return {}
 
     def get_date_of_config(self):
         """Return the date the configuration was made on."""

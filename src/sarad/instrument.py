@@ -46,7 +46,7 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
     def __init__(
         self,
         measurand_id: int,
-        measurand_name: str,
+        measurand_name: str = "",
         measurand_unit=None,
         measurand_source=None,
     ) -> None:
@@ -64,6 +64,7 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         self.__time: datetime = datetime.min
         self.__operator: str = ""
         self.__gps: Dict[str, Union[float, bool]] = {}
+        self.__fetched: datetime = datetime.min
 
     def __str__(self) -> str:
         output = f"MeasurandId: {self.measurand_id}\nMeasurandName: {self.name}\n"
@@ -163,6 +164,16 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         """Set the GPS dict of the measurand."""
         self.__gps = gps
 
+    @property
+    def fetched(self) -> datetime:
+        """Return when the value was fetched the last time."""
+        return self.__fetched
+
+    @fetched.setter
+    def fetched(self, fetched: datetime) -> None:
+        """Set when the value was fetched the last time."""
+        self.__fetched = fetched
+
 
 class Sensor:
     """Class describing a sensor that is part of a component.
@@ -174,7 +185,7 @@ class Sensor:
     Public methods:
         get_measurands()"""
 
-    def __init__(self, sensor_id: int, sensor_name: str) -> None:
+    def __init__(self, sensor_id: int, sensor_name: str = "") -> None:
         self.__id: int = sensor_id
         self.__name: str = sensor_name
         self.__interval: timedelta = timedelta(0)
@@ -236,7 +247,7 @@ class Sensor:
 class Component:
     """Class describing a sensor or actor component built into an instrument"""
 
-    def __init__(self, component_id: int, component_name: str) -> None:
+    def __init__(self, component_id: int, component_name: str = "") -> None:
         self.__id: int = component_id
         self.__name: str = component_name
         self.__sensors: List[Sensor] = []

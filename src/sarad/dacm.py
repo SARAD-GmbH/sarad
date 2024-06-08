@@ -406,21 +406,22 @@ class DacmInst(SaradInst):
         return False
 
     @overrides
-    def start_cycle(self, cycle_index=0):
-        """Start a measuring cycle."""
-        logger().debug("Trying to start measuring cycle %d", cycle_index)
-        self._interval = self._read_cycle_start(cycle_index)["cycle_interval"]
+    def start_cycle(self, cycle=0):
+        """Start a measuring cycle.
+
+        Args:
+            cycle (int): Cycle index
+
+        """
+        logger().debug("Trying to start measuring cycle %d", cycle)
+        self._interval = self._read_cycle_start(cycle)["cycle_interval"]
         for component in self.components:
             for sensor in component.sensors:
                 sensor.interval = self._interval
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply(
-            [b"\x15", bytes([cycle_index])], timeout=self.COM_TIMEOUT + 5
-        )
+        reply = self.get_reply([b"\x15", bytes([cycle])], timeout=self.COM_TIMEOUT + 5)
         if reply and (reply[0] == ok_byte):
-            logger().debug(
-                "Cycle %s started at device %s.", cycle_index, self.device_id
-            )
+            logger().debug("Cycle %s started at device %s.", cycle, self.device_id)
             return True
         logger().error("start_cycle() failed at device %s.", self.device_id)
         if reply[0] == 11:

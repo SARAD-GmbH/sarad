@@ -32,8 +32,7 @@ class RscInst(SaradInst):
         set_real_time_clock(datetime)
         stop_cycle()
         start_cycle()
-        get_config()
-        set_config()"""
+    """
 
     COM_TIMEOUT = 1
 
@@ -386,9 +385,15 @@ class RscInst(SaradInst):
         return False
 
     @overrides
-    def start_cycle(self, cycle_index):
-        """Start a measurement cycle."""
-        self.get_config()  # to set self._interval
+    def start_cycle(self, cycle):
+        """Start a measurement cycle.
+
+        Args:
+            cycle (int): interval length in seconds.
+        """
+        self._get_config()  # to set self._interval
+        self._interval = cycle
+        self._set_config()
         for component in self.components:
             for sensor in component.sensors:
                 sensor.interval = self._interval
@@ -397,7 +402,7 @@ class RscInst(SaradInst):
             self._last_sampling_time = datetime.utcnow()
         return success
 
-    def get_config(self):
+    def _get_config(self):
         """Get configuration from device."""
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x10", b""], timeout=self.COM_TIMEOUT)
@@ -429,7 +434,7 @@ class RscInst(SaradInst):
         logger().error("Get config. failed at device %s.", self.device_id)
         return False
 
-    def set_config(self):
+    def _set_config(self):
         """Upload a new configuration to the device."""
         ok_byte = self.family["ok_byte"]
         setup_word = self._encode_setup_word()

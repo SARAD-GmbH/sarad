@@ -782,8 +782,13 @@ class SaradInst(Generic[SI]):
             raw_cmd (bytes): Command message to be analyzed.
         """
 
-    def start_cycle(self, cycle_index: int) -> None:
-        """Start measurement cycle.  Place holder for subclasses."""
+    def start_cycle(self, cycle: int) -> None:
+        """Start measurement cycle.  Place holder for subclasses.
+
+        Args:
+            cycle (int): For DACM instruments this is the cycle index.
+                         For Radon Scout instruments 'cycle' is the interval in seconds.
+        """
 
     def stop_cycle(self) -> None:
         """Stop measurement cycle.  Place holder for subclasses."""

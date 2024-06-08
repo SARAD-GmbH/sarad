@@ -245,6 +245,7 @@ class SaradInst(Generic[SI]):
         payload: Payload of answer
         number_of_bytes_in_payload
         """
+        is_control = False
         if answer.startswith(b"b") and answer.endswith(b"E"):
             address_ok = bool(answer[1] == rs485_address)
             control_byte = answer[2]
@@ -573,7 +574,7 @@ class SaradInst(Generic[SI]):
         try:
             answer = serial.read(offset)
         except SerialException as exception:
-            logger().warning(exception)
+            logger().warning("SerialException in _get_control_bytes: %s", exception)
             return b""
         if not answer.startswith(start_byte):
             if answer == b"":
@@ -739,20 +740,22 @@ class SaradInst(Generic[SI]):
     def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):
         """Returns the raw bytestring of the instruments reply"""
         result = b""
-        if (
-            (self._route.ip_address is not None) and (self._route.ip_port is not None)
-        ) and (self._socket is None):
-            self._establish_socket()
-        if self._socket is not None:
-            if self._send_via_socket(raw_cmd):
-                try:
-                    result = self._socket.recv(1024)
-                except (
-                    TimeoutError,
-                    socket.timeout,
-                    ConnectionResetError,
-                ) as exception:
-                    logger().error(exception)
+        use_socket = (self._route.ip_address is not None) and (
+            self._route.ip_port is not None
+        )
+        if use_socket:
+            if self._socket is None:
+                self._establish_socket()
+            if self._socket:
+                if self._send_via_socket(raw_cmd):
+                    try:
+                        result = self._socket.recv(1024)
+                    except (
+                        TimeoutError,
+                        socket.timeout,
+                        ConnectionResetError,
+                    ) as exception:
+                        logger().error("Error in socket communication: %s", exception)
             return result
         logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         result = b""
@@ -858,7 +861,7 @@ class SaradInst(Generic[SI]):
                 self._socket.shutdown(socket.SHUT_RDWR)
                 self._socket.close()
             except OSError as exception:
-                logger().warning(exception)
+                logger().warning("OSError in [_destroy_socket]: %s", exception)
             self._socket = None
             logger().debug("Socket shutdown and closed.")
 

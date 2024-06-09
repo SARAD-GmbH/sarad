@@ -146,7 +146,7 @@ class DosemanInst(SaradInst):
         return False
 
     @overrides
-    def start_cycle(self, cycle_index):
+    def start_cycle(self, cycle):
         """
         Start a measuring cycle.
 

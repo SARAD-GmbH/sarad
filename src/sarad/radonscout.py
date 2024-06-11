@@ -23,7 +23,7 @@ class RscInst(SaradInst):
         type_name
         software_version
         serial_number
-        components: List of sensor or actor components
+        components: Dict of sensor or actor components
     Inherited methods from SaradInst:
         get_reply()
     Public methods:
@@ -74,6 +74,8 @@ class RscInst(SaradInst):
                 rs485_address = unicon_4
             elif self._type_id in [4, 10]:
                 rs485_address = software_version
+            else:
+                rs485_address = 0
             self._route.rs485_address = rs485_address
             logger().info(
                 "Change RS-485 bus address from %d into %d",
@@ -148,22 +150,22 @@ class RscInst(SaradInst):
             sleep(1)  # Give the instrument time to reset its input buffer.
         return result
 
-    def _build_component_list(self) -> int:
-        logger().debug("Building component list for Radon Scout instrument.")
-        for component_object in self.components:
+    def _build_component_dict(self) -> int:
+        logger().debug("Building component dict for Radon Scout instrument.")
+        for _component_id, component_object in self.components.items():
             del component_object
-        self.components = []
-        component_dict = self._get_parameter("components")
-        if not component_dict:
+        self.components = {}
+        comp_list = self._get_parameter("components")
+        if not comp_list:
             return 0
-        for component in component_dict:
+        for component in comp_list:
             component_object = Component(
                 component["component_id"], component["component_name"]
             )
-            # build sensor list
+            # build sensor dict
             for sensor in component["sensors"]:
                 sensor_object = Sensor(sensor["sensor_id"], sensor["sensor_name"])
-                # build measurand list
+                # build measurand dict
                 for measurand in sensor["measurands"]:
                     try:
                         unit = measurand["measurand_unit"]
@@ -173,15 +175,15 @@ class RscInst(SaradInst):
                         source = measurand["measurand_source"]
                     except Exception:  # pylint: disable=broad-except
                         source = None
-                    measurand_object = Measurand(
+                    measurand_obj = Measurand(
                         measurand["measurand_id"],
                         measurand["measurand_name"],
                         unit,
                         source,
                     )
-                    sensor_object.measurands += [measurand_object]
-                component_object.sensors += [sensor_object]
-            self.components += [component_object]
+                    sensor_object.measurands[measurand_obj.measurand_id] = measurand_obj
+                component_object.sensors[sensor_object.sensor_id] = sensor_object
+            self.components[component_object.component_id] = component_object
         return len(self.components)
 
     def _get_battery_voltage(self):
@@ -263,18 +265,15 @@ class RscInst(SaradInst):
         except (TypeError, ReferenceError, LookupError, ValueError) as exception:
             logger().error("Error when parsing the payload: %s", exception)
             return False
-        for component in self.components:
-            for sensor in component.sensors:
-                for measurand in sensor.measurands:
+        for component_id, component in self.components.items():
+            for _sensor_id, sensor in component.sensors.items():
+                for _measurand_id, measurand in sensor.measurands.items():
                     try:
-                        measurand.value = source[measurand.source]
-                        if measurand.source in [
-                            4,
-                            5,
-                            6,
-                            7,
-                            8,
-                        ]:  # momentary values
+                        if component_id == 255:  # GPS
+                            measurand.value = 0
+                        else:
+                            measurand.value = source[measurand.source]
+                        if measurand.measurand_id == 0:  # momentary values
                             meas_datetime = datetime.now(timezone.utc)
                             measurand.interval = timedelta(seconds=0)
                         else:
@@ -315,14 +314,14 @@ class RscInst(SaradInst):
             self.get_all_recent_values()
         else:
             in_recent_interval = bool(
-                component_id == 0
+                measurand_id == 0
                 and (
                     (datetime.utcnow() - self._last_sampling_time)
                     < timedelta(seconds=5)
                 )
             )
             in_main_interval = bool(
-                component_id != 0
+                measurand_id != 0
                 and ((datetime.utcnow() - self._last_sampling_time) < self._interval)
             )
             if in_main_interval:
@@ -398,9 +397,9 @@ class RscInst(SaradInst):
             cycle (int): interval length in seconds.
         """
         self._get_config()  # to set self._interval
-        self._interval = cycle
+        self._interval = timedelta(seconds=cycle)
         self._set_config()
-        for component in self.components:
+        for _component_id, component in self.components.items():
             for sensor in component.sensors:
                 sensor.interval = self._interval
         success = self.stop_cycle() and self._push_button()

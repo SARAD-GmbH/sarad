@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Union
+from typing import Dict, Optional, Union
 
 
 @dataclass
@@ -189,7 +189,7 @@ class Sensor:
         self.__id: int = sensor_id
         self.__name: str = sensor_name
         self.__interval: timedelta = timedelta(0)
-        self.__measurands: List[Measurand] = []
+        self.__measurands: Dict[int, Measurand] = {}
 
     def __iter__(self):
         return iter(self.__measurands)
@@ -234,13 +234,13 @@ class Sensor:
         self.__interval = interval
 
     @property
-    def measurands(self) -> List[Measurand]:
-        """Return the list of measurands of this sensor."""
+    def measurands(self) -> Dict[int, Measurand]:
+        """Return the dict of measurands of this sensor."""
         return self.__measurands
 
     @measurands.setter
-    def measurands(self, measurands: List[Measurand]):
-        """Set the list of measurands of this sensor."""
+    def measurands(self, measurands: Dict[int, Measurand]):
+        """Set the dict of measurands of this sensor."""
         self.__measurands = measurands
 
 
@@ -250,7 +250,7 @@ class Component:
     def __init__(self, component_id: int, component_name: str = "") -> None:
         self.__id: int = component_id
         self.__name: str = component_name
-        self.__sensors: List[Sensor] = []
+        self.__sensors: Dict[int, Sensor] = {}
 
     def __iter__(self):
         return iter(self.__sensors)
@@ -285,11 +285,11 @@ class Component:
         self.__name = name
 
     @property
-    def sensors(self) -> List[Sensor]:
-        """Return the list of sensors belonging to this component."""
+    def sensors(self) -> Dict[int, Sensor]:
+        """Return the dict of sensors belonging to this component."""
         return self.__sensors
 
     @sensors.setter
-    def sensors(self, sensors: List[Sensor]):
-        """Set the list of sensors belonging to this component."""
+    def sensors(self, sensors: Dict[int, Sensor]):
+        """Set the dict of sensors belonging to this component."""
         self.__sensors = sensors

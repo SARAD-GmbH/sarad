@@ -10,8 +10,7 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from math import ceil
 from time import sleep
-from typing import (Any, Collection, Generic, Iterator, List, Literal, TypeVar,
-                    Union)
+from typing import Any, Dict, Generic, Iterator, List, Literal, TypeVar, Union
 
 from BitVector import BitVector  # type: ignore
 from serial import STOPBITS_ONE  # type: ignore
@@ -37,7 +36,7 @@ class SaradInst(Generic[SI]):
         type_name: Identifys the instrument type.
         software_version: The version of the firmware.
         serial_number: Serial number of the connected instrument.
-        components: List of sensor or actor components
+        components: Dictionary of sensor or actor components
     """
 
     class Lock(Enum):
@@ -96,7 +95,7 @@ class SaradInst(Generic[SI]):
         self._socket = None
         self._family: FamilyDict = family
         self.__ser = None
-        self.__components: Collection[Component] = []
+        self.__components: Dict[int, Component] = {}
         self._type_id: int = 0
         self._software_version: int = 0
         self._serial_number: int = 0
@@ -380,7 +379,7 @@ class SaradInst(Generic[SI]):
             self.close_channel()
         logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
-            self._build_component_list()
+            self._build_component_dict()
             self._last_sampling_time = None
 
     def get_description(self) -> bool:
@@ -432,8 +431,8 @@ class SaradInst(Generic[SI]):
         logger().debug("Get description failed. Instrument replied = %s", reply)
         return False
 
-    def _build_component_list(self) -> int:
-        """Build up a list of components with sensors and measurands.
+    def _build_component_dict(self) -> int:
+        """Build up a dict of components with sensors and measurands.
 
         Will be overriden by derived classes."""
         return len(self.components)
@@ -960,13 +959,13 @@ class SaradInst(Generic[SI]):
         return self._serial_number
 
     @property
-    def components(self) -> Collection[Component]:
-        """Return the list of components of the device."""
+    def components(self) -> Dict[int, Component]:
+        """Return the dict of components of the device."""
         return self.__components
 
     @components.setter
-    def components(self, components: Collection[Component]):
-        """Set the list of components of the device."""
+    def components(self, components: Dict[int, Component]):
+        """Set the dict of components of the device."""
         self.__components = components
 
     @property

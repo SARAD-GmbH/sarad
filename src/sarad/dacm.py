@@ -66,22 +66,22 @@ class DacmInst(SaradInst):
         )
         return output
 
-    def _build_component_list(self) -> int:
-        logger().debug("Building component list for DACM instrument.")
-        for component_object in self.components:
+    def _build_component_dict(self) -> int:
+        logger().debug("Building component dict for DACM instrument.")
+        for _component_id, component_object in self.components.items():
             del component_object
-        self.components = []
+        self.components = {}
         for component_id in range(34):
             component_object = Component(component_id)
-            # build sensor list
+            # build sensor dict
             for sensor_id in range(5):
                 sensor_object = Sensor(sensor_id)
-                # build measurand list
+                # build measurand dict
                 for measurand_id in range(4):
                     measurand_object = Measurand(measurand_id)
-                    sensor_object.measurands += [measurand_object]
-                component_object.sensors += [sensor_object]
-            self.components += [component_object]
+                    sensor_object.measurands[measurand_id] = measurand_object
+                component_object.sensors[sensor_id] = sensor_object
+            self.components[component_object.component_id] = component_object
         return len(self.components)
 
     def _sanitize_date(self, year, month, day):
@@ -415,7 +415,7 @@ class DacmInst(SaradInst):
         """
         logger().debug("Trying to start measuring cycle %d", cycle)
         self._interval = self._read_cycle_start(cycle)["cycle_interval"]
-        for component in self.components:
+        for _component_id, component in self.components.items():
             for sensor in component.sensors:
                 sensor.interval = self._interval
         ok_byte = self.family["ok_byte"]

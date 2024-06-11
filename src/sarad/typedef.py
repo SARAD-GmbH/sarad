@@ -2,6 +2,8 @@
 
 from typing import Any, Dict, List, Literal, TypedDict
 
+from sarad.instrument import Component
+
 
 class CmdDict(TypedDict):
     """Type declaration for the result of the analysis of a binary command message."""
@@ -23,7 +25,7 @@ class ComponentDict(TypedDict):
     # pylint: disable=inherit-non-class, too-few-public-methods
     """Type declaration for Component type dictionary"""
     component_id: int
-    component_name: str
+    component: Component
 
 
 class InstrumentDict(TypedDict):

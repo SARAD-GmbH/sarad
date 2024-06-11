@@ -416,7 +416,7 @@ class DacmInst(SaradInst):
         logger().debug("Trying to start measuring cycle %d", cycle)
         self._interval = self._read_cycle_start(cycle)["cycle_interval"]
         for _component_id, component in self.components.items():
-            for sensor in component.sensors:
+            for _sensor_id, sensor in component.sensors.items():
                 sensor.interval = self._interval
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x15", bytes([cycle])], timeout=self.COM_TIMEOUT + 5)

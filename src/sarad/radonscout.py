@@ -400,7 +400,7 @@ class RscInst(SaradInst):
         self._interval = timedelta(seconds=cycle)
         self._set_config()
         for _component_id, component in self.components.items():
-            for sensor in component.sensors:
+            for _sensor_id, sensor in component.sensors.items():
                 sensor.interval = self._interval
         success = self.stop_cycle() and self._push_button()
         if success:

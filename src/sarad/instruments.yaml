@@ -266,6 +266,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 4
     type_name: RTM 1688-2
     battery_bytes: 2
@@ -329,6 +337,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 5
     type_name: Radon Scout PMT
     components:
@@ -396,6 +412,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 6
     type_name: Thoron Scout
     battery_bytes: 2
@@ -465,6 +489,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 7
     type_name: Radon Scout Home
     components:
@@ -515,6 +547,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 8
     type_name: Radon Scout Home - P
     components:
@@ -572,6 +612,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 9
     type_name: Radon Scout Home - CO2
     components:
@@ -629,6 +677,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 10
     type_name: RTM 1688 Geo
     battery_bytes: 2
@@ -698,6 +754,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 11
     type_name: Radon Scout Professional
     components:
@@ -755,6 +819,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 12
     type_name: Radon Scout Professional - P
     components:
@@ -819,6 +891,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 13
     type_name: Radon Scout Professional - CO2
     components:
@@ -883,6 +963,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 14
     type_name: Smart Radon Sensor
     components:
@@ -940,6 +1028,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
     - component_id: 255
       component_name: position
       sensors:
@@ -1012,6 +1108,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 16
     type_name: Smart Radon Sensor - CO2
     components:
@@ -1076,6 +1180,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 17
     type_name: Radon Scout eXpert
     components:
@@ -1133,6 +1245,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 18
     type_name: Radon Scout eXpert - P
     components:
@@ -1197,6 +1317,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
   - type_id: 19
     type_name: Radon Scout eXpert - CO2
     components:
@@ -1261,6 +1389,14 @@
           measurand_unit: '%'
           measurand_operator: ±
           measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
 - family_id: 4
   family_name: Network family
   serial:

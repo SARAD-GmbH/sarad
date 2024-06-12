@@ -326,12 +326,12 @@ class RscInst(SaradInst):
                 and ((datetime.utcnow() - self._last_sampling_time) < self._interval)
             )
             if in_main_interval:
-                logger().info(
+                logger().debug(
                     "We do not have new values yet. Sample interval = %s.",
                     self._interval,
                 )
             elif in_recent_interval:
-                logger().info(
+                logger().debug(
                     "We don't request recent values faster than every %s.",
                     timedelta(seconds=5),
                 )

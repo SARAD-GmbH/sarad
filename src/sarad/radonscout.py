@@ -311,7 +311,8 @@ class RscInst(SaradInst):
                 "You should use function start_cycle() in your application "
                 "for a regular initialization of the measuring cycle."
             )
-            self.get_all_recent_values()
+            if not self.get_all_recent_values():
+                return {}
         else:
             in_recent_interval = bool(
                 measurand_id == 0
@@ -335,7 +336,8 @@ class RscInst(SaradInst):
                     timedelta(seconds=5),
                 )
             else:
-                self.get_all_recent_values()
+                if not self.get_all_recent_values():
+                    return {}
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]

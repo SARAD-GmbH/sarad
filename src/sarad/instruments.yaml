@@ -278,6 +278,8 @@
     type_name: RTM 1688-2
     battery_bytes: 2
     battery_coeff: 0.01801
+    allowed_methods:
+    - start_cycle
     components:
     - component_id: 0
       component_name: main

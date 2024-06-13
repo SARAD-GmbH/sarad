@@ -65,6 +65,7 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         self.__operator: str = ""
         self.__gps: Dict[str, Union[float, bool]] = {}
         self.__fetched: datetime = datetime.min
+        self.__interval: timedelta = timedelta(0)
 
     def __str__(self) -> str:
         output = f"MeasurandId: {self.measurand_id}\nMeasurandName: {self.name}\n"
@@ -173,6 +174,16 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
     def fetched(self, fetched: datetime) -> None:
         """Set when the value was fetched the last time."""
         self.__fetched = fetched
+
+    @property
+    def interval(self) -> timedelta:
+        """Return the measuring interval of this measurand."""
+        return self.__interval
+
+    @interval.setter
+    def interval(self, interval: timedelta):
+        """Set the measuring interval of this measurand."""
+        self.__interval = interval
 
 
 class Sensor:

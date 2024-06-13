@@ -306,11 +306,7 @@ class RscInst(SaradInst):
     def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         super().get_recent_value(component_id, sensor_id, measurand_id)
         if self._last_sampling_time is None:
-            logger().warning(
-                "The gathered values might be invalid. "
-                "You should use function start_cycle() in your application "
-                "for a regular initialization of the measuring cycle."
-            )
+            logger().warning("The gathered values might be invalid.")
             if not self.get_all_recent_values():
                 return {}
         else:
@@ -404,9 +400,12 @@ class RscInst(SaradInst):
         for _component_id, component in self.components.items():
             for _sensor_id, sensor in component.sensors.items():
                 sensor.interval = self._interval
-        success = self.stop_cycle() and self._push_button()
-        if success:
-            self._last_sampling_time = datetime.utcnow()
+        success = True
+        for instr_type in self.family["types"]:
+            if instr_type["type_id"] == self.type_id:
+                if "stop_cycle" in instr_type.get("allowed_methods", []):
+                    success = self.stop_cycle() and self._push_button()
+                break
         return success
 
     def _get_config(self):

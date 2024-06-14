@@ -94,7 +94,7 @@ class RscInst(SaradInst):
             if self._socket is None:
                 self._establish_socket()
             if self._socket:
-                retry_counter = 0
+                retry_counter = 1
                 if self._send_via_socket(raw_cmd):
                     try:
                         result = self._socket.recv(1024)
@@ -229,42 +229,54 @@ class RscInst(SaradInst):
 
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
+        logger().debug(
+            "get_all_recent_values. Sample interval = %s. Last sampling time = %s",
+            self._interval,
+            self._last_sampling_time,
+        )
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x14", b""], timeout=self.COM_TIMEOUT)
         self._last_sampling_time = datetime.utcnow()
-        if not (reply and (reply[0] == ok_byte)):
+        success = True
+        if reply and (reply[0] == ok_byte):
+            try:
+                self._interval = timedelta(minutes=reply[1])
+                device_time_min = reply[2]
+                device_time_h = reply[3]
+                device_time_d = reply[4]
+                device_time_m = reply[5]
+                device_time_y = reply[6]
+                source = []  # measurand_source
+                source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
+                source.append(reply[11])  # 1
+                source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
+                source.append(reply[16])  # 3
+                source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
+                source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
+                source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
+                source.append(
+                    int.from_bytes(reply[29:33], byteorder="big", signed=False)
+                )  # 7
+                source.append(self._get_battery_voltage())  # 8
+                device_time = datetime(
+                    device_time_y + 2000,
+                    device_time_m,
+                    device_time_d,
+                    device_time_h,
+                    device_time_min,
+                    tzinfo=timezone.utc,
+                )
+                self._fill_component_tree(source, device_time)
+            except (TypeError, ReferenceError, LookupError, ValueError) as exception:
+                logger().error("Error when parsing the payload: %s", exception)
+                success = False
+        else:
             logger().error("Device %s doesn't reply.", self.device_id)
-            return False
-        try:
-            self._interval = timedelta(minutes=reply[1])
-            device_time_min = reply[2]
-            device_time_h = reply[3]
-            device_time_d = reply[4]
-            device_time_m = reply[5]
-            device_time_y = reply[6]
-            source = []  # measurand_source
-            source.append(round(self._bytes_to_float(reply[7:11]), 2))  # 0
-            source.append(reply[11])  # 1
-            source.append(round(self._bytes_to_float(reply[12:16]), 2))  # 2
-            source.append(reply[16])  # 3
-            source.append(round(self._bytes_to_float(reply[17:21]), 2))  # 4
-            source.append(round(self._bytes_to_float(reply[21:25]), 2))  # 5
-            source.append(round(self._bytes_to_float(reply[25:29]), 2))  # 6
-            source.append(
-                int.from_bytes(reply[29:33], byteorder="big", signed=False)
-            )  # 7
-            source.append(self._get_battery_voltage())  # 8
-            device_time = datetime(
-                device_time_y + 2000,
-                device_time_m,
-                device_time_d,
-                device_time_h,
-                device_time_min,
-                tzinfo=timezone.utc,
-            )
-        except (TypeError, ReferenceError, LookupError, ValueError) as exception:
-            logger().error("Error when parsing the payload: %s", exception)
-            return False
+            success = False
+        self.release_instrument()
+        return success
+
+    def _fill_component_tree(self, source, device_time):
         for component_id, component in self.components.items():
             for _sensor_id, sensor in component.sensors.items():
                 for _measurand_id, measurand in sensor.measurands.items():
@@ -300,7 +312,6 @@ class RscInst(SaradInst):
                             sensor.name,
                             measurand.name,
                         )
-        return True
 
     @overrides
     def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
@@ -323,8 +334,9 @@ class RscInst(SaradInst):
             )
             if in_main_interval:
                 logger().debug(
-                    "We do not have new values yet. Sample interval = %s.",
+                    "We do not have new values yet. Sample interval = %s. Last sampling time = %s",
                     self._interval,
+                    self._last_sampling_time,
                 )
             elif in_recent_interval:
                 logger().debug(

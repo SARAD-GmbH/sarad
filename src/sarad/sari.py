@@ -812,6 +812,7 @@ class SaradInst(Generic[SI]):
         )
 
     def _establish_socket(self):
+        logger().debug("_establish_socket")
         try:
             if self._socket is None:
                 socket.setdefaulttimeout(10)
@@ -873,10 +874,11 @@ class SaradInst(Generic[SI]):
                 retry_counter = 0
                 success = True
             except OSError as exception:
-                logger().error(exception)
+                logger().error("Exception in _send_via_socket %s", exception)
+                self._destroy_socket()
                 self._establish_socket()
                 retry_counter = retry_counter - 1
-                logger().debug("%d retries left", retry_counter)
+                logger().info("%d retries left", retry_counter)
                 sleep(1)
         return success
 

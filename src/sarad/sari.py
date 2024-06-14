@@ -755,6 +755,7 @@ class SaradInst(Generic[SI]):
                         ConnectionResetError,
                     ) as exception:
                         logger().error("Error in socket communication: %s", exception)
+            self._destroy_socket()
             return result
         logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         result = b""

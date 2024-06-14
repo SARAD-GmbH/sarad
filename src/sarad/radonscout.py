@@ -122,6 +122,7 @@ class RscInst(SaradInst):
                             ConnectionResetError,
                         ) as exception:
                             logger().error("Second exception: %s", exception)
+            self._destroy_socket()
             return result
         logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         for _i in range(len(self._serial_param_sets)):
@@ -273,7 +274,6 @@ class RscInst(SaradInst):
         else:
             logger().error("Device %s doesn't reply.", self.device_id)
             success = False
-        self.release_instrument()
         return success
 
     def _fill_component_tree(self, source, device_time):

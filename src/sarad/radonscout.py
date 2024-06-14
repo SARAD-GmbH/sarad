@@ -34,7 +34,7 @@ class RscInst(SaradInst):
         start_cycle()
     """
 
-    COM_TIMEOUT = 1
+    SER_TIMEOUT = 1
 
     @overrides
     def __init__(self, family=sarad_family(2)):
@@ -194,7 +194,7 @@ class RscInst(SaradInst):
         if not (battery_coeff and battery_bytes):
             return "This instrument type doesn't provide battery voltage information"
 
-        reply = self.get_reply([b"\x0d", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x0d", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             try:
                 voltage = battery_coeff * int.from_bytes(
@@ -220,7 +220,7 @@ class RscInst(SaradInst):
             return False
 
     def _push_button(self):
-        reply = self.get_reply([b"\x12", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x12", b""], timeout=self.SER_TIMEOUT)
         ok_byte = self.family["ok_byte"]
         if reply and (reply[0] == ok_byte):
             logger().debug("Push button simulated at device %s.", self.device_id)
@@ -236,7 +236,7 @@ class RscInst(SaradInst):
             self._last_sampling_time,
         )
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x14", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x14", b""], timeout=self.SER_TIMEOUT)
         self._last_sampling_time = datetime.utcnow()
         success = True
         if reply and (reply[0] == ok_byte):
@@ -381,7 +381,7 @@ class RscInst(SaradInst):
                 date_time.year - 2000,
             ]
         )
-        reply = self.get_reply([b"\x05", instr_datetime], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x05", instr_datetime], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Time on device %s set.", self.device_id)
             return True
@@ -392,7 +392,7 @@ class RscInst(SaradInst):
     def stop_cycle(self):
         """Stop a measurement cycle."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x15", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x15", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Cycle stopped at device %s.", self.device_id)
             return True
@@ -423,7 +423,7 @@ class RscInst(SaradInst):
     def _get_config(self):
         """Get configuration from device."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x10", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x10", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Getting config. from device %s.", self.device_id)
             try:
@@ -463,7 +463,7 @@ class RscInst(SaradInst):
             + (self.__alarm_level).to_bytes(4, byteorder="little")
         )
         logger().debug(setup_data)
-        reply = self.get_reply([b"\x0f", setup_data], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x0f", setup_data], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("Set config. successful at device %s.", self.device_id)
             return True
@@ -473,7 +473,7 @@ class RscInst(SaradInst):
     def set_lock(self):
         """Lock the hardware button or switch at the device."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x01", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x01", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.LOCKED
             logger().debug("Device %s locked.", self.device_id)
@@ -484,7 +484,7 @@ class RscInst(SaradInst):
     def set_unlock(self):
         """Unlock the hardware button or switch at the device."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x02", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x02", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             self.lock = self.Lock.UNLOCKED
             logger().debug("Device %s unlocked.", self.device_id)
@@ -495,7 +495,7 @@ class RscInst(SaradInst):
     def set_long_interval(self):
         """Set the measuring interval to 3 h = 180 min = 10800 s"""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x03", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x03", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             self._interval = timedelta(hours=3)
             logger().debug("Device %s set to 3 h interval.", self.device_id)
@@ -506,7 +506,7 @@ class RscInst(SaradInst):
     def set_short_interval(self):
         """Set the measuring interval to 1 h = 60 min = 3600 s"""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x04", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x04", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             self._interval = timedelta(hours=1)
             logger().debug("Device %s set to 1 h interval.", self.device_id)
@@ -517,7 +517,7 @@ class RscInst(SaradInst):
     def get_wifi_access(self):
         """Get the Wi-Fi access data from instrument."""
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x18", b""], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x18", b""], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             try:
                 logger().debug(reply)
@@ -547,7 +547,7 @@ class RscInst(SaradInst):
             ]
         )
         logger().debug(access_data)
-        reply = self.get_reply([b"\x17", access_data], timeout=self.COM_TIMEOUT)
+        reply = self.get_reply([b"\x17", access_data], timeout=self.SER_TIMEOUT)
         if reply and (reply[0] == ok_byte):
             logger().debug("WiFi access data on device %s set.", self.device_id)
             return True

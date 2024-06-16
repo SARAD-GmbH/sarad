@@ -346,27 +346,25 @@ class RscInst(SaradInst):
             else:
                 if not self.get_all_recent_values():
                     return {}
-        component = self.components[component_id]
-        sensor = component.sensors[sensor_id]
-        measurand = sensor.measurands[measurand_id]
-        return {
-            "component_name": component.name,
-            "sensor_name": sensor.name,
-            "measurand_name": measurand.name,
-            "measurand_operator": measurand.operator,
-            "measurand": f"{measurand.operator} {measurand.value} {measurand.unit}",
-            "value": measurand.value,
-            "measurand_unit": measurand.unit,
-            "datetime": measurand.time,
-            "sample_interval": measurand.interval,
-            "gps": {
-                "valid": False,
-                "latitude": None,
-                "longitude": None,
-                "altitude": None,
-                "deviation": None,
-            },
-        }
+        component = self.components.get(component_id)
+        if component is not None:
+            sensor = component.sensors.get(sensor_id)
+            if sensor is not None:
+                measurand = sensor.measurands.get(measurand_id)
+                if measurand is not None:
+                    return {
+                        "component_name": component.name,
+                        "sensor_name": sensor.name,
+                        "measurand_name": measurand.name,
+                        "measurand_operator": measurand.operator,
+                        "measurand": f"{measurand.operator} {measurand.value} {measurand.unit}",
+                        "value": measurand.value,
+                        "measurand_unit": measurand.unit,
+                        "datetime": measurand.time,
+                        "sample_interval": measurand.interval,
+                        "gps": self._gps,
+                    }
+        return {}
 
     @overrides
     def set_real_time_clock(self, date_time) -> bool:

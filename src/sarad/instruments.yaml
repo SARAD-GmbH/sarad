@@ -1038,14 +1038,6 @@
         measurands:
         - measurand_id: 1
           measurand_name: fixed
-    - component_id: 255
-      component_name: position
-      sensors:
-      - sensor_id: 0
-        sensor_name: config
-        measurands:
-        - measurand_id: 1
-          measurand_name: fixed
   - type_id: 15
     type_name: Smart Radon Sensor - P
     components:

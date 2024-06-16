@@ -17,7 +17,7 @@ from serial import STOPBITS_ONE  # type: ignore
 from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
 
 from sarad.global_helpers import sarad_family
-from sarad.instrument import Component, Route
+from sarad.instrument import Component, Gps, Route
 from sarad.logger import logger
 from sarad.typedef import CheckedAnswerDict, CmdDict, FamilyDict, MeasurandDict
 
@@ -111,6 +111,7 @@ class SaradInst(Generic[SI]):
         self._serial_param_sets: deque = deque(family["serial"])
         self._utc_offset: Union[None, int] = None
         self._interval = timedelta(seconds=0)
+        self._gps = Gps(valid=False)
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -998,3 +999,13 @@ class SaradInst(Generic[SI]):
     def sample_interval(self, sample_interval: int):
         """Set the duration of the sampling interval in seconds."""
         self._interval = timedelta(seconds=sample_interval)
+
+    @property
+    def geopos(self) -> Gps:
+        """Update the GPS object if requrired and give it back."""
+        return self._gps
+
+    @geopos.setter
+    def geopos(self, gps: Gps):
+        """Set the geographic position of the instrument."""
+        self._gps = gps

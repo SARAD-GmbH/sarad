@@ -8,7 +8,7 @@ from BitVector import BitVector  # type: ignore
 from overrides import overrides  # type: ignore
 
 from sarad.global_helpers import sarad_family
-from sarad.instrument import Component, Measurand, Sensor
+from sarad.instrument import Component, Gps, Measurand, Sensor
 from sarad.logger import logger
 from sarad.sari import SaradInst
 
@@ -54,6 +54,7 @@ class DacmInst(SaradInst):
         self._module_name = None
         self._config_name = None
         self._byte_order: Literal["little", "big"] = "big"
+        self._cycle = 0
 
     def __str__(self):
         output = super().__str__() + (
@@ -82,6 +83,12 @@ class DacmInst(SaradInst):
                     sensor_object.measurands[measurand_id] = measurand_object
                 component_object.sensors[sensor_id] = sensor_object
             self.components[component_object.component_id] = component_object
+        component_object = Component(255, "position")
+        sensor_object = Sensor(0, "gps")
+        measurand_object = Measurand(0, "recent")
+        sensor_object.measurands[0] = measurand_object
+        component_object.sensors[0] = sensor_object
+        self.components[component_object.component_id] = component_object
         return len(self.components)
 
     def _sanitize_date(self, year, month, day):
@@ -414,6 +421,7 @@ class DacmInst(SaradInst):
 
         """
         logger().debug("Trying to start measuring cycle %d", cycle)
+        self._cycle = cycle
         self._interval = self._read_cycle_start(cycle)["cycle_interval"]
         for _component_id, component in self.components.items():
             for _sensor_id, sensor in component.sensors.items():
@@ -481,11 +489,7 @@ class DacmInst(SaradInst):
         3 = maximum
         sensor_id: only for sensors delivering multiple measurands"""
         super().get_recent_value(component_id, sensor_id, measurand_id)
-        if not self._interval:
-            # TODO This is a dirty workaround. Actually it is impossible to
-            # find out, which cycle is running, if it wasn't started from the
-            # RegServer itself. We just guess that cycle 0 is running.
-            self._interval = self._read_cycle_start(cycle_index=0)["cycle_interval"]
+        interval = self._interval
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]
@@ -534,7 +538,7 @@ class DacmInst(SaradInst):
             measurand_id == 0 and ((datetime.utcnow() - fetched) < timedelta(seconds=5))
         )
         in_main_interval = bool(
-            measurand_id != 0 and ((datetime.utcnow() - fetched) < self._interval)
+            measurand_id != 0 and ((datetime.utcnow() - fetched) < interval)
         )
         if not in_main_interval and not in_recent_interval:
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)
@@ -569,13 +573,14 @@ class DacmInst(SaradInst):
         if in_main_interval:
             logger().info(
                 "We do not have new values yet. Sample interval = %s.",
-                self._interval,
+                interval,
             )
         elif in_recent_interval:
             logger().info(
                 "We don't request recent values faster than every %s.",
                 timedelta(seconds=5),
             )
+        self._gps = Gps(valid=measurand.gps)
         return {
             "component_name": component.name,
             "sensor_name": sensor.name,
@@ -590,6 +595,7 @@ class DacmInst(SaradInst):
         }
 
     def _gather_recent_value(self, component_id, sensor_id, measurand_id):
+        # pylint: disable=too-many-locals
         measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
         reply = self.get_reply(
             [
@@ -652,30 +658,25 @@ class DacmInst(SaradInst):
                 )
             try:
                 gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))
-                gps_dict = {
-                    "valid": True,
-                    "latitude": (
+                gps = Gps(
+                    valid=True,
+                    timestamp=output["datetime"].timestamp(),
+                    latitude=(
                         float(gps_list[0])
                         if gps_list[1] == "N"
                         else -float(gps_list[0])
                     ),
-                    "longitude": (
+                    longitude=(
                         float(gps_list[2])
                         if gps_list[3] == "E"
                         else -float(gps_list[2])
                     ),
-                    "altitude": float(gps_list[4]),
-                    "deviation": float(gps_list[5]),
-                }
+                    altitude=float(gps_list[4]),
+                    deviation=float(gps_list[5]),
+                )
             except Exception:  # pylint: disable=broad-except
-                gps_dict = {
-                    "valid": False,
-                    "latitude": None,
-                    "longitude": None,
-                    "altitude": None,
-                    "deviation": None,
-                }
-            output["gps"] = gps_dict
+                gps = Gps(valid=False)
+            output["gps"] = gps
             output["fetched"] = datetime.utcnow()
             return output
         logger().error("Measurand not available.")
@@ -734,3 +735,18 @@ class DacmInst(SaradInst):
                     return type_in_family["type_name"]
             return "unknown"
         return self.module_name
+
+    @property
+    def geopos(self) -> Gps:
+        """Update the GPS object if requrired and give it back."""
+        if (not self._gps.valid) or (
+            datetime.now(timezone.utc).timestamp() - self._gps.timestamp > 1
+        ):
+            logger().info("Update geographic position")
+            self._gps = self._gather_recent_value(0, 0, 0)["gps"]
+        return self._gps
+
+    @geopos.setter
+    def geopos(self, gps: Gps):
+        """Set the geographic position of the instrument."""
+        self._gps = gps

@@ -2,7 +2,19 @@
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
+
+
+@dataclass
+class Gps:
+    """GPS data"""
+
+    valid: bool
+    timestamp: int = 0
+    latitude: float = 0
+    longitude: float = 0
+    altitude: float = 0
+    deviation: float = 0
 
 
 @dataclass
@@ -63,7 +75,7 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         self.__value: Optional[float] = None
         self.__time: datetime = datetime.min
         self.__operator: str = ""
-        self.__gps: Dict[str, Union[float, bool]] = {}
+        self.__gps: Gps = Gps(valid=False)
         self.__fetched: datetime = datetime.min
         self.__interval: timedelta = timedelta(0)
 
@@ -156,13 +168,13 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         self.__time = time_stamp
 
     @property
-    def gps(self) -> Dict[str, Union[float, bool]]:
-        """Return the GPS dict of the measurand."""
+    def gps(self) -> Gps:
+        """Return the GPS object of the measurand."""
         return self.__gps
 
     @gps.setter
-    def gps(self, gps: Dict[str, Union[float, bool]]) -> None:
-        """Set the GPS dict of the measurand."""
+    def gps(self, gps: Gps) -> None:
+        """Set the GPS object of the measurand."""
         self.__gps = gps
 
     @property

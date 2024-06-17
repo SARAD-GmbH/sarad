@@ -500,11 +500,7 @@ class DacmInst(SaradInst):
             .fetched
         )
         if fetched == datetime.min:
-            logger().warning(
-                "The gathered values might be invalid. "
-                "You should use function start_cycle() in your application "
-                "for a regular initialization of the measuring cycle."
-            )
+            logger().warning("The gathered value might be invalid.")
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)
             try:
                 self.components[component_id].sensors[sensor_id].measurands[
@@ -743,7 +739,7 @@ class DacmInst(SaradInst):
             datetime.now(timezone.utc).timestamp() - self._gps.timestamp > 1
         ):
             logger().info("Update geographic position")
-            self._gps = self._gather_recent_value(0, 0, 0)["gps"]
+            self._gps = self._gather_recent_value(0, 0, 0).get("gps", Gps(valid=False))
         return self._gps
 
     @geopos.setter

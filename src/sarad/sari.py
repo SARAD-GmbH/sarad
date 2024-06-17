@@ -489,6 +489,8 @@ class SaradInst(Generic[SI]):
                 valid = True
                 try:
                     measurand_unit = meas_with_unit.split()[1]
+                    if measurand_unit == "øC":
+                        measurand_unit = "°C"
                 except Exception:  # pylint: disable=broad-except
                     pass
             except Exception:  # pylint: disable=broad-except

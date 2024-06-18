@@ -527,7 +527,15 @@ class DacmInst(SaradInst):
                 self.components[component_id].sensors[sensor_id].measurands[
                     measurand_id
                 ].fetched = output["fetched"]
-            except KeyError:
+            except KeyError as exception:
+                logger().error(
+                    "Key error in first fetch of (%d, %d, %d): %s; %s",
+                    component_id,
+                    sensor_id,
+                    measurand_id,
+                    exception,
+                    output,
+                )
                 return {}
             return output
         in_recent_interval = bool(
@@ -563,7 +571,8 @@ class DacmInst(SaradInst):
                 self.components[component_id].sensors[sensor_id].measurands[
                     measurand_id
                 ].fetched = output["fetched"]
-            except KeyError:
+            except KeyError as exception:
+                logger().error("Key error in fetch: %s; %s", exception, output)
                 return {}
             return output
         if in_main_interval:
@@ -591,92 +600,109 @@ class DacmInst(SaradInst):
         }
 
     def _gather_recent_value(self, component_id, sensor_id, measurand_id):
-        # pylint: disable=too-many-locals
-        measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
-        reply = self.get_reply(
-            [
-                b"\x1a",
-                bytes([component_id]) + bytes([sensor_id]) + bytes([measurand_id]),
-            ],
-            timeout=self.SER_TIMEOUT,
-        )
-        if not reply:
-            logger().error("The instrument doesn't reply.")
-            return {}
-        if reply[0] > 0:
-            output = {}
-            output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
-            output["measurand_name"] = measurand_names[measurand_id]
-            output["sensor_name"] = reply[18:34].split(b"\x00")[0].decode("cp1252")
-            output["measurand"] = (
-                reply[35:51].split(b"\x00")[0].strip().decode("cp1252")
+        repeat_counter = 2
+        reply = b"\x00"
+        while repeat_counter and (not reply[0]):
+            logger().debug(
+                "_gather_recent_value(%d, %d, %d), attempt %d",
+                component_id,
+                sensor_id,
+                measurand_id,
+                3 - repeat_counter,
             )
-            measurand_dict = self._parse_value_string(output["measurand"])
-            output["measurand_operator"] = measurand_dict["measurand_operator"]
-            output["value"] = measurand_dict["measurand_value"]
-            output["measurand_unit"] = measurand_dict["measurand_unit"]
-            meas_time = reply[69:85].split(b"\x00")[0].split(b":")
-            meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
-            if len(meas_date) == 3:
-                year = int(meas_date[2])
-                month = int(meas_date[0])
-                day = int(meas_date[1])
-            else:
-                meas_date = reply[52:68].split(b"\x00")[0].split(b".")
-                if len(meas_date) == 3:
-                    year = int(meas_date[2])
-                    month = int(meas_date[1])
-                    day = int(meas_date[0])
-            logger().debug(meas_date)
-            if meas_date != [b""]:
-                meas_datetime = datetime(
-                    year,
-                    month,
-                    day,
-                    int(meas_time[0]),
-                    int(meas_time[1]),
-                    int(meas_time[2]),
-                    tzinfo=timezone.utc,
+            reply = self.get_reply(
+                [
+                    b"\x1a",
+                    bytes([component_id]) + bytes([sensor_id]) + bytes([measurand_id]),
+                ],
+                timeout=self.SER_TIMEOUT + 3,
+            )
+            logger().debug("reply: %s", reply)
+            if not reply:
+                logger().error(
+                    "The instrument doesn't reply request for (%d, %d, %d)",
+                    component_id,
+                    sensor_id,
+                    measurand_id,
                 )
-                if self._utc_offset is None:
-                    self._utc_offset = self._calc_utc_offset(
-                        self._interval, meas_datetime, datetime.now(timezone.utc)
-                    )
-                output["sample_interval"] = self._interval
-            else:
-                meas_datetime = datetime.now(timezone.utc)
-                output["sample_interval"] = timedelta(seconds=0)
-            if self._utc_offset is None:
-                output["datetime"] = meas_datetime.replace(microsecond=0)
-            else:
-                output["datetime"] = meas_datetime.replace(
-                    microsecond=0, tzinfo=timezone(timedelta(hours=self._utc_offset))
-                )
-            try:
-                gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))
-                gps = Gps(
-                    valid=True,
-                    timestamp=output["datetime"].timestamp(),
-                    latitude=(
-                        float(gps_list[0])
-                        if gps_list[1] == "N"
-                        else -float(gps_list[0])
-                    ),
-                    longitude=(
-                        float(gps_list[2])
-                        if gps_list[3] == "E"
-                        else -float(gps_list[2])
-                    ),
-                    altitude=float(gps_list[4]),
-                    deviation=float(gps_list[5]),
-                )
-            except Exception:  # pylint: disable=broad-except
-                gps = Gps(valid=False)
-            output["gps"] = gps
-            output["fetched"] = datetime.utcnow()
-            return output
+                return {}
+            repeat_counter = repeat_counter - 1
+        if reply[0]:
+            return self._parse_recent_value_bin(reply, measurand_id)
         logger().error("Measurand not available.")
         return {}
+
+    def _parse_recent_value_bin(self, reply: bytes, measurand_id: int):
+        measurand_names = {0: "recent", 1: "average", 2: "minimum", 3: "maximum"}
+        output = {}
+        output["component_name"] = reply[1:17].split(b"\x00")[0].decode("cp1252")
+        output["measurand_name"] = measurand_names[measurand_id]
+        output["sensor_name"] = reply[18:34].split(b"\x00")[0].decode("cp1252")
+        output["measurand"] = reply[35:51].split(b"\x00")[0].strip().decode("cp1252")
+        measurand_dict = self._parse_value_string(output["measurand"])
+        output["measurand_operator"] = measurand_dict["measurand_operator"]
+        output["value"] = measurand_dict["measurand_value"]
+        output["measurand_unit"] = measurand_dict["measurand_unit"]
+        meas_time = reply[69:85].split(b"\x00")[0].split(b":")
+        meas_date = reply[52:68].split(b"\x00")[0].split(b"/")
+        if len(meas_date) == 3:
+            year = int(meas_date[2])
+            month = int(meas_date[0])
+            day = int(meas_date[1])
+        else:
+            meas_date = reply[52:68].split(b"\x00")[0].split(b".")
+            if len(meas_date) == 3:
+                year = int(meas_date[2])
+                month = int(meas_date[1])
+                day = int(meas_date[0])
+            else:
+                year = 0
+                month = 0
+                day = 0
+        logger().debug(meas_date)
+        if meas_date != [b""]:
+            meas_datetime = datetime(
+                year,
+                month,
+                day,
+                int(meas_time[0]),
+                int(meas_time[1]),
+                int(meas_time[2]),
+                tzinfo=timezone.utc,
+            )
+            if self._utc_offset is None:
+                self._utc_offset = self._calc_utc_offset(
+                    self._interval, meas_datetime, datetime.now(timezone.utc)
+                )
+            output["sample_interval"] = self._interval
+        else:
+            meas_datetime = datetime.now(timezone.utc)
+            output["sample_interval"] = timedelta(seconds=0)
+        if self._utc_offset is None:
+            output["datetime"] = meas_datetime.replace(microsecond=0)
+        else:
+            output["datetime"] = meas_datetime.replace(
+                microsecond=0, tzinfo=timezone(timedelta(hours=self._utc_offset))
+            )
+        try:
+            gps_list = re.split("[ ]+ |ø|M[ ]*", reply[86:].decode("cp1252"))
+            gps = Gps(
+                valid=True,
+                timestamp=output["datetime"].timestamp(),
+                latitude=(
+                    float(gps_list[0]) if gps_list[1] == "N" else -float(gps_list[0])
+                ),
+                longitude=(
+                    float(gps_list[2]) if gps_list[3] == "E" else -float(gps_list[2])
+                ),
+                altitude=float(gps_list[4]),
+                deviation=float(gps_list[5]),
+            )
+        except Exception:  # pylint: disable=broad-except
+            gps = Gps(valid=False)
+        output["gps"] = gps
+        output["fetched"] = datetime.utcnow()
+        return output
 
     def get_date_of_config(self):
         """Return the date the configuration was made on."""

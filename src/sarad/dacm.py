@@ -421,6 +421,7 @@ class DacmInst(SaradInst):
 
         """
         logger().debug("Trying to start measuring cycle %d", cycle)
+        self.stop_cycle()
         self._cycle = cycle
         self._interval = self._read_cycle_start(cycle)["cycle_interval"]
         for _component_id, component in self.components.items():
@@ -434,6 +435,7 @@ class DacmInst(SaradInst):
         logger().error("start_cycle() failed at device %s.", self.device_id)
         if reply[0] == 11:
             logger().error("DACM instrument replied with error code %s.", reply[1])
+            logger().info("reply: %s", reply)
         return False
 
     @overrides

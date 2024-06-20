@@ -113,6 +113,8 @@ class RscInst(SaradInst):
                     # to the COM port.
                     logger().info("Play it again, Sam!")
                     retry_counter = retry_counter - 1
+                    self._destroy_socket()
+                    self._establish_socket()
                     if self._send_via_socket(raw_cmd):
                         try:
                             result = self._socket.recv(1024)

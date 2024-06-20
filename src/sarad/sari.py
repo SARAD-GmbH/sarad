@@ -83,6 +83,7 @@ class SaradInst(Generic[SI]):
 
     CHANNEL_SELECTED = 0xD2
     SER_TIMEOUT = 0.5
+    SOCKET_TIMEOUT = 10  # adds to SER_TIMEOUT at socket communication
 
     def __init__(self: SI, family: FamilyDict) -> None:
         self._route: Route = Route(
@@ -821,7 +822,7 @@ class SaradInst(Generic[SI]):
             if self._socket is None:
                 socket.setdefaulttimeout(10)
                 self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self._socket.settimeout(self.SER_TIMEOUT + 0.5)
+                self._socket.settimeout(self.SER_TIMEOUT + self.SOCKET_TIMEOUT)
                 retry_counter = 2
                 while retry_counter:
                     try:
@@ -846,12 +847,16 @@ class SaradInst(Generic[SI]):
                             "Connection refused. %d retries left", retry_counter
                         )
                         sleep(1)
-                    except (TimeoutError, socket.timeout, ConnectionResetError):
-                        logger().error("Timeout connecting %s", self._route.ip_address)
-                        retry_counter = 0
-                    except BlockingIOError:
+                    except (
+                        TimeoutError,
+                        socket.timeout,
+                        ConnectionResetError,
+                        BlockingIOError,
+                    ) as exception:
                         logger().error(
-                            "BlockingIOError connecting %s", self._route.ip_address
+                            "Exception connecting %s: %s",
+                            self._route.ip_address,
+                            exception,
                         )
                         retry_counter = 0
                 self._socket = None

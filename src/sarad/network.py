@@ -1,9 +1,8 @@
 """Module for the communication with instruments of the Network family."""
 
-from hashids import Hashids  # type: ignore
 from overrides import overrides  # type: ignore
 
-from sarad.global_helpers import sarad_family
+from sarad.global_helpers import encode_instr_id, sarad_family
 from sarad.logger import logger
 from sarad.sari import SaradInst
 
@@ -114,7 +113,7 @@ class NetworkInst(SaradInst):
         channels = {}
         reply = self.get_first_channel()
         while reply:
-            instr_id = Hashids().encode(
+            instr_id = encode_instr_id(
                 reply["family_id"],
                 reply["device_type"],
                 reply["serial_number"],

@@ -10,12 +10,11 @@ import pickle
 from datetime import datetime, timezone
 from typing import IO, Dict, Generic, Iterator, List, Optional, Set
 
-from hashids import Hashids  # type: ignore
 from serial.serialutil import SerialException
 from serial.tools import list_ports  # type: ignore
 
 from sarad.doseman import DosemanInst
-from sarad.global_helpers import sarad_family
+from sarad.global_helpers import decode_instr_id, encode_instr_id, sarad_family
 from sarad.mapping import id_family_mapping
 from sarad.sari import SI, Route, SaradInst
 
@@ -62,8 +61,7 @@ class SaradCluster(Generic[SI]):
         Returns:
             SaradInst object
         """
-        hid = Hashids()
-        family_id = hid.decode(device_id)[0]
+        family_id = decode_instr_id(device_id)[0]
         instrument = id_family_mapping[family_id]
         instrument.device_id = device_id
         instrument.route = route
@@ -168,7 +166,6 @@ class SaradCluster(Generic[SI]):
         Returns:
             Set[SaradInst]: Set of detected SARAD instruments
         """
-        hid = Hashids()
         added_instruments = set()
         logger().debug("%d port(s) to test: %s", len(ports_to_test), ports_to_test)
         # We check every port in ports_to_test and try for a connected SARAD instrument.
@@ -202,7 +199,7 @@ class SaradCluster(Generic[SI]):
                         test_instrument.serial_number,
                     )
                     if test_instrument.type_id and test_instrument.serial_number:
-                        instr_id = hid.encode(
+                        instr_id = encode_instr_id(
                             test_instrument.family["family_id"],
                             test_instrument.type_id,
                             test_instrument.serial_number,
@@ -231,7 +228,6 @@ class SaradCluster(Generic[SI]):
             Set[SaradInst]: Set of detected SARAD instruments
 
         """
-        hid = Hashids()
         added_instruments = set()
         logger().debug(
             "%d port(s) to test for RS-485: %s",
@@ -272,7 +268,7 @@ class SaradCluster(Generic[SI]):
                             test_instrument.serial_number,
                         )
                         if test_instrument.type_id and test_instrument.serial_number:
-                            instr_id = hid.encode(
+                            instr_id = encode_instr_id(
                                 test_instrument.family["family_id"],
                                 test_instrument.type_id,
                                 test_instrument.serial_number,

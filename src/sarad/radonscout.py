@@ -94,36 +94,17 @@ class RscInst(SaradInst):
             if self._socket is None:
                 self._establish_socket()
             if self._socket:
-                retry_counter = 1
                 if self._send_via_socket(raw_cmd):
                     try:
                         result = self._socket.recv(1024)
-                    except (TimeoutError, socket.timeout) as exception:
+                    except (
+                        TimeoutError,
+                        socket.timeout,
+                        ConnectionResetError,
+                    ) as exception:
                         logger().error(
                             "Exception in get_transparent_reply: %s", exception
                         )
-                        retry_counter = 1
-                    except ConnectionResetError as exception:
-                        logger().error(
-                            "Exception in get_transparent_reply: %s", exception
-                        )
-                while not result and retry_counter and not self.route.zigbee_address:
-                    # Workaround for firmware bug in SARAD instruments.
-                    # This shall only be used, if the instrument is connected directly
-                    # to the COM port.
-                    logger().info("Play it again, Sam!")
-                    retry_counter = retry_counter - 1
-                    self._destroy_socket()
-                    self._establish_socket()
-                    if self._send_via_socket(raw_cmd):
-                        try:
-                            result = self._socket.recv(1024)
-                        except (
-                            TimeoutError,
-                            socket.timeout,
-                            ConnectionResetError,
-                        ) as exception:
-                            logger().error("Second exception: %s", exception)
             self._destroy_socket()
             return result
         logger().debug("Possible parameter sets: %s", self._serial_param_sets)

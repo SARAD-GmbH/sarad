@@ -975,6 +975,8 @@
           measurand_name: fixed
   - type_id: 14
     type_name: Smart Radon Sensor
+    fw_features:
+      rtc_set_seconds: 20  # seconds will be set since FW ver. 20
     components:
     - component_id: 0
       component_name: main

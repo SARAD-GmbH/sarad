@@ -19,7 +19,8 @@ from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
 from sarad.global_helpers import sarad_family
 from sarad.instrument import Component, Gps, Route
 from sarad.logger import logger
-from sarad.typedef import CheckedAnswerDict, CmdDict, FamilyDict, MeasurandDict
+from sarad.typedef import (CheckedAnswerDict, CmdDict, FamilyDict, FeatureDict,
+                           MeasurandDict)
 
 SI = TypeVar("SI", bound="SaradInst")
 
@@ -1016,3 +1017,19 @@ class SaradInst(Generic[SI]):
     def geopos(self, gps: Gps):
         """Set the geographic position of the instrument."""
         self._gps = gps
+
+    @property
+    def features(self) -> Dict[str, Any]:
+        """Get the list of features that depend on firmware version or serial number."""
+        features = {}
+        for instr_type in self._family["types"]:
+            if instr_type["type_id"] == self._type_id:
+                fw_features: Dict[str, FeatureDict] = instr_type.get("fw_features", {})
+                for fw_feature, feature_descr in fw_features.items():
+                    if not self._software_version < feature_descr.get("since", 1000000):
+                        features[fw_feature] = feature_descr.get("value", False)
+                hw_features: Dict[str, FeatureDict] = instr_type.get("hw_features", {})
+                for hw_feature, feature_descr in hw_features.items():
+                    if not self._software_version < feature_descr.get("since", 1000000):
+                        features[hw_feature] = feature_descr.get("value", False)
+        return features

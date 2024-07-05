@@ -28,11 +28,20 @@ class ComponentDict(TypedDict):
     component: Component
 
 
+class FeatureDict(TypedDict):
+    # pylint: disable=inherit-non-class, too-few-public-methods
+    """Type declaration for hardware and firmware dependent features"""
+    since: int
+    value: str
+
+
 class InstrumentDict(TypedDict):
     # pylint: disable=inherit-non-class, too-few-public-methods
     """Type declaration for instrument type dictionary."""
     type_id: int
     type_name: str
+    fw_features: Dict[str, FeatureDict]
+    hw_features: Dict[str, FeatureDict]
     components: List[ComponentDict]
     battery_bytes: int
     battery_coeff: float

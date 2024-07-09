@@ -68,17 +68,15 @@ class RscInst(SaradInst):
             data_list = list(cmd_dict["data"])
             old_rs485_address = self._route.rs485_address
             _device_type = data_list[0]
-            software_version = data_list[1]
+            _software_version = data_list[1]
             unicon_4 = data_list[10]
             if self._type_id in [14, 15, 16]:
                 rs485_address = unicon_4
-            elif self._type_id in [4, 10]:
-                rs485_address = software_version
             else:
                 rs485_address = 0
             self._route.rs485_address = rs485_address
             logger().info(
-                "Change RS-485 bus address from %d into %d",
+                "Change RS-485 bus address from %s into %s",
                 old_rs485_address,
                 self._route.rs485_address,
             )

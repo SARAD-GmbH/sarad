@@ -590,7 +590,9 @@ class SaradInst(Generic[SI]):
                 self._valid_family = False
                 return answer
             logger().warning(
-                "Message %s should start with b'B'. No SARAD instrument.", answer
+                "Message %s should start with %s. No SARAD instrument.",
+                answer,
+                start_byte,
             )
             self._valid_family = False
             return b""

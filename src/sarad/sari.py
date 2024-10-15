@@ -655,10 +655,18 @@ class SaradInst(Generic[SI]):
             serial.timeout,
             serial.inter_byte_timeout,
         )
-        remaining_bytes = serial.read(number_of_remaining_bytes)
+        try:
+            remaining_bytes = serial.read(number_of_remaining_bytes)
+        except SerialException as exception:
+            logger().warning("SerialException in _get_be_frame: %s", exception)
+            return b""
         if len(remaining_bytes) < number_of_remaining_bytes:
             logger().error("Uncomplete B-E frame. Trying to complete.")
-            left_bytes = serial.read_until("E", None)
+            try:
+                left_bytes = serial.read_until("E", None)
+            except SerialException as exception:
+                logger().warning("SerialException in _get_be_frame: %s", exception)
+                return b""
             return first_bytes + remaining_bytes + left_bytes
         return first_bytes + remaining_bytes
 

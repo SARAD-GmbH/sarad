@@ -28,7 +28,6 @@ class DosemanInst(SaradInst):
     """
 
     RET_INVALID = 1
-    SER_TIMEOUT = 0.5
 
     @overrides
     def __init__(self, family=sarad_family(1)):
@@ -40,7 +39,7 @@ class DosemanInst(SaradInst):
         """Set instrument type, software version, and serial number."""
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply(id_cmd, timeout=self.SER_TIMEOUT)
+        reply = self.get_reply(id_cmd, timeout=self._ser_timeout)
         if reply:
             if reply[0] == ok_byte:
                 logger().debug("Get description successful.")
@@ -138,7 +137,7 @@ class DosemanInst(SaradInst):
         """
 
         ok_byte = self.family["ok_byte"]
-        reply = self.get_reply([b"\x33", b""], timeout=self.SER_TIMEOUT + 1)
+        reply = self.get_reply([b"\x33", b""], timeout=self.ext_ser_timeout)
         if reply and (reply[0] == ok_byte):
             logger().debug("Cycle stopped at device %s.", self.device_id)
             return True

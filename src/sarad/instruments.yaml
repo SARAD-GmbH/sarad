@@ -17,6 +17,8 @@
       /wAA
   tx_msg_delay: 0
   tx_byte_delay: 0
+  ser_timeout: 0.5
+  ext_ser_timeout: 5
   ok_byte: 10
   byte_order: little
   allowed_cmds:
@@ -35,6 +37,8 @@
   length_of_reply: 5
   tx_msg_delay: 0.1
   tx_byte_delay: 0.001
+  ser_timeout: 0.5
+  ext_ser_timeout: 2
   ok_byte: 0
   byte_order: little
   allowed_cmds:
@@ -131,6 +135,8 @@
   length_of_reply: 13
   tx_msg_delay: 0
   tx_byte_delay: 0
+  ser_timeout: 1
+  ext_ser_timeout: 1
   ok_byte: 10
   byte_order: little
   config_parameters:
@@ -1410,6 +1416,8 @@
   length_of_reply: 13
   tx_msg_delay: 0
   tx_byte_delay: 0
+  ser_timeout: 3
+  ext_ser_timeout: 3
   ok_byte: 10
   byte_order: little
   allowed_cmds:
@@ -1438,6 +1446,8 @@
   length_of_reply: 32
   tx_msg_delay: 0
   tx_byte_delay: 0
+  ser_timeout: 0.5
+  ext_ser_timeout: 6
   ok_byte: 10
   byte_order: big
   allowed_cmds:

@@ -83,8 +83,7 @@ class SaradInst(Generic[SI]):
         XL: int = 4
 
     CHANNEL_SELECTED = 0xD2
-    SER_TIMEOUT = 0.5
-    SOCKET_TIMEOUT = 10  # adds to SER_TIMEOUT at socket communication
+    SOCKET_TIMEOUT = 10  # adds to self._ser_timeout at socket communication
 
     def __init__(self: SI, family: FamilyDict) -> None:
         self._route: Route = Route(
@@ -114,6 +113,8 @@ class SaradInst(Generic[SI]):
         self._utc_offset: Union[None, int] = None
         self._interval = timedelta(seconds=0)
         self._gps = Gps(valid=False)
+        self._ser_timeout = self._family.get("ser_timeout", 1)
+        self.ext_ser_timeout = self._family.get("ext_ser_timeout", 6)
 
     def __iter__(self) -> Iterator[Component]:
         return iter(self.__components)
@@ -392,7 +393,7 @@ class SaradInst(Generic[SI]):
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
         msg = self._make_command_msg(id_cmd)
-        checked_payload = self.get_message_payload(msg, timeout=self.SER_TIMEOUT)
+        checked_payload = self.get_message_payload(msg, timeout=self._ser_timeout)
         if checked_payload["is_valid"]:
             reply = checked_payload["payload"]
         else:
@@ -443,7 +444,7 @@ class SaradInst(Generic[SI]):
     def select_channel(self, channel_idx):
         """Start the transparent mode to given ZigBee channel."""
         reply = self.get_reply(
-            [b"\xC2", channel_idx.to_bytes(2, "little")], timeout=self.SER_TIMEOUT
+            [b"\xC2", channel_idx.to_bytes(2, "little")], timeout=self._ser_timeout
         )
         if reply and (reply[0] == self.CHANNEL_SELECTED):
             logger().debug("Channel selected: %s", reply)
@@ -453,7 +454,7 @@ class SaradInst(Generic[SI]):
 
     def close_channel(self):
         """Leave the transparent ZigBee mode."""
-        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=self.SER_TIMEOUT)
+        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=self._ser_timeout)
         if reply and (reply[0] == self.CHANNEL_SELECTED):
             return reply
         logger().error("Unexpected reply to close_channel: %s", reply)
@@ -577,8 +578,9 @@ class SaradInst(Generic[SI]):
             start_byte = b"b"
         try:
             answer = serial.read(offset)
-        except SerialException as exception:
+        except (SerialException, TypeError) as exception:
             logger().warning("SerialException in _get_control_bytes: %s", exception)
+            logger().info("offset = %d, baudrate = %d", offset, serial.baudrate)
             return b""
         if not answer.startswith(start_byte):
             if answer == b"":
@@ -825,7 +827,7 @@ class SaradInst(Generic[SI]):
             if self._socket is None:
                 socket.setdefaulttimeout(10)
                 self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self._socket.settimeout(self.SER_TIMEOUT + self.SOCKET_TIMEOUT)
+                self._socket.settimeout(self._ser_timeout + self.SOCKET_TIMEOUT)
                 retry_counter = 2
                 while retry_counter:
                     try:

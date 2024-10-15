@@ -47,37 +47,39 @@ class RscInst(SaradInst):
             "server_port": None,
         }
 
-    @overrides
-    def _new_rs485_address(self, raw_cmd):
-        """Check whether raw_cmd changed the RS-485 bus address of the instrument.
-        If this is the case, self._route will be changed.
+    ## This method can be activated as soon as RTM 1688-2 and SRS support
+    ## addressable SARAD protocol with RS-485
+    # @overrides
+    # def _new_rs485_address(self, raw_cmd):
+    #     """Check whether raw_cmd changed the RS-485 bus address of the instrument.
+    #     If this is the case, self._route will be changed.
 
-        Args:
-            raw_cmd (bytes): Command message to be analyzed.
-        """
-        cmd_dict = self._analyze_cmd_data(
-            payload=self._check_message(
-                message=raw_cmd,
-                multiframe=False,
-            )["payload"]
-        )
-        logger().debug("cmd_dict = %s", cmd_dict)
-        if cmd_dict["cmd"] == b"\x09":  # C_SetParameter
-            data_list = list(cmd_dict["data"])
-            old_rs485_address = self._route.rs485_address
-            _device_type = data_list[0]
-            _software_version = data_list[1]
-            unicon_4 = data_list[10]
-            if self._type_id in [14, 15, 16]:
-                rs485_address = unicon_4
-            else:
-                rs485_address = 0
-            self._route.rs485_address = rs485_address
-            logger().info(
-                "Change RS-485 bus address from %s into %s",
-                old_rs485_address,
-                self._route.rs485_address,
-            )
+    #     Args:
+    #         raw_cmd (bytes): Command message to be analyzed.
+    #     """
+    #     cmd_dict = self._analyze_cmd_data(
+    #         payload=self._check_message(
+    #             message=raw_cmd,
+    #             multiframe=False,
+    #         )["payload"]
+    #     )
+    #     logger().debug("cmd_dict = %s", cmd_dict)
+    #     if cmd_dict["cmd"] == b"\x09":  # C_SetParameter
+    #         data_list = list(cmd_dict["data"])
+    #         old_rs485_address = self._route.rs485_address
+    #         _device_type = data_list[0]
+    #         software_version = data_list[1]
+    #         unicon_4 = data_list[10]
+    #         if self._type_id in [14, 15, 16]:
+    #             rs485_address = unicon_4
+    #         else:
+    #             rs485_address = software_version
+    #         self._route.rs485_address = rs485_address
+    #         logger().info(
+    #             "Change RS-485 bus address from %s into %s",
+    #             old_rs485_address,
+    #             self._route.rs485_address,
+    #         )
 
     @overrides
     def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):

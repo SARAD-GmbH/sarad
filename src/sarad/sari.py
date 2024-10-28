@@ -130,7 +130,28 @@ class SaradInst(Generic[SI]):
         return False
 
     @staticmethod
-    def _make_command_msg(cmd_data: List[bytes]) -> bytes:
+    def _analyze_cmd_data(payload: bytes) -> CmdDict:
+        payload_list = list(payload)
+        if len(payload_list) > 1:
+            data = bytes(payload_list[1:])
+        else:
+            data = b""
+        return {"cmd": bytes(payload_list[0:1]), "data": data}
+
+    @staticmethod
+    def _calc_utc_offset(
+        sample_interval: timedelta,
+        timestamp_datetime: datetime,
+        momentary_datetime: datetime,
+    ) -> Union[None, int]:
+        """This method tries to calculate the UTC offset of the RTC."""
+        if sample_interval > timedelta(hours=1):
+            return None
+        t_diff = timestamp_datetime - momentary_datetime
+        logger().debug("t_diff = %s", t_diff)
+        return ceil(t_diff.total_seconds() / 3600)
+
+    def _make_command_msg(self, cmd_data: List[bytes]) -> bytes:
         """Encode the message to be sent to the SARAD instrument.
 
         Arguments are the one byte long command
@@ -155,28 +176,6 @@ class SaradInst(Generic[SI]):
             + b"E"
         )
 
-    @staticmethod
-    def _analyze_cmd_data(payload: bytes) -> CmdDict:
-        payload_list = list(payload)
-        if len(payload_list) > 1:
-            data = bytes(payload_list[1:])
-        else:
-            data = b""
-        return {"cmd": bytes(payload_list[0:1]), "data": data}
-
-    @staticmethod
-    def _calc_utc_offset(
-        sample_interval: timedelta,
-        timestamp_datetime: datetime,
-        momentary_datetime: datetime,
-    ) -> Union[None, int]:
-        """This method tries to calculate the UTC offset of the RTC."""
-        if sample_interval > timedelta(hours=1):
-            return None
-        t_diff = timestamp_datetime - momentary_datetime
-        logger().debug("t_diff = %s", t_diff)
-        return ceil(t_diff.total_seconds() / 3600)
-
     def _check_message(self, message: bytes, multiframe: bool) -> CheckedAnswerDict:
         # pylint: disable=too-many-locals
         """Check the message
@@ -187,24 +186,17 @@ class SaradInst(Generic[SI]):
         payload: Payload of message
         number_of_bytes_in_payload
         """
-        if (self._route.rs485_address is None) or (self._route.rs485_address == 0):
-            return self._check_standard_message(message, multiframe)
-        return self._check_rs485_message(message, multiframe, self._route.rs485_address)
-
-    def _check_standard_message(
-        self, answer: bytes, multiframe: bool
-    ) -> CheckedAnswerDict:
-        if answer.startswith(b"B") and answer.endswith(b"E"):
-            control_byte = answer[1]
-            control_byte_ok = bool((control_byte ^ 0xFF) == answer[2])
+        if message and message.startswith(b"B") and message.endswith(b"E"):
+            control_byte = message[1]
+            control_byte_ok = bool((control_byte ^ 0xFF) == message[2])
             number_of_bytes_in_payload = (control_byte & 0x7F) + 1
             is_control = bool(control_byte & 0x80)
-            _status_byte = answer[3]
-            payload = answer[3 : 3 + number_of_bytes_in_payload]
+            _status_byte = message[3]
+            payload = message[3 : 3 + number_of_bytes_in_payload]
             calculated_checksum = 0
             for byte in payload:
                 calculated_checksum = calculated_checksum + byte
-            received_checksum_bytes = answer[
+            received_checksum_bytes = message[
                 3 + number_of_bytes_in_payload : 5 + number_of_bytes_in_payload
             ]
             received_checksum = int.from_bytes(
@@ -222,8 +214,8 @@ class SaradInst(Generic[SI]):
                 "is_last_frame": (not multiframe) or is_rend,
                 "payload": payload,
                 "number_of_bytes_in_payload": number_of_bytes_in_payload,
-                "raw": answer,
-                "standard_frame": self._rs485_filter(answer),
+                "raw": message,
+                "standard_frame": self._rs485_filter(message),
             }
         logger().debug("Invalid B-E frame")
         return {
@@ -232,74 +224,32 @@ class SaradInst(Generic[SI]):
             "is_last_frame": True,
             "payload": b"",
             "number_of_bytes_in_payload": 0,
-            "raw": answer,
-            "standard_frame": self._rs485_filter(answer),
-        }
-
-    def _check_rs485_message(
-        self, answer: bytes, multiframe: bool, rs485_address
-    ) -> CheckedAnswerDict:
-        # pylint: disable=too-many-locals
-        """Check a RS-485 message
-
-        Returns a dictionary of:
-        is_valid: True if answer is valid, False otherwise
-        is_control_message: True if control message
-        payload: Payload of answer
-        number_of_bytes_in_payload
-        """
-        is_control = False
-        if answer.startswith(b"b") and answer.endswith(b"E"):
-            address_ok = bool(answer[1] == rs485_address)
-            control_byte = answer[2]
-            control_byte_ok = bool((control_byte ^ 0xFF) == answer[3])
-            number_of_bytes_in_payload = (control_byte & 0x7F) + 1
-            is_control = bool(control_byte & 0x80)
-            payload = answer[4 : 4 + number_of_bytes_in_payload]
-            calculated_checksum = 0
-            for byte in payload:
-                calculated_checksum = calculated_checksum + byte
-            received_checksum_bytes = answer[
-                4 + number_of_bytes_in_payload : 6 + number_of_bytes_in_payload
-            ]
-            received_checksum = int.from_bytes(
-                received_checksum_bytes, byteorder="little", signed=False
-            )
-            checksum_ok = bool(received_checksum == calculated_checksum)
-            is_valid = bool(control_byte_ok and checksum_ok and address_ok)
-        else:
-            logger().debug("Invalid b-E frame")
-            is_valid = False
-        if not is_valid:
-            is_control = False
-            payload = b""
-            number_of_bytes_in_payload = 0
-        # is_rend is True if that this is the last frame of a multiframe reply
-        # (DOSEman data download)
-        is_rend = bool(is_valid and is_control and (payload == b"\x04"))
-        return {
-            "is_valid": is_valid,
-            "is_control": is_control,
-            "is_last_frame": (not multiframe) or is_rend,
-            "payload": payload,
-            "number_of_bytes_in_payload": number_of_bytes_in_payload,
-            "raw": answer,
-            "standard_frame": self._rs485_filter(answer),
+            "raw": message,
+            "standard_frame": self._rs485_filter(message),
         }
 
     def _rs485_filter(self, frame):
         """Convert an addressed RS-485 'b-E' frame into a normal 'B-E' frame
 
         by simply replacing the first two bytes with 'B'."""
-        if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
+        if (
+            (self.route.rs485_address is None)
+            or (self.route.rs485_address == 0)
+            or not frame
+        ):
             return frame
         frame_list = list(frame)
-        frame_list[0:2] = [66]  # replace "bx\??" by "B"
+        if frame_list[0] == 98:  # int representation of "b"
+            frame_list[0:2] = [66]  # replace "bx\??" by "B"
         return bytes(frame_list)
 
     def _make_rs485(self, frame):
         """Convert a normal 'B-E' frame into an addressed 'b-E' frame for RS-485"""
-        if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
+        if (
+            (self.route.rs485_address is None)
+            or (self.route.rs485_address == 0)
+            or (list(frame)[0] == 98)
+        ):
             return frame
         frame_list = list(frame)
         frame_list[0:1] = [98, self.route.rs485_address]  # replace "B by ""bx\??"
@@ -334,31 +284,36 @@ class SaradInst(Generic[SI]):
             raw: The raw byte string from _get_transparent_reply.
             standard_frame: standard B-E frame derived from b-e frame
         """
-        cmd_is_valid = True
-        if message:
-            cmd_is_valid = self.check_cmd(message)
-        if not cmd_is_valid:
-            logger().error("Received invalid command %s", message)
+        cmd_is_valid = self.check_cmd(message)
+        if cmd_is_valid:
+            addr_message = self._make_rs485(message)
+            logger().debug("To: %s", addr_message)
+            addr_answer = self._get_transparent_reply(
+                addr_message, timeout=timeout, keep=True
+            )
+            logger().debug("From: %s", addr_answer)
+            answer = self._rs485_filter(addr_answer)
+            checked_answer = self._check_message(answer, False)
             return {
-                "is_valid": False,
-                "is_control": False,
-                "is_last_frame": True,
-                "payload": b"",
-                "number_of_bytes_in_payload": 0,
-                "raw": b"",
-                "standard_frame": b"",
+                "is_valid": checked_answer["is_valid"],
+                "is_control": checked_answer["is_control"],
+                "is_last_frame": checked_answer["is_last_frame"],
+                "payload": checked_answer["payload"],
+                "number_of_bytes_in_payload": checked_answer[
+                    "number_of_bytes_in_payload"
+                ],
+                "raw": checked_answer["raw"],
+                "standard_frame": checked_answer["standard_frame"],
             }
-        message = self._make_rs485(message)
-        answer = self._get_transparent_reply(message, timeout=timeout, keep=True)
-        checked_answer = self._check_message(answer, False)
+        logger().error("Received invalid command %s", message)
         return {
-            "is_valid": checked_answer["is_valid"],
-            "is_control": checked_answer["is_control"],
-            "is_last_frame": checked_answer["is_last_frame"],
-            "payload": checked_answer["payload"],
-            "number_of_bytes_in_payload": checked_answer["number_of_bytes_in_payload"],
-            "raw": checked_answer["raw"],
-            "standard_frame": checked_answer["standard_frame"],
+            "is_valid": False,
+            "is_control": False,
+            "is_last_frame": True,
+            "payload": b"",
+            "number_of_bytes_in_payload": 0,
+            "raw": b"",
+            "standard_frame": b"",
         }
 
     def __str__(self) -> str:
@@ -569,11 +524,12 @@ class SaradInst(Generic[SI]):
 
     def _get_control_bytes(self, serial):
         """Read 3 or 4 Bytes from serial interface resp."""
-        logger().debug("Trying to read the first 3 bytes")
         if (self.route.rs485_address is None) or (self.route.rs485_address == 0):
+            logger().debug("Trying to read the first 3 bytes on route %s", self.route)
             offset = 3
             start_byte = b"B"
         else:
+            logger().debug("Trying to read the first 4 bytes on route %s", self.route)
             offset = 4
             start_byte = b"b"
         try:
@@ -751,6 +707,7 @@ class SaradInst(Generic[SI]):
         self.__ser = self._close_serial(ser, keep_serial_open)
         b_answer = bytes(answer)
         logger().debug("Rx from %s: %s", ser.port, b_answer)
+        # self._new_rs485_address(raw_cmd)
         return b_answer
 
     def _get_transparent_reply(self, raw_cmd, timeout=0.5, keep=True):

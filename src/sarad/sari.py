@@ -130,15 +130,6 @@ class SaradInst(Generic[SI]):
         return False
 
     @staticmethod
-    def _analyze_cmd_data(payload: bytes) -> CmdDict:
-        payload_list = list(payload)
-        if len(payload_list) > 1:
-            data = bytes(payload_list[1:])
-        else:
-            data = b""
-        return {"cmd": bytes(payload_list[0:1]), "data": data}
-
-    @staticmethod
     def _calc_utc_offset(
         sample_interval: timedelta,
         timestamp_datetime: datetime,
@@ -193,6 +184,13 @@ class SaradInst(Generic[SI]):
             is_control = bool(control_byte & 0x80)
             _status_byte = message[3]
             payload = message[3 : 3 + number_of_bytes_in_payload]
+            payload_list = list(payload)
+            if is_control:
+                cmd = bytes(payload_list[0:1])
+                data = bytes(payload_list[1:])
+            else:
+                cmd = b""
+                data = payload
             calculated_checksum = 0
             for byte in payload:
                 calculated_checksum = calculated_checksum + byte
@@ -212,6 +210,8 @@ class SaradInst(Generic[SI]):
                 "is_valid": is_valid,
                 "is_control": is_control,
                 "is_last_frame": (not multiframe) or is_rend,
+                "cmd": cmd,
+                "data": data,
                 "payload": payload,
                 "number_of_bytes_in_payload": number_of_bytes_in_payload,
                 "raw": message,
@@ -222,6 +222,8 @@ class SaradInst(Generic[SI]):
             "is_valid": False,
             "is_control": False,
             "is_last_frame": True,
+            "cmd": b"",
+            "data": b"",
             "payload": b"",
             "number_of_bytes_in_payload": 0,
             "raw": message,
@@ -298,6 +300,8 @@ class SaradInst(Generic[SI]):
                 "is_valid": checked_answer["is_valid"],
                 "is_control": checked_answer["is_control"],
                 "is_last_frame": checked_answer["is_last_frame"],
+                "cmd": checked_answer["cmd"],
+                "data": checked_answer["data"],
                 "payload": checked_answer["payload"],
                 "number_of_bytes_in_payload": checked_answer[
                     "number_of_bytes_in_payload"
@@ -310,6 +314,8 @@ class SaradInst(Generic[SI]):
             "is_valid": False,
             "is_control": False,
             "is_last_frame": True,
+            "cmd": b"",
+            "data": b"",
             "payload": b"",
             "number_of_bytes_in_payload": 0,
             "raw": b"",

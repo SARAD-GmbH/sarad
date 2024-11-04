@@ -44,22 +44,21 @@ class NetworkInst(SaradInst):
         Args:
             raw_cmd (bytes): Command message to be analyzed.
         """
-        cmd_dict = self._analyze_cmd_data(
-            payload=self._check_message(
-                message=raw_cmd,
-                multiframe=False,
-            )["payload"]
-        )
-        logger().debug("cmd_dict = %s", cmd_dict)
-        if cmd_dict["cmd"] == b"\x02":  # set_module_information
-            data_list = list(cmd_dict["data"])
-            old_rs485_address = self._route.rs485_address
-            self._route.rs485_address = data_list[0]
-            logger().info(
-                "Change RS-485 bus address from %d into %d",
-                old_rs485_address,
-                self._route.rs485_address,
-            )
+        message = self._rs485_filter(raw_cmd)
+        checked_dict = self._check_message(message, multiframe=False)
+        cmd = checked_dict["cmd"]
+        data = checked_dict["data"]
+        if cmd:
+            logger().debug("cmd = %s", cmd)
+            if cmd == b"\x02":  # set_module_information
+                data_list = list(data)
+                old_rs485_address = self._route.rs485_address
+                self._route.rs485_address = data_list[0]
+                logger().info(
+                    "Change RS-485 bus address from %d into %d",
+                    old_rs485_address,
+                    self._route.rs485_address,
+                )
 
     def get_first_channel(self):
         """Get information about the instrument connected via first available channel."""

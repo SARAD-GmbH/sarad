@@ -445,21 +445,20 @@ class DacmInst(SaradInst):
             raw_cmd (bytes): Command message to be analyzed.
         """
         message = self._rs485_filter(raw_cmd)
-        payload = self._check_message(
-            message,
-            multiframe=False,
-        )["payload"]
-        cmd_dict = self._analyze_cmd_data(payload)
-        logger().debug("cmd_dict = %s", cmd_dict)
-        if cmd_dict["cmd"] == b"\x02":  # set_module_information
-            data_list = list(cmd_dict["data"])
-            old_rs485_address = self._route.rs485_address
-            self._route.rs485_address = data_list[0]
-            logger().info(
-                "Change RS-485 bus address from %d into %d",
-                old_rs485_address,
-                self._route.rs485_address,
-            )
+        checked_dict = self._check_message(message, multiframe=False)
+        cmd = checked_dict["cmd"]
+        data = checked_dict["data"]
+        if cmd:
+            logger().debug("cmd = %s", cmd)
+            if cmd == b"\x02":  # set_module_information
+                data_list = list(data)
+                old_rs485_address = self._route.rs485_address
+                self._route.rs485_address = data_list[0]
+                logger().info(
+                    "Change RS-485 bus address from %d into %d",
+                    old_rs485_address,
+                    self._route.rs485_address,
+                )
 
     @staticmethod
     def set_lock():

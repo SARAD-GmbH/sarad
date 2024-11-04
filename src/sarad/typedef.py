@@ -77,6 +77,8 @@ class CheckedAnswerDict(TypedDict):
     is_valid: bool
     is_control: bool
     is_last_frame: bool
+    cmd: bytes
+    data: bytes
     payload: bytes
     number_of_bytes_in_payload: int
     raw: bytes

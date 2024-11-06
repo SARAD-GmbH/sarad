@@ -526,7 +526,7 @@ class DacmInst(SaradInst):
                 self.components[component_id].sensors[sensor_id].measurands[
                     measurand_id
                 ].fetched = output["fetched"]
-            except KeyError as exception:
+            except (KeyError, TypeError) as exception:
                 logger().error(
                     "Key error in first fetch of (%d, %d, %d): %s; %s",
                     component_id,
@@ -570,7 +570,7 @@ class DacmInst(SaradInst):
                 self.components[component_id].sensors[sensor_id].measurands[
                     measurand_id
                 ].fetched = output["fetched"]
-            except KeyError as exception:
+            except (KeyError, TypeError) as exception:
                 logger().error("Key error in fetch: %s; %s", exception, output)
                 return {}
             return output

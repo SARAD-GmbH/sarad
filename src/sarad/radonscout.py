@@ -193,8 +193,6 @@ class RscInst(SaradInst):
             except Exception:  # pylint: disable=broad-except
                 logger().error("Unknown error when parsing the payload.")
                 raise
-            else:
-                pass
         else:
             logger().error("Device %s doesn't reply.", self.device_id)
             return False
@@ -504,7 +502,7 @@ class RscInst(SaradInst):
                 self.__wifi["ip_address"] = reply[97:121].rstrip(b"0")
                 self.__wifi["server_port"] = int.from_bytes(reply[121:123], "big")
                 return True
-            except (TypeError, ReferenceError, LookupError) as exception:
+            except (KeyError, TypeError, ReferenceError, LookupError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)
                 return False
         else:

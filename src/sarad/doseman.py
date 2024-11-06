@@ -54,7 +54,7 @@ class DosemanInst(SaradInst):
                         self._valid_family = False
                         return False
                     return True
-                except (TypeError, ReferenceError, LookupError) as exception:
+                except (KeyError, TypeError, ReferenceError, LookupError) as exception:
                     logger().error("Error when parsing the payload: %s", exception)
                     return False
             elif reply[0] == self.RET_INVALID:

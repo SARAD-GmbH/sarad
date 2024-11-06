@@ -19,7 +19,7 @@ from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
 from sarad.global_helpers import sarad_family
 from sarad.instrument import Component, Gps, Route
 from sarad.logger import logger
-from sarad.typedef import (CheckedAnswerDict, CmdDict, FamilyDict, FeatureDict,
+from sarad.typedef import (CheckedAnswerDict, FamilyDict, FeatureDict,
                            MeasurandDict)
 
 SI = TypeVar("SI", bound="SaradInst")
@@ -349,8 +349,12 @@ class SaradInst(Generic[SI]):
 
     def get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""
-        if self.family["family_id"] == 4:
-            self.close_channel()
+        try:
+            if self.family["family_id"] == 4:
+                self.close_channel()
+        except (KeyError, TypeError):
+            logger().error("Call of get_description() with undefined family")
+            return False
         id_cmd = self.family["get_id_cmd"]
         ok_byte = self.family["ok_byte"]
         msg = self._make_command_msg(id_cmd)
@@ -390,7 +394,7 @@ class SaradInst(Generic[SI]):
                     reply[3:5], byteorder=byte_order, signed=False
                 )
                 return True
-            except (TypeError, ReferenceError, LookupError) as exception:
+            except (KeyError, TypeError, ReferenceError, LookupError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)
                 return False
         logger().debug("Get description failed. Instrument replied = %s", reply)

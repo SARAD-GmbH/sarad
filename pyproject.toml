@@ -1,6 +1,6 @@
 [project]
 name = "sarad"
-version = "1.0.12"
+version = "1.0.13"
 description = "Library and sample application to collect data from SARAD instruments."
 authors = [
     {name = "Michael Strey", email = "strey@sarad.de"},
@@ -37,5 +37,6 @@ dev = [
 directory = "doc/changes"
 filename = "CHANGELOG.rst"
 package = "sarad"
+package_dir = "src"
 title_format = "v{version} ({project_date})"
 underlines = ["-", "^", "\""]

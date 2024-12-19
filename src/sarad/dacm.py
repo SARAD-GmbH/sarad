@@ -107,7 +107,7 @@ class DacmInst(SaradInst):
                     self._sanitize_date(year, 1, day)
             elif first_word == "day":
                 self._sanitize_date(year, month, 1)
-        return None
+        return date(1971, 1, 1)
 
     @overrides
     def get_description(self) -> bool:
@@ -134,8 +134,6 @@ class DacmInst(SaradInst):
                 manu_year = int.from_bytes(
                     reply[7:9], byteorder=self._byte_order, signed=False
                 )
-                if manu_year == 65535:
-                    raise ValueError("Manufacturing year corrupted.")
                 self._date_of_manufacture = self._sanitize_date(
                     manu_year, manu_month, manu_day
                 )
@@ -144,8 +142,6 @@ class DacmInst(SaradInst):
                 upd_year = int.from_bytes(
                     reply[11:13], byteorder=self._byte_order, signed=False
                 )
-                if upd_year == 65535:
-                    raise ValueError("Last Update year corrupted.")
                 self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
@@ -167,7 +163,7 @@ class DacmInst(SaradInst):
                 return True and self._get_module_information()
             except Exception as exception:  # pylint: disable=broad-except
                 logger().debug(
-                    "Instrument doesn't belong to DACM family or %s",
+                    "Instrument doesn't belong to DACM family: %s",
                     exception,
                 )
                 self._valid_family = False

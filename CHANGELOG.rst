@@ -5,6 +5,14 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.14 (2025-01-08)
+--------------------
+
+Features
+^^^^^^^^
+
+- support for new device Radon Scout Everywhere
+
 v1.0.13 (2024-12-19)
 --------------------
 

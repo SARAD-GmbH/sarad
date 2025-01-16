@@ -234,11 +234,7 @@ class SaradInst(Generic[SI]):
         """Convert an addressed RS-485 'b-E' frame into a normal 'B-E' frame
 
         by simply replacing the first two bytes with 'B'."""
-        if (
-            (self.route.rs485_address is None)
-            or (self.route.rs485_address == 0)
-            or not frame
-        ):
+        if (self.route.rs485_address is None) or not frame:
             return frame
         frame_list = list(frame)
         if frame_list[0] == 98:  # int representation of "b"

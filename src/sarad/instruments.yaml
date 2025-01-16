@@ -1470,6 +1470,150 @@
         measurands:
         - measurand_id: 1
           measurand_name: fixed
+  - type_id: 21
+    type_name: Radon Scout Everywhere - P
+    components:
+    - component_id: 0
+      component_name: main
+      sensors:
+      - sensor_id: 0
+        sensor_name: temperature
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: °C
+          measurand_source: 4
+      - sensor_id: 1
+        sensor_name: humidity
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: '%'
+          measurand_source: 5
+      - sensor_id: 2
+        sensor_name: pressure
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: hPa
+          measurand_source: 6
+      - sensor_id: 3
+        sensor_name: tilt
+        measurands:
+        - measurand_id: 1
+          measurand_name: total
+          measurand_source: 7
+      - sensor_id: 4
+        sensor_name: battery
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent
+          measurand_unit: V
+          measurand_source: 8
+    - component_id: 1
+      component_name: radon
+      sensors:
+      - sensor_id: 0
+        sensor_name: radon
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: Bq/m³
+          measurand_source: 0
+        - measurand_id: 2
+          measurand_name: error
+          measurand_unit: '%'
+          measurand_operator: ±
+          measurand_source: 1
+        - measurand_id: 3
+          measurand_name: campaign_average
+          measurand_unit: Bq/m³
+          measurand_source: 2
+        - measurand_id: 4
+          measurand_name: camp_avg_error
+          measurand_unit: '%'
+          measurand_operator: ±
+          measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
+  - type_id: 22
+    type_name: Radon Scout Everywhere - CO2
+    components:
+    - component_id: 0
+      component_name: main
+      sensors:
+      - sensor_id: 0
+        sensor_name: temperature
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: °C
+          measurand_source: 4
+      - sensor_id: 1
+        sensor_name: humidity
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: '%'
+          measurand_source: 5
+      - sensor_id: 2
+        sensor_name: co2
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: ppm
+          measurand_source: 6
+      - sensor_id: 3
+        sensor_name: tilt
+        measurands:
+        - measurand_id: 1
+          measurand_name: total
+          measurand_source: 7
+      - sensor_id: 4
+        sensor_name: battery
+        measurands:
+        - measurand_id: 0
+          measurand_name: recent
+          measurand_unit: V
+          measurand_source: 8
+    - component_id: 1
+      component_name: radon
+      sensors:
+      - sensor_id: 0
+        sensor_name: radon
+        measurands:
+        - measurand_id: 1
+          measurand_name: average
+          measurand_unit: Bq/m³
+          measurand_source: 0
+        - measurand_id: 2
+          measurand_name: error
+          measurand_unit: '%'
+          measurand_operator: ±
+          measurand_source: 1
+        - measurand_id: 3
+          measurand_name: campaign_average
+          measurand_unit: Bq/m³
+          measurand_source: 2
+        - measurand_id: 4
+          measurand_name: camp_avg_error
+          measurand_unit: '%'
+          measurand_operator: ±
+          measurand_source: 3
+    - component_id: 255
+      component_name: position
+      sensors:
+      - sensor_id: 0
+        sensor_name: config
+        measurands:
+        - measurand_id: 1
+          measurand_name: fixed
 - family_id: 4
   family_name: Network family
   serial:

@@ -5,6 +5,14 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.16 (2025-01-28)
+--------------------
+
+Features
+^^^^^^^^
+
+- Additional commands for DACM-32
+
 v1.0.15 (2025-01-16)
 --------------------
 

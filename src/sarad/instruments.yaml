@@ -1711,6 +1711,12 @@
   - 0x2D  # GetAlertConfiguration
   - 0x2E  # GetPendingAlerts
   - 0x2F  # AlertConfirmation
+  - 0x30  # ClearEventLog
+  - 0x31  # ReadFirstLogItem
+  - 0x32  # ReadNextLogItem
+  - 0x33  # GetStatus
+  - 0x34  # SetWiFiAccess
+  - 0x35  # GetWiFiAccess
   - 0xC2  # SelectChannel
   - 0xFE  # CoordinatorReset
   - 0xE0  # GetFirstCOM

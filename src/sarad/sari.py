@@ -968,8 +968,14 @@ class SaradInst(Generic[SI]):
     @utc_offset.setter
     def utc_offset(self, utc_offset: int):
         """Set the offset of the instruments RTC to UTC."""
-        self._utc_offset = utc_offset
-        now = datetime.now(timezone(timedelta(hours=utc_offset)))
+        if utc_offset > 13:
+            now = datetime.now(tz=None)
+            self._utc_offset = (
+                datetime.now(timezone.utc).astimezone().utcoffset().seconds / 3600
+            )
+        else:
+            self._utc_offset = utc_offset
+            now = datetime.now(timezone(timedelta(hours=utc_offset)))
         logger().info("Set RTC of %s to %s", self._id, now)
         self.set_real_time_clock(now)
 

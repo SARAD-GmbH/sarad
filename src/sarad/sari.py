@@ -405,7 +405,7 @@ class SaradInst(Generic[SI]):
     def select_channel(self, channel_idx):
         """Start the transparent mode to given ZigBee channel."""
         reply = self.get_reply(
-            [b"\xC2", channel_idx.to_bytes(2, "little")], timeout=self._ser_timeout
+            [b"\xc2", channel_idx.to_bytes(2, "little")], timeout=self._ser_timeout
         )
         if reply and (reply[0] == self.CHANNEL_SELECTED):
             logger().debug("Channel selected: %s", reply)
@@ -415,7 +415,7 @@ class SaradInst(Generic[SI]):
 
     def close_channel(self):
         """Leave the transparent ZigBee mode."""
-        reply = self.get_reply([b"\xC2", b"\x00\x00"], timeout=self._ser_timeout)
+        reply = self.get_reply([b"\xc2", b"\x00\x00"], timeout=self._ser_timeout)
         if reply and (reply[0] == self.CHANNEL_SELECTED):
             return reply
         logger().error("Unexpected reply to close_channel: %s", reply)

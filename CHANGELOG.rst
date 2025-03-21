@@ -5,6 +5,14 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.17 (2025-03-21)
+--------------------
+
+Features
+^^^^^^^^
+
+- Use computer time to set RTC of instrument, if `utc_offset > 13`
+
 v1.0.16 (2025-01-28)
 --------------------
 

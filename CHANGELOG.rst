@@ -5,6 +5,14 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.18 (2025-07-01)
+--------------------
+
+Bugfixes
+^^^^^^^^
+
+- Temperature, pressure and CO2 are always recent values.
+
 v1.0.17 (2025-03-21)
 --------------------
 

@@ -73,10 +73,10 @@ class Measurand:  # pylint: disable=too-many-instance-attributes
         else:
             self.__source = 0
         self.__value: Optional[float] = None
-        self.__time: datetime = datetime.min
+        self.__time: datetime = datetime.fromtimestamp(0)
         self.__operator: str = ""
         self.__gps: Gps = Gps(valid=False)
-        self.__fetched: datetime = datetime.min
+        self.__fetched: datetime = datetime.fromtimestamp(0)
         self.__interval: timedelta = timedelta(0)
 
     def __str__(self) -> str:

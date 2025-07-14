@@ -82,7 +82,7 @@ class SaradCluster(Generic[SI]):
         if rs485_ports is None:
             rs485_ports = {}
         self.__rs485_ports = rs485_ports
-        self.__start_time = datetime.min
+        self.__start_time = datetime.fromtimestamp(0)
         self.__connected_instruments: List[SaradInst] = []
         self.__active_ports: Set[str] = set()
 

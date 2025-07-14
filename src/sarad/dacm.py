@@ -488,13 +488,13 @@ class DacmInst(SaradInst):
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]
-        fetched = (
+        last_sampling_time = (
             self.components[component_id]
             .sensors[sensor_id]
             .measurands[measurand_id]
-            .fetched
+            .time
         )
-        if fetched == datetime.min:
+        if last_sampling_time == datetime.fromtimestamp(0):
             logger().warning("The gathered value might be invalid.")
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)
             try:
@@ -534,10 +534,11 @@ class DacmInst(SaradInst):
                 return {}
             return output
         in_recent_interval = bool(
-            measurand_id == 0 and ((datetime.utcnow() - fetched) < timedelta(seconds=5))
+            measurand_id == 0
+            and ((datetime.utcnow() - last_sampling_time) < timedelta(seconds=5))
         )
         in_main_interval = bool(
-            measurand_id != 0 and ((datetime.utcnow() - fetched) < interval)
+            measurand_id != 0 and ((datetime.utcnow() - last_sampling_time) < interval)
         )
         if not in_main_interval and not in_recent_interval:
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)

@@ -37,7 +37,7 @@ class RscInst(SaradInst):
     @overrides
     def __init__(self, family=sarad_family(2)):
         super().__init__(family)
-        self._last_sampling_time = None
+        self._last_sampling_time = datetime.fromtimestamp(0)
         self.__alarm_level = None
         self.lock = None
         self.__wifi = {
@@ -215,7 +215,6 @@ class RscInst(SaradInst):
         )
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x14", b""], timeout=self._ser_timeout)
-        self._last_sampling_time = datetime.utcnow()
         success = True
         if reply and (reply[0] == ok_byte):
             try:
@@ -246,6 +245,9 @@ class RscInst(SaradInst):
                     tzinfo=timezone.utc,
                 )
                 self._fill_component_tree(source, device_time)
+                self._last_sampling_time = device_time - timedelta(
+                    hours=self.utc_offset
+                )
             except (TypeError, ReferenceError, LookupError, ValueError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)
                 success = False
@@ -294,7 +296,7 @@ class RscInst(SaradInst):
     @overrides
     def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         super().get_recent_value(component_id, sensor_id, measurand_id)
-        if self._last_sampling_time is None:
+        if self._last_sampling_time == datetime.fromtimestamp(0):
             logger().warning("The gathered values might be invalid.")
             if not self.get_all_recent_values():
                 return {}

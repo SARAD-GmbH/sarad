@@ -32,7 +32,6 @@ class DosemanInst(SaradInst):
     @overrides
     def __init__(self, family=sarad_family(1)):
         super().__init__(family)
-        self._last_sampling_time = None
 
     @overrides
     def get_description(self) -> bool:
@@ -155,6 +154,6 @@ class DosemanInst(SaradInst):
         for component in self.components:
             for sensor in component.sensors:
                 sensor.interval = self._interval
-        self._last_sampling_time = datetime.utcnow()
+        self._last_sampling_time = datetime.now(timezone.utc)
         return self.stop_cycle() and self._push_button()
         """

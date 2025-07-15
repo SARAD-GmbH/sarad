@@ -488,7 +488,7 @@ class DacmInst(SaradInst):
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]
-        last_sampling_time = (
+        self._last_sampling_time = (
             self.components[component_id]
             .sensors[sensor_id]
             .measurands[measurand_id]
@@ -535,10 +535,14 @@ class DacmInst(SaradInst):
             return output
         in_recent_interval = bool(
             measurand_id == 0
-            and ((datetime.utcnow() - last_sampling_time) < timedelta(seconds=5))
+            and (
+                (datetime.now(timezone.utc) - self._last_sampling_time)
+                < timedelta(seconds=5)
+            )
         )
         in_main_interval = bool(
-            measurand_id != 0 and ((datetime.utcnow() - last_sampling_time) < interval)
+            measurand_id != 0
+            and ((datetime.now(timezone.utc) - self._last_sampling_time) < interval)
         )
         if not in_main_interval and not in_recent_interval:
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)
@@ -697,7 +701,7 @@ class DacmInst(SaradInst):
         except Exception:  # pylint: disable=broad-except
             gps = Gps(valid=False)
         output["gps"] = gps
-        output["fetched"] = datetime.utcnow()
+        output["fetched"] = datetime.now(timezone.utc)
         return output
 
     def get_date_of_config(self):

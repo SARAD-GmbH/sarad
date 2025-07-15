@@ -37,7 +37,6 @@ class RscInst(SaradInst):
     @overrides
     def __init__(self, family=sarad_family(2)):
         super().__init__(family)
-        self._last_sampling_time = datetime.fromtimestamp(0)
         self.__alarm_level = None
         self.lock = None
         self.__wifi = {
@@ -304,13 +303,16 @@ class RscInst(SaradInst):
             in_recent_interval = bool(
                 measurand_id == 0
                 and (
-                    (datetime.utcnow() - self._last_sampling_time)
+                    (datetime.now(timezone.utc) - self._last_sampling_time)
                     < timedelta(seconds=5)
                 )
             )
             in_main_interval = bool(
                 measurand_id != 0
-                and ((datetime.utcnow() - self._last_sampling_time) < self._interval)
+                and (
+                    (datetime.now(timezone.utc) - self._last_sampling_time)
+                    < self._interval
+                )
             )
             if in_main_interval:
                 logger().debug(

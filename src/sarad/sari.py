@@ -108,7 +108,7 @@ class SaradInst(Generic[SI]):
         self.lock = self.Lock.UNLOCKED
         self._id: str = ""
         self._valid_family = True
-        self._last_sampling_time = None
+        self._last_sampling_time = datetime.fromtimestamp(0)
         self._serial_param_sets: deque = deque(family["serial"])
         self._utc_offset: Union[None, int] = None
         self._interval = timedelta(seconds=0)
@@ -341,7 +341,6 @@ class SaradInst(Generic[SI]):
         logger().debug("valid_family = %s", self._valid_family)
         if self._valid_family:
             self._build_component_dict()
-            self._last_sampling_time = None
 
     def get_description(self) -> bool:
         """Set instrument type, software version, and serial number."""

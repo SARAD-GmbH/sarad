@@ -5,6 +5,24 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.20 (2025-09-04)
+--------------------
+
+Bugfixes
+^^^^^^^^
+
+- Exception handling when unplugging a device during data download.
+
+Features
+^^^^^^^^
+
+- Improved support for new DACM-32 instruments.
+
+Improvements
+^^^^^^^^^^^^
+
+- INCOMPATIBLE CHANGE -- Allow evaluation of return value in set_rtc.
+
 v1.0.19 (2025-07-14)
 --------------------
 

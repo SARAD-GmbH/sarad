@@ -118,7 +118,8 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
-                if reply[29]:
+                dacm32 = reply[29]
+                if dacm32:
                     self._byte_order = "little"
                     logger().debug("DACM-32 with Little-Endian")
                 else:
@@ -137,12 +138,15 @@ class DacmInst(SaradInst):
                 self._date_of_manufacture = self._sanitize_date(
                     manu_year, manu_month, manu_day
                 )
-                upd_day = reply[9]
-                upd_month = reply[10]
-                upd_year = int.from_bytes(
-                    reply[11:13], byteorder=self._byte_order, signed=False
-                )
-                self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
+                if not dacm32:
+                    upd_day = reply[9]
+                    upd_month = reply[10]
+                    upd_year = int.from_bytes(
+                        reply[11:13], byteorder=self._byte_order, signed=False
+                    )
+                    self._date_of_update = self._sanitize_date(
+                        upd_year, upd_month, upd_day
+                    )
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
                 self._component_count = reply[15]

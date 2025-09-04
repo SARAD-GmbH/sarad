@@ -658,7 +658,7 @@ class SaradInst(Generic[SI]):
                     Exception,
                     SerialException,
                 ) as exception:  # pylint: disable=broad-except
-                    logger().critical(exception)
+                    logger().error(exception)
                     raise
         if retry:
             raise BlockingIOError
@@ -671,10 +671,10 @@ class SaradInst(Generic[SI]):
 
     def _try_baudrate(self, serial_params, keep_serial_open, timeout, raw_cmd):
         if keep_serial_open:
-            if self.__ser is None:
-                ser = self._open_serial(serial_params)
-            else:
-                try:
+            try:
+                if self.__ser is None:
+                    ser = self._open_serial(serial_params)
+                else:
                     ser = self.__ser
                     ser.baudrate = serial_params["baudrate"]
                     ser.parity = serial_params["parity"]
@@ -684,11 +684,10 @@ class SaradInst(Generic[SI]):
                         while not ser.is_open:
                             sleep(0.01)
                     logger().debug("Reuse stored serial interface")
-                except (AttributeError, SerialException, OSError):
-                    logger().warning(
-                        "Something went wrong with reopening -> Re-initialize"
-                    )
-                    self.__ser = None
+            except (AttributeError, SerialException, OSError):
+                logger().warning("Something went wrong with reopening -> Re-initialize")
+                self.__ser = None
+                return b""
         else:
             logger().debug("Open serial, don't keep.")
             ser = self._open_serial(serial_params)

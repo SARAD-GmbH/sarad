@@ -379,9 +379,10 @@ class DacmInst(SaradInst):
         return False
 
     @overrides
-    def set_real_time_clock(self, date_time) -> bool:
-        """Set the instrument time."""
+    def set_real_time_clock(self, utc_offset: float) -> bool:
+        super().set_real_time_clock(utc_offset)
         ok_byte = self.family["ok_byte"]
+        date_time = datetime.now(timezone(timedelta(hours=self._utc_offset)))
         instr_datetime = bytearray(
             [
                 date_time.second,
@@ -755,12 +756,12 @@ class DacmInst(SaradInst):
     @property
     def type_name(self) -> str:
         """Return the device type name."""
-        if self.module_name is None:
+        if self._module_name is None:
             for type_in_family in self.family["types"]:
                 if type_in_family["type_id"] == self.type_id:
                     return type_in_family["type_name"]
             return "unknown"
-        return self.module_name
+        return self._module_name
 
     @property
     def geopos(self) -> Gps:

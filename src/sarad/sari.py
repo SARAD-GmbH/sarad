@@ -110,7 +110,7 @@ class SaradInst(Generic[SI]):
         self._valid_family = True
         self._last_sampling_time = datetime.fromtimestamp(0)
         self._serial_param_sets: deque = deque(family["serial"])
-        self._utc_offset: Union[None, int] = None
+        self._utc_offset: Union[None, float] = None
         self._interval = timedelta(seconds=0)
         self._gps = Gps(valid=False)
         self._ser_timeout = self._family.get("ser_timeout", 1)
@@ -774,10 +774,16 @@ class SaradInst(Generic[SI]):
     def stop_cycle(self) -> None:
         """Stop measurement cycle.  Place holder for subclasses."""
 
-    def set_real_time_clock(self, date_time: datetime) -> bool:
+    def set_real_time_clock(self, utc_offset: float) -> bool:
         # pylint: disable=unused-argument
-        """Set RTC of instrument to datetime.  Place holder for subclasses."""
-        return False
+        """Set RTC of instrument according to utc_offset.  Place holder for subclasses."""
+        if utc_offset > 13:
+            self._utc_offset = (
+                datetime.now(timezone.utc).astimezone().utcoffset().seconds / 3600
+            )
+        else:
+            self._utc_offset = utc_offset
+        logger().info("Set RTC of %s with %s h UTC offset", self._id, utc_offset)
 
     def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         """Fill component objects with recent measuring values.
@@ -959,23 +965,9 @@ class SaradInst(Generic[SI]):
         return self._valid_family
 
     @property
-    def utc_offset(self) -> Union[None, int]:
+    def utc_offset(self) -> Union[None, float]:
         """Return the offset of the instruments RTC to UTC."""
         return self._utc_offset
-
-    @utc_offset.setter
-    def utc_offset(self, utc_offset: int):
-        """Set the offset of the instruments RTC to UTC."""
-        if utc_offset > 13:
-            now = datetime.now(tz=None)
-            self._utc_offset = (
-                datetime.now(timezone.utc).astimezone().utcoffset().seconds / 3600
-            )
-        else:
-            self._utc_offset = utc_offset
-            now = datetime.now(timezone(timedelta(hours=utc_offset)))
-        logger().info("Set RTC of %s to %s", self._id, now)
-        self.set_real_time_clock(now)
 
     @property
     def sample_interval(self) -> int:

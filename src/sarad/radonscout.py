@@ -349,8 +349,10 @@ class RscInst(SaradInst):
         return {}
 
     @overrides
-    def set_real_time_clock(self, date_time) -> bool:
+    def set_real_time_clock(self, utc_offset: float) -> bool:
+        super().set_real_time_clock(utc_offset)
         ok_byte = self.family["ok_byte"]
+        date_time = datetime.now(timezone(timedelta(hours=self._utc_offset)))
         instr_datetime = bytearray(
             [
                 date_time.second,

@@ -244,9 +244,12 @@ class RscInst(SaradInst):
                     tzinfo=timezone.utc,
                 )
                 self._fill_component_tree(source, device_time)
-                self._last_sampling_time = device_time - timedelta(
-                    hours=self.utc_offset
-                )
+                if self.utc_offset is not None:
+                    self._last_sampling_time = device_time - timedelta(
+                        hours=self.utc_offset
+                    )
+                else:
+                    self._last_sampling_time = device_time
             except (TypeError, ReferenceError, LookupError, ValueError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)
                 success = False

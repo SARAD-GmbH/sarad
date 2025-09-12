@@ -783,7 +783,7 @@ class SaradInst(Generic[SI]):
             )
         else:
             self._utc_offset = utc_offset
-        logger().info("Set RTC of %s with %s h UTC offset", self._id, utc_offset)
+        logger().info("Set RTC of %s with %s h UTC offset", self._id, self._utc_offset)
 
     def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         """Fill component objects with recent measuring values.

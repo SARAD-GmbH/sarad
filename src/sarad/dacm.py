@@ -499,7 +499,7 @@ class DacmInst(SaradInst):
             .measurands[measurand_id]
             .time
         )
-        if last_sampling_time == datetime.fromtimestamp(0):
+        if self._last_sampling_time == datetime.fromtimestamp(0):
             logger().warning("The gathered value might be invalid.")
             output = self._gather_recent_value(component_id, sensor_id, measurand_id)
             try:

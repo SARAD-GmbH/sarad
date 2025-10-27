@@ -5,6 +5,15 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.21 (2025-10-27)
+--------------------
+
+Bugfixes
+^^^^^^^^
+
+- Permanent timeout error when calling `get_recent_value()` on DACM instruments.
+  (critical error)
+
 v1.0.20 (2025-09-04)
 --------------------
 

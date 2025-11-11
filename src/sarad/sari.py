@@ -322,7 +322,6 @@ class SaradInst(Generic[SI]):
         output = (
             f"Id: {self.device_id}\n"
             f"SerialDevice: {self._route.port}\n"
-            f"Baudrate: {self.family['serial']['baudrate']}\n"
             f"FamilyName: {self.family['family_name']}\n"
             f"FamilyId: {self.family['family_id']}\n"
             f"TypName: {self.type_name}\n"

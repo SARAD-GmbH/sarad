@@ -90,10 +90,11 @@ class SaradCluster(Generic[SI]):
         return iter(self.__connected_instruments)
 
     def _guess_family(self, this_port):
+        guessed_family = None
         family_mapping = [
             (r"(?i)irda", 1),
             (r"(?i)monitor", 5),
-            (r"(?i)scout|(?i)smart", 2),
+            (r"(?i)scout|smart", 2),
             (r"(?i)ft232", 4),
         ]
         for mapping in family_mapping:
@@ -431,7 +432,7 @@ if __name__ == "__main__":
     for connected_instrument in mycluster:
         print(connected_instrument)
         # print(f"Coordinator_reset: {connected_instrument.coordinator_reset()}")
-        print(f"Get_first_channel: {connected_instrument.get_first_channel()}")
+        # print(f"Get_first_channel: {connected_instrument.get_first_channel()}")
         # print(f"Get_next_channel: {connected_instrument.get_next_channel()}")
         # print(f"Close_channel: {connected_instrument.close_channel()}")
 

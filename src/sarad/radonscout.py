@@ -274,10 +274,6 @@ class RscInst(SaradInst):
                             meas_datetime = device_time
                             measurand.interval = self._interval
                         if self._utc_offset is None:
-                            self._utc_offset = self._calc_utc_offset(
-                                self._interval, device_time, datetime.now(timezone.utc)
-                            )
-                        if self._utc_offset is None:
                             measurand.time = meas_datetime.replace(
                                 microsecond=0,
                             )

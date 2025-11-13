@@ -8,7 +8,6 @@ import struct
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from math import ceil
 from time import sleep
 from typing import Any, Dict, Generic, Iterator, List, Literal, TypeVar, Union
 
@@ -130,18 +129,6 @@ class SaradInst(Generic[SI]):
         return False
 
     @staticmethod
-    def _calc_utc_offset(
-        sample_interval: timedelta,
-        timestamp_datetime: datetime,
-        momentary_datetime: datetime,
-    ) -> Union[None, int]:
-        """This method tries to calculate the UTC offset of the RTC."""
-        if sample_interval > timedelta(hours=1):
-            return None
-        t_diff = timestamp_datetime - momentary_datetime
-        logger().debug("t_diff = %s", t_diff)
-        return ceil(t_diff.total_seconds() / 3600)
-
     def _make_command_msg(self, cmd_data: List[bytes]) -> bytes:
         """Encode the message to be sent to the SARAD instrument.
 
@@ -776,7 +763,7 @@ class SaradInst(Generic[SI]):
     def set_real_time_clock(self, utc_offset: float) -> bool:
         # pylint: disable=unused-argument
         """Set RTC of instrument according to utc_offset.  Place holder for subclasses."""
-        if utc_offset > 13:
+        if (utc_offset < -12) or (utc_offset > 14):
             self._utc_offset = (
                 datetime.now(timezone.utc).astimezone().utcoffset().seconds / 3600
             )

@@ -675,10 +675,6 @@ class DacmInst(SaradInst):
                 int(meas_time[2]),
                 tzinfo=timezone.utc,
             )
-            if self._utc_offset is None:
-                self._utc_offset = self._calc_utc_offset(
-                    self._interval, meas_datetime, datetime.now(timezone.utc)
-                )
             output["sample_interval"] = self._interval
         else:
             meas_datetime = datetime.now(timezone.utc)

@@ -129,7 +129,7 @@ class SaradInst(Generic[SI]):
         return False
 
     @staticmethod
-    def _make_command_msg(self, cmd_data: List[bytes]) -> bytes:
+    def _make_command_msg(cmd_data: List[bytes]) -> bytes:
         """Encode the message to be sent to the SARAD instrument.
 
         Arguments are the one byte long command

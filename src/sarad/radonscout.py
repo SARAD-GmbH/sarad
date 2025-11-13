@@ -208,9 +208,9 @@ class RscInst(SaradInst):
     def get_all_recent_values(self):
         """Fill the component objects with recent readings."""
         logger().debug(
-            "get_all_recent_values. Sample interval = %s. Last sampling time = %s",
+            "get_all_recent_values. Sample interval = %s. Last fetch at %s",
             self._interval,
-            self._last_sampling_time,
+            self._last_fetch_time,
         )
         ok_byte = self.family["ok_byte"]
         reply = self.get_reply([b"\x14", b""], timeout=self._ser_timeout)
@@ -244,12 +244,12 @@ class RscInst(SaradInst):
                     tzinfo=timezone.utc,
                 )
                 self._fill_component_tree(source, device_time)
-                if self.utc_offset is not None:
-                    self._last_sampling_time = device_time - timedelta(
+                if self.utc_offset is None:
+                    self._last_fetch_time = datetime.now(timezone.utc)
+                else:
+                    self._last_fetch_time = device_time - timedelta(
                         hours=self.utc_offset
                     )
-                else:
-                    self._last_sampling_time = device_time
             except (TypeError, ReferenceError, LookupError, ValueError) as exception:
                 logger().error("Error when parsing the payload: %s", exception)
                 success = False
@@ -294,7 +294,7 @@ class RscInst(SaradInst):
     @overrides
     def get_recent_value(self, component_id=None, sensor_id=None, measurand_id=None):
         super().get_recent_value(component_id, sensor_id, measurand_id)
-        if self._last_sampling_time == datetime.fromtimestamp(0):
+        if self._last_fetch_time == datetime.fromtimestamp(0):
             logger().warning("The gathered values might be invalid.")
             if not self.get_all_recent_values():
                 return {}
@@ -302,25 +302,26 @@ class RscInst(SaradInst):
             in_recent_interval = bool(
                 measurand_id == 0
                 and (
-                    (datetime.now(timezone.utc) - self._last_sampling_time)
+                    (datetime.now(timezone.utc) - self._last_fetch_time)
                     < timedelta(seconds=5)
                 )
             )
             in_main_interval = bool(
-                measurand_id != 0
+                self._utc_offset is not None
+                and measurand_id != 0
                 and (
-                    (datetime.now(timezone.utc) - self._last_sampling_time)
+                    (datetime.now(timezone.utc) - self._last_fetch_time)
                     < self._interval
                 )
             )
             if in_main_interval:
-                logger().debug(
-                    "We do not have new values yet. Sample interval = %s. Last sampling time = %s",
+                logger().warning(
+                    "We do not have new values yet. Sample interval = %s. Last fetch at %s",
                     self._interval,
-                    self._last_sampling_time,
+                    self._last_fetch_time,
                 )
             elif in_recent_interval:
-                logger().debug(
+                logger().warning(
                     "We don't request recent values faster than every %s.",
                     timedelta(seconds=5),
                 )

@@ -493,116 +493,43 @@ class DacmInst(SaradInst):
         component = self.components[component_id]
         sensor = component.sensors[sensor_id]
         measurand = sensor.measurands[measurand_id]
-        self._last_sampling_time = (
-            self.components[component_id]
-            .sensors[sensor_id]
-            .measurands[measurand_id]
-            .time
-        )
-        if self._last_sampling_time == datetime.fromtimestamp(0):
-            logger().warning("The gathered value might be invalid.")
-            output = self._gather_recent_value(component_id, sensor_id, measurand_id)
-            try:
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].name = output["measurand_name"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].operator = output["measurand_operator"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].value = output["value"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].unit = output["measurand_unit"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].time = output["datetime"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].interval = output["sample_interval"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].gps = output["gps"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].fetched = output["fetched"]
-            except (KeyError, TypeError) as exception:
-                logger().error(
-                    "Key error in first fetch of (%d, %d, %d): %s; %s",
-                    component_id,
-                    sensor_id,
-                    measurand_id,
-                    exception,
-                    output,
-                )
-                return {}
-            return output
-        in_recent_interval = bool(
-            measurand_id == 0
-            and (
-                (datetime.now(timezone.utc) - self._last_sampling_time)
-                < timedelta(seconds=5)
+        output = self._gather_recent_value(component_id, sensor_id, measurand_id)
+        try:
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].name = output["measurand_name"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].operator = output["measurand_operator"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].value = output["value"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].unit = output["measurand_unit"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].time = output["datetime"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].interval = output["sample_interval"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].gps = output["gps"]
+            self.components[component_id].sensors[sensor_id].measurands[
+                measurand_id
+            ].fetched = output["fetched"]
+        except (KeyError, TypeError) as exception:
+            logger().error(
+                "Key error in fetch of (%d, %d, %d): %s; %s",
+                component_id,
+                sensor_id,
+                measurand_id,
+                exception,
+                output,
             )
-        )
-        in_main_interval = bool(
-            measurand_id != 0
-            and ((datetime.now(timezone.utc) - self._last_sampling_time) < interval)
-        )
-        if not in_main_interval and not in_recent_interval:
-            output = self._gather_recent_value(component_id, sensor_id, measurand_id)
-            try:
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].name = output["measurand_name"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].operator = output["measurand_operator"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].value = output["value"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].unit = output["measurand_unit"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].time = output["datetime"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].interval = output["sample_interval"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].gps = output["gps"]
-                self.components[component_id].sensors[sensor_id].measurands[
-                    measurand_id
-                ].fetched = output["fetched"]
-            except (KeyError, TypeError) as exception:
-                logger().error("Key error in fetch: %s; %s", exception, output)
-                return {}
-            return output
-        if in_main_interval:
-            logger().info(
-                "We do not have new values yet. Sample interval = %s.",
-                interval,
-            )
-        elif in_recent_interval:
-            logger().info(
-                "We don't request recent values faster than every %s.",
-                timedelta(seconds=5),
-            )
-        self._gps = Gps(valid=measurand.gps)
-        return {
-            "component_name": component.name,
-            "sensor_name": sensor.name,
-            "measurand_name": measurand.name,
-            "measurand_operator": measurand.operator,
-            "measurand": f"{measurand.operator} {measurand.value} {measurand.unit}",
-            "value": measurand.value,
-            "measurand_unit": measurand.unit,
-            "datetime": measurand.time,
-            "sample_interval": measurand.interval,
-            "gps": measurand.gps,
-        }
+            return {}
+        return output
 
     def _gather_recent_value(self, component_id, sensor_id, measurand_id):
         repeat_counter = 2

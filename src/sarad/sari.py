@@ -107,7 +107,7 @@ class SaradInst(Generic[SI]):
         self.lock = self.Lock.UNLOCKED
         self._id: str = ""
         self._valid_family = True
-        self._last_sampling_time = datetime.fromtimestamp(0)
+        self._last_fetch_time = datetime.fromtimestamp(0)
         self._serial_param_sets: deque = deque(family["serial"])
         self._utc_offset: Union[None, float] = None
         self._interval = timedelta(seconds=0)

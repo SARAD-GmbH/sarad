@@ -97,6 +97,7 @@ class RscInst(SaradInst):
                         TimeoutError,
                         socket.timeout,
                         ConnectionResetError,
+                        OSError,
                     ) as exception:
                         logger().error(
                             "Exception in get_transparent_reply: %s", exception

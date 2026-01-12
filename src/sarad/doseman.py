@@ -154,6 +154,6 @@ class DosemanInst(SaradInst):
         for component in self.components:
             for sensor in component.sensors:
                 sensor.interval = self._interval
-        self._last_sampling_time = datetime.now(timezone.utc)
+        self._last_fetch_time = datetime.now(timezone.utc)
         return self.stop_cycle() and self._push_button()
         """

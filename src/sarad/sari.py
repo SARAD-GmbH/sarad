@@ -731,6 +731,7 @@ class SaradInst(Generic[SI]):
                         TimeoutError,
                         socket.timeout,
                         ConnectionResetError,
+                        OSError,
                     ) as exception:
                         logger().error("Error in socket communication: %s", exception)
             self._destroy_socket()

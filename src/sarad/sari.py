@@ -654,12 +654,9 @@ class SaradInst(Generic[SI]):
                         "%s. Waiting 1 s and retrying to connect.", exception
                     )
                     sleep(1)
-                except (
-                    Exception,
-                    SerialException,
-                ) as exception:  # pylint: disable=broad-except
+                except Exception as exception:  # pylint: disable=broad-except
                     logger().error(exception)
-                    raise
+                    return None
         if retry:
             raise BlockingIOError
         while not ser.is_open:
@@ -684,7 +681,7 @@ class SaradInst(Generic[SI]):
                         while not ser.is_open:
                             sleep(0.01)
                     logger().debug("Reuse stored serial interface")
-            except (AttributeError, SerialException, OSError):
+            except Exception:
                 logger().warning("Something went wrong with reopening -> Re-initialize")
                 self.__ser = None
                 return b""
@@ -693,7 +690,7 @@ class SaradInst(Generic[SI]):
             ser = self._open_serial(serial_params)
         try:
             ser.timeout = timeout
-        except SerialException as exception:
+        except Exception as exception:
             logger().error(exception)
             return b""
         logger().debug("Tx to %s: %s", ser.port, raw_cmd)

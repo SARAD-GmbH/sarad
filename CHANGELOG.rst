@@ -5,7 +5,7 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
-v1.0.23 (2026-03-23)
+v1.0.24 (2026-03-23)
 --------------------
 
 Bugfixes

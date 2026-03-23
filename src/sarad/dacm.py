@@ -164,7 +164,7 @@ class DacmInst(SaradInst):
                     self._date_of_manufacture,
                     self._date_of_update,
                 )
-                return True
+                return True and self._get_module_information(set_bus_address=False)
             except Exception as exception:  # pylint: disable=broad-except
                 logger().debug(
                     "Instrument doesn't belong to DACM family: %s",
@@ -181,7 +181,6 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get module information successful.")
             try:
-                self._route.rs485_address = reply[1]
                 config_day = reply[2]
                 config_month = reply[3]
                 config_year = int.from_bytes(

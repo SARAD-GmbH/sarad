@@ -164,7 +164,7 @@ class DacmInst(SaradInst):
                     self._date_of_manufacture,
                     self._date_of_update,
                 )
-                return True and self._get_module_information(set_bus_address=False)
+                return True and self._get_module_information()
             except Exception as exception:  # pylint: disable=broad-except
                 logger().debug(
                     "Instrument doesn't belong to DACM family: %s",

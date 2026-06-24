@@ -317,9 +317,14 @@ class RscInst(SaradInst):
             )
             if in_main_interval:
                 logger().warning(
-                    "We do not have new values yet. Sample interval = %s. Last fetch at %s",
+                    """%s hasn't new values yet.
+                    Sample interval = %s
+                    Last fetch at %s
+                    UTC offset=%.1f""",
+                    self.device_id,
                     self._interval,
                     self._last_fetch_time,
+                    self._utc_offset,
                 )
             elif in_recent_interval:
                 logger().warning(

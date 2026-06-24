@@ -118,13 +118,6 @@ class DacmInst(SaradInst):
         if reply and (reply[0] == ok_byte):
             logger().debug("Get description successful.")
             try:
-                dacm32 = reply[29]
-                if dacm32:
-                    self._byte_order = "little"
-                    logger().debug("DACM-32 with Little-Endian")
-                else:
-                    self._byte_order = "big"
-                    logger().debug("DACM-8 with Big-Endian")
                 self._type_id = reply[1]
                 self._software_version = reply[2]
                 self._serial_number = int.from_bytes(
@@ -138,15 +131,12 @@ class DacmInst(SaradInst):
                 self._date_of_manufacture = self._sanitize_date(
                     manu_year, manu_month, manu_day
                 )
-                if not dacm32:
-                    upd_day = reply[9]
-                    upd_month = reply[10]
-                    upd_year = int.from_bytes(
-                        reply[11:13], byteorder=self._byte_order, signed=False
-                    )
-                    self._date_of_update = self._sanitize_date(
-                        upd_year, upd_month, upd_day
-                    )
+                upd_day = reply[9]
+                upd_month = reply[10]
+                upd_year = int.from_bytes(
+                    reply[11:13], byteorder=self._byte_order, signed=False
+                )
+                self._date_of_update = self._sanitize_date(upd_year, upd_month, upd_day)
                 self._module_blocksize = reply[13]
                 self._component_blocksize = reply[14]
                 self._component_count = reply[15]
@@ -156,8 +146,8 @@ class DacmInst(SaradInst):
                 self._cycle_count_limit = reply[25]
                 self._step_count_limit = reply[26]
                 self._language = reply[27]
-                logger().debug(
-                    "type_id: %d, sw_ver: %d, sn: %d, manu: %s, update: %s",
+                logger().info(
+                    "DACM-8 type_id: %d, sw_ver: %d, sn: %d, manu: %s, update: %s",
                     self._type_id,
                     self._software_version,
                     self._serial_number,
@@ -167,7 +157,7 @@ class DacmInst(SaradInst):
                 return True and self._get_module_information()
             except Exception as exception:  # pylint: disable=broad-except
                 logger().debug(
-                    "Instrument doesn't belong to DACM family: %s",
+                    "Instrument doesn't belong to DACM-8 family: %s",
                     exception,
                 )
                 self._valid_family = False
@@ -699,3 +689,91 @@ class DacmInst(SaradInst):
     def geopos(self, gps: Gps):
         """Set the geographic position of the instrument."""
         self._gps = gps
+
+
+class Dacm32Inst(DacmInst):
+    # pylint: disable=too-many-instance-attributes
+    """Instrument with DACM-32 communication protocol
+
+    Inherited properties:
+        port: String containing the serial communication port
+        family: Device family of the instrument expected to be at this port
+        device_id: Identifier for an individual instrument in a cluster
+        type_id
+        software_version
+        serial_number
+        components: List of sensor or actor components
+    Inherited methods from SaradInst:
+        get_reply()
+    Public methods:
+        set_real_time_clock()
+        stop_cycle()
+        start_cycle()
+        get_all_recent_values()
+        get_recent_value(index)"""
+
+    @overrides
+    def __init__(self, family=sarad_family(6)):
+        super().__init__(family)
+        self._byte_order: Literal["little", "big"] = "little"
+        self._software_subversion = 0
+        self._module_availability = 0
+        self._number_of_bit_controlled_components = 0
+        self._max_number_of_alerts = 0
+        self._reserved = 0
+
+    @overrides
+    def get_description(self) -> bool:
+        """Get descriptive data about DACM-32 instrument."""
+        ok_byte = self.family["ok_byte"]
+        id_cmd = self.family["get_id_cmd"]
+        reply = self.get_reply(id_cmd, timeout=self._ser_timeout)
+        if reply and (reply[0] == ok_byte):
+            logger().debug("Get description successful.")
+            try:
+                self._type_id = reply[9]
+                self._software_version = reply[2]
+                self._serial_number = int.from_bytes(
+                    reply[3:5], byteorder=self._byte_order, signed=False
+                )
+                manu_day = reply[5]
+                manu_month = reply[6]
+                manu_year = int.from_bytes(
+                    reply[7:9], byteorder=self._byte_order, signed=False
+                )
+                self._date_of_manufacture = self._sanitize_date(
+                    manu_year, manu_month, manu_day
+                )
+                self._software_subversion = int.from_bytes(
+                    reply[11:13], byteorder=self._byte_order, signed=False
+                )
+                self._module_blocksize = reply[13]
+                self._component_blocksize = reply[14]
+                self._component_count = reply[15]
+                self._bit_ctrl = BitVector(rawbytes=reply[16:20])
+                self._value_ctrl = BitVector(rawbytes=reply[20:24])
+                self._cycle_blocksize = reply[24]
+                self._cycle_count_limit = reply[25]
+                self._step_count_limit = reply[26]
+                self._language = reply[27]
+                self._module_availability = reply[28]
+                self._number_of_bit_controlled_components = reply[30]
+                self._max_number_of_alerts = reply[31]
+                self._reserved = reply[32]
+                logger().info(
+                    "DACM-32 type_id: %d, sw_ver: %d, sw_sub: %d, sn: %d, manu: %s",
+                    self._type_id,
+                    self._software_version,
+                    self._software_subversion,
+                    self._serial_number,
+                    self._date_of_manufacture,
+                )
+                return True and self._get_module_information()
+            except Exception as exception:  # pylint: disable=broad-except
+                logger().debug(
+                    "Instrument doesn't belong to DACM-32 family: %s",
+                    exception,
+                )
+                self._valid_family = False
+                return False
+        return False

@@ -1645,7 +1645,7 @@
   - type_id: 200
     type_name: ZigBee Coordinator
 - family_id: 5
-  family_name: DACM family
+  family_name: DACM-8 family
   serial:
     - baudrate: 9600
       parity: N
@@ -1721,11 +1721,101 @@
   - 0xFE  # CoordinatorReset
   - 0xE0  # GetFirstCOM
   - 0xE2  # SelectCOM
+  types:
+  - type_id: 2
+    type_name: RTM 2200
+- family_id: 6
+  family_name: DACM-32 family
+  serial:
+    - baudrate: 9600
+      parity: N
+    - baudrate: 256000
+      parity: N
+  get_id_cmd:
+  - !!binary |
+    DA==
+  - !!binary |
+    /wAA
+  length_of_reply: 32
+  tx_msg_delay: 0
+  tx_byte_delay: 0
+  ser_timeout: 0.5
+  ext_ser_timeout: 6
+  ok_byte: 10
+  byte_order: little
+  allowed_cmds:
+  - 0x01  # GetModuleInformation
+  - 0x02  # SetModuleInformation
+  - 0x03  # GetComponentInformation
+  - 0x04  # GetComponentConfiguration
+  - 0x05  # SetComponentConfiguration
+  - 0x06  # ReadCycleStart
+  - 0x07  # ReadCycleContinue
+  - 0x08  # WriteCycleStart
+  - 0x09  # WriteCycleFinish
+  - 0x0A  # ClearAllCycles
+  - 0x0B  # ResetComponentConfiguration
+  - 0x0C  # GetId
+  - 0x0D  # ClearMemoryCard
+  - 0x0E  # ReadDataStart
+  - 0x0F  # ReadDataContinue
+  - 0x10  # SetClock
+  - 0x11  # ReadModuleIdentification (from memory card)
+  - 0x12  # ReadComponentConfiguration (from memory card)
+  - 0x13  # ReadComponentInformation (from memory card)
+  - 0x14  # ReadDataMemoryStatus (from memory card)
+  - 0x15  # StartCycle
+  - 0x16  # StopCycle
+  - 0x17  # ResetMemoryCard
+  - 0x18  # GetModuleSettings
+  - 0x19  # SetModuleSettings
+  - 0x1A  # GetComponentResult
+  - 0x1B  # ReadModuleInformation (from memory card)
+  - 0x1C  # ReadSelectedDataStart
+  - 0x1D  # GetExtComponentConfiguration (from EEPROM)
+  - 0x1E  # SetExtComponentConfiguration (on EEPROM)
+  - 0x1F  # ReadExtComponentConfiguration (from memory card)
+  - 0x20  # GetClock
+  - 0x21  # ClearPortToken
+  - 0x22  # SetComponentConfigurationStart (on EEPROM)
+  - 0x23  # SetComponentConfigurationStop (on EEPROM)
+  - 0x24  # GetComponentConfigurationStart
+  - 0x25  # GetComponentConfigurationContinue
+  - 0x26  # ReadComponentConfigurationStart
+  - 0x27  # ReadComponentConfigurationContinue
+  - 0x28  # SetResultStyle
+  - 0x29  # GetResultStyle
+  - 0x2A  # SetDisplayControl
+  - 0x2B  # GetDisplayControl
+  - 0x2C  # SetAlertConfiguration
+  - 0x2D  # GetAlertConfiguration
+  - 0x2E  # GetPendingAlerts
+  - 0x2F  # AlertConfirmation
+  - 0x30  # ClearEventLog
+  - 0x31  # ReadFirstLogItem
+  - 0x32  # ReadNextLogItem
+  - 0x33  # GetStatus
+  - 0x34  # SetWiFiAccess
+  - 0x35  # GetWiFiAccess
+  - 0xC2  # SelectChannel
+  - 0xFE  # CoordinatorReset
+  - 0xE0  # GetFirstCOM
+  - 0xE2  # SelectCOM
   - 0x36  # UserLogin
   - 0x37  # UserLogout
   - 0x38  # UserCreate
   - 0x39  # UserDelete
   - 0x3A  # UserGet
   types:
+  - type_id: 1
+    type_name: RTM 2300
   - type_id: 2
-    type_name: RTM 2200
+    type_name: RPM 2300
+  - type_id: 3
+    type_name: EQF 3300
+  - type_id: 4
+    type_name: EQF 3320
+  - type_id: 5
+    type_name: Aer 5300
+  - type_id: 6
+    type_name: Aer 5340

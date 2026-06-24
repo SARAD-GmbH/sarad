@@ -366,6 +366,8 @@ class SaradInst(Generic[SI]):
                     if reply[29]:
                         byte_order: Literal["little", "big"] = "little"
                         logger().debug("DACM-32 with Little-Endian")
+                        self._family = sarad_family(6)
+                        self._type_id = reply[9]
                     else:
                         byte_order = "big"
                         logger().debug("DACM-8 with Big-Endian")

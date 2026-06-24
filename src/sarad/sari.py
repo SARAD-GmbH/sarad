@@ -13,7 +13,8 @@ from typing import Any, Dict, Generic, Iterator, List, Literal, TypeVar, Union
 
 from BitVector import BitVector  # type: ignore
 from serial import STOPBITS_ONE  # type: ignore
-from serial import PARITY_EVEN, PARITY_NONE, Serial, SerialException
+from serial import (PARITY_EVEN, PARITY_NONE, PortNotOpenError, Serial,
+                    SerialException)
 
 from sarad.global_helpers import sarad_family
 from sarad.instrument import Component, Gps, Route
@@ -687,7 +688,13 @@ class SaradInst(Generic[SI]):
             sleep(self._family["tx_msg_delay"])
             for element in raw_cmd:
                 byte = (element).to_bytes(1, "big")
-                ser.write(byte)
+                try:
+                    ser.write(byte)
+                except [OSError, PortNotOpenError, SerialException] as exception:
+                    logger().error(exception)
+                    if ser.is_open:
+                        self.__ser = self._close_serial(ser, False)
+                    return b""
                 sleep(self._family["tx_byte_delay"])
             self._new_rs485_address(raw_cmd)
         logger().debug("Read one BE frame")

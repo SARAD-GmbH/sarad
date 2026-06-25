@@ -5,6 +5,20 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.26 (2026-06-25)
+--------------------
+
+Bugfixes
+^^^^^^^^
+
+- Improved stability in cases where other applications are competing for access
+  to the serial port.
+
+Features
+^^^^^^^^
+
+- Support for DACM-32 as new instrument family
+
 v1.0.25 (2026-03-23)
 --------------------
 

@@ -638,7 +638,7 @@ class SaradInst(Generic[SI]):
                         stopbits=STOPBITS_ONE,
                     )
                     retry = False
-                except BlockingIOError as exception:
+                except (BlockingIOError, OSError) as exception:
                     logger().error(
                         "%s. Waiting 1 s and retrying to connect.", exception
                     )

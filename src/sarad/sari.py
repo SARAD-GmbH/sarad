@@ -644,8 +644,11 @@ class SaradInst(Generic[SI]):
                     )
                     sleep(1)
                 except Exception as exception:  # pylint: disable=broad-except
-                    logger().error(exception)
-                    return None
+                    logger().error("Exception in _open_serial(): %s", exception)
+                    if exception == "(22, 'Invalid argument')":
+                        sleep(1)
+                    else:
+                        return None
         if retry:
             raise BlockingIOError
         while not ser.is_open:
@@ -680,7 +683,7 @@ class SaradInst(Generic[SI]):
         try:
             ser.timeout = timeout
         except Exception as exception:
-            logger().error(exception)
+            logger().error("Exception in _try_baudrate(): %s", exception)
             return b""
         logger().debug("Tx to %s: %s", ser.port, raw_cmd)
         ser.inter_byte_timeout = timeout
@@ -690,8 +693,8 @@ class SaradInst(Generic[SI]):
                 byte = (element).to_bytes(1, "big")
                 try:
                     ser.write(byte)
-                except [OSError, PortNotOpenError, SerialException] as exception:
-                    logger().error(exception)
+                except (OSError, PortNotOpenError, SerialException) as exception:
+                    logger().error("Exception in ser.write():", exception)
                     if ser.is_open:
                         self.__ser = self._close_serial(ser, False)
                     return b""

@@ -3,6 +3,7 @@
 SaradInst comprises all attributes and methods
 that all SARAD instruments have in common."""
 
+import os
 import socket
 import struct
 from collections import deque
@@ -638,17 +639,16 @@ class SaradInst(Generic[SI]):
                         stopbits=STOPBITS_ONE,
                     )
                     retry = False
-                except (BlockingIOError, OSError) as exception:
+                except BlockingIOError as exception:
                     logger().error(
                         "%s. Waiting 1 s and retrying to connect.", exception
                     )
                     sleep(1)
                 except Exception as exception:  # pylint: disable=broad-except
                     logger().error("Exception in _open_serial(): %s", exception)
-                    if exception == "(22, 'Invalid argument')":
-                        sleep(1)
-                    else:
-                        return None
+                    if str(exception) == "(22, 'Invalid argument')":
+                        logger().info(serial_params)
+                    return None
         if retry:
             raise BlockingIOError
         while not ser.is_open:
@@ -734,6 +734,13 @@ class SaradInst(Generic[SI]):
         logger().debug("Possible parameter sets: %s", self._serial_param_sets)
         result = b""
         for _i in range(len(self._serial_param_sets)):
+            if (os.name == "posix") and (
+                self._serial_param_sets[0]["baudrate"] == 256000
+            ):
+                logger().warning(
+                    "%s is not supported by Linux.", self._serial_param_sets[0]
+                )
+                return result
             logger().debug(
                 "Try to send %s with %s", raw_cmd, self._serial_param_sets[0]
             )
@@ -926,6 +933,11 @@ class SaradInst(Generic[SI]):
     def type_id(self) -> int:
         """Return the device type id."""
         return self._type_id
+
+    @type_id.setter
+    def type_id(self, type_id: int):
+        """Set the instrument type."""
+        self._type_id = type_id
 
     @property
     def type_name(self) -> str:

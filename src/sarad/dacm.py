@@ -732,6 +732,8 @@ class Dacm32Inst(DacmInst):
             logger().debug("Get description successful.")
             try:
                 self._type_id = reply[9]
+                if not self._type_id:
+                    self._type_id = 1  # dirty workaround for badly flashed devices
                 self._software_version = reply[2]
                 self._serial_number = int.from_bytes(
                     reply[3:5], byteorder=self._byte_order, signed=False

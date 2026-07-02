@@ -5,6 +5,16 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 
 .. towncrier release notes start
 
+v1.0.27 (2026-07-02)
+--------------------
+
+Changes
+^^^^^^^
+
+- Use information from database for type name of DACM-32 instruments instead of
+  the configured module name.
+
+
 v1.0.26 (2026-06-25)
 --------------------
 

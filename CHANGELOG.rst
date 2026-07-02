@@ -8,6 +8,11 @@ Versions follow `Semantic Versioning <https://semver.org/>`_ (``<major>.<minor>.
 v1.0.27 (2026-07-02)
 --------------------
 
+Bugfixes
+^^^^^^^^
+
+- Improve error behaviour of serial interface.
+
 Changes
 ^^^^^^^
 

@@ -779,3 +779,12 @@ class Dacm32Inst(DacmInst):
                 self._valid_family = False
                 return False
         return False
+
+    @overrides
+    @property
+    def type_name(self) -> str:
+        """Return the device type name."""
+        for type_in_family in self.family["types"]:
+            if type_in_family["type_id"] == self.type_id:
+                return type_in_family["type_name"]
+        return self._module_name
